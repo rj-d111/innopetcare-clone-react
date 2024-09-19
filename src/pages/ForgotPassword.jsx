@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { FaChevronLeft } from "react-icons/fa6";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import OAuth from "../components/OAuth";
+import { getAuth, sendPasswordResetEmail } from "firebase/auth";
+import { toast } from "react-toastify";
 
 export default function ForgotPassword() {
 
@@ -10,6 +12,19 @@ export default function ForgotPassword() {
   function onChange(e) {
       setEmail(e.target.value);
     };
+  
+  const navigate = useNavigate();
+  async function onSubmit(e){
+    e.preventDefault();
+    try {
+      const auth = getAuth();
+      await sendPasswordResetEmail(auth, email);
+      toast.success("Email was sent");
+      navigate("/login");
+    } catch (error) {
+      toast.error("Could not send reset password");
+    }
+  }
 
   return (
     <div className="bg-gray-100">
@@ -45,7 +60,7 @@ export default function ForgotPassword() {
             <p className="text-gray-600 text-sm mb-6 text-center mt-1">
               Enter yout email and we'll send you a link to reset your password
             </p>
-            <form action="LoginController" method="POST">
+            <form onSubmit={onSubmit}>
               <div className="mb-5">
                 <label htmlFor="email" className="block text-gray-500 mb-2">
                   Email

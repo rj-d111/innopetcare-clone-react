@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import OAuth from "../components/OAuth";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import {toast} from "react-toastify";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import {db} from "../firebase";
 
 export default function Login() {
