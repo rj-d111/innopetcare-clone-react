@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import OAuth from "../components/OAuth";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { db } from "../firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,25 +17,52 @@ export default function Register() {
     phone: "",
   });
   const [error, setError] = useState("");
+  const [showError, setShowError] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   const { name, phone, email, password, confirm_password } = formData;
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (error) {
+      setShowError(true);
+      setCountdown(5);
 
-  function onChange(e) {
+      const countdownTimer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === 1) {
+            clearInterval(countdownTimer);
+            setShowError(false);
+            setError(""); // Clear error after fading out
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(countdownTimer);
+    }
+  }, [error]);
+
+  const closeError = () => {
+    setShowError(false);
+    setError(""); // Clear error when closed
+  };
+
+  const onChange = (e) => {
     setFormData((prevState) => ({
       ...prevState,
       [e.target.id]: e.target.value,
     }));
     setError(""); // Clear error on change
-  }
+  };
 
-  async function onSubmit(e) {
+  const onSubmit = async (e) => {
     e.preventDefault();
 
     // Validation
     if (!name || !email || !password || !confirm_password || !phone) {
-      setError("Please fill the required fields");
+      setError("Please fill all the required fields");
       return;
     }
 
@@ -68,15 +95,14 @@ export default function Register() {
       setError("The phone number must start with 9 and be followed by 9 digits.");
       return;
     }
-    
+
     try {
       const auth = getAuth();
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      updateProfile(auth.currentUser, {
+      await updateProfile(auth.currentUser, {
         displayName: name,
       });
       const user = userCredential.user;
-      console.log(user);
 
       const formDataCopy = { ...formData };
       delete formDataCopy.password;
@@ -86,18 +112,15 @@ export default function Register() {
 
       await setDoc(doc(db, "users", user.uid), formDataCopy);
       navigate("/");
+      toast.success("Success! Your account has been created!");
     } catch (error) {
-
-
       if (error.code === "auth/email-already-in-use") {
         setError("Email address already in use. Please sign in.");
-      }
-      else{
+      } else {
         setError(error.message || "An unexpected error occurred.");
       }
-      console.log(error);
     }
-  }
+  };
 
   return (
     <section className="bg-gray-100 min-h-screen flex items-center justify-center">
@@ -121,9 +144,12 @@ export default function Register() {
             </p>
           </div>
 
-          {error && (
-            <div className="bg-red-500 text-white p-4 rounded-lg mb-4">
-              {error}
+          {showError && (
+            <div className="flex justify-between items-center bg-red-500 text-white p-4 rounded-lg mb-4 transition-opacity duration-500">
+              <span>{error} (Will be closed in {countdown} seconds)</span>
+              <button onClick={closeError} className="text-white font-bold">
+                &times;
+              </button>
             </div>
           )}
 
