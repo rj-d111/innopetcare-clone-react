@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import OAuth from "../components/OAuth";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import {toast} from "react-toastify";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import {db} from "../firebase";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -10,11 +14,44 @@ export default function Login() {
     password: "",
   });
   const { email, password } = formData;
+  const navigate = useNavigate();
   function onChange(e) {
     setFormData((prevState) => ({
       ...prevState,
       [e.target.id]: e.target.value,
     }));
+  }
+  async function onSubmit(e){
+    e.preventDefault();
+    try {
+      const auth = getAuth();
+      const userCredential = await 
+      signInWithEmailAndPassword(auth, email, password)
+      if (userCredential.user) {
+        const user = userCredential.user;
+  
+        // Navigate to another page if successful
+        navigate("/");
+  
+        // Fetch the user document from Firestore using the user's uid
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+  
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          
+          // Access the name field from the fetched document
+          const userName = userData.name;
+  
+          // Display the user's name in a success toast
+          toast.success(`Welcome, ${userName}`);
+        } else {
+          console.log("No such document!");
+        }
+      }
+    } catch (error) {
+      toast.error("Invalid user credentials");
+    }
   }
   return (
     <div className="bg-gray-100">
@@ -51,7 +88,7 @@ export default function Login() {
             <p className="text-gray-600 text-sm mb-6 text-center mt-1">
               Let's work together to care for our furry friends.
             </p>
-            <form action="LoginController" method="POST">
+            <form onSubmit={onSubmit}>
               <div className="mb-5">
                 <label htmlFor="email" className="block text-gray-500 mb-2">
                   Email
