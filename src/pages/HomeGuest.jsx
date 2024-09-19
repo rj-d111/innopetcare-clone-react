@@ -18,7 +18,7 @@ export default function HomeGuest() {
           href="/options"
           className="inline-block mt-8 bg-white text-gray-800 px-6 py-3 rounded-lg font-semibold"
         >
-          Start Creating
+          Get Started
         </a>
       </div>
     </section>

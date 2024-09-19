@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import OAuth from "../components/OAuth";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 import { db } from "../firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
@@ -92,23 +96,33 @@ export default function Register() {
     }
 
     if (!/^9\d{9}$/.test(phone)) {
-      setError("The phone number must start with 9 and be followed by 9 digits.");
+      setError(
+        "The phone number must start with 9 and be followed by 9 digits."
+      );
       return;
     }
 
     try {
       const auth = getAuth();
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       await updateProfile(auth.currentUser, {
         displayName: name,
       });
       const user = userCredential.user;
+
+      console.log(user);
 
       const formDataCopy = { ...formData };
       delete formDataCopy.password;
       delete formDataCopy.confirm_password;
       formDataCopy.phone = "+63" + formDataCopy.phone;
       formDataCopy.timestamp = serverTimestamp();
+      // Add the user.isVerified field
+      formDataCopy.isVerified = false;
 
       await setDoc(doc(db, "users", user.uid), formDataCopy);
       navigate("/");
@@ -146,7 +160,9 @@ export default function Register() {
 
           {showError && (
             <div className="flex justify-between items-center bg-red-500 text-white p-4 rounded-lg mb-4 transition-opacity duration-500">
-              <span>{error} (Will be closed in {countdown} seconds)</span>
+              <span>
+                {error} (Will be closed in {countdown} seconds)
+              </span>
               <button onClick={closeError} className="text-white font-bold">
                 &times;
               </button>
@@ -226,7 +242,10 @@ export default function Register() {
               </div>
             </div>
             <div className="mb-5">
-              <label htmlFor="confirm_password" className="block text-gray-500 mb-2">
+              <label
+                htmlFor="confirm_password"
+                className="block text-gray-500 mb-2"
+              >
                 Confirm Password
               </label>
               <input

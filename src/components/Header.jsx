@@ -6,8 +6,9 @@ export default function Header() {
       <header className="flex justify-between items-center p-4 bg-yellow-900">
         <a href="/"><img src="/images/innopetcare-white.png" alt="Innopetcare logo" className="h-8 cursor-pointer" /></a>
         <div className='hidden md:block'>
-          <Link to="/login" className="text-white pr-4 cursor-pointer">Login</Link>
-          <Link to="/options" className="bg-white px-4 py-2 rounded cursor-pointer">Start Creating</Link>
+          <Link to="/content-listing-page" className="text-white pr-4 cursor-pointer">Explore Clinics & Shelters</Link>
+          <Link to="/options" className="text-white pr-4 cursor-pointer">Login</Link>
+          <Link to="/login" className="bg-white px-4 py-2 rounded cursor-pointer">Get Started</Link>
         </div>
       </header>
   );
