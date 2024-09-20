@@ -23,7 +23,7 @@ export default function Header() {
     }
   }
   return (
-    <header className="flex justify-between items-center p-4 bg-yellow-900">
+    <header className="flex justify-between items-center p-4 bg-yellow-900 border-b shadow-sm sticky top-0 z-40">
     <img
       onClick={() => navigate("/")}
       src="/images/innopetcare-white.png"
