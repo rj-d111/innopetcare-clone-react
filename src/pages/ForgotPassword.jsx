@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { FaChevronLeft } from "react-icons/fa6";
 import { Link, useNavigate } from "react-router-dom";
-import OAuth from "../components/OAuth";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { toast } from "react-toastify";
 
