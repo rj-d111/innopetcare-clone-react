@@ -173,12 +173,12 @@ export default function Profile() {
                 </div>
               </div>
 
-              <button
+              {/* <button
                 type="submit"
                 className="w-full uppercase bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg active:shadow-lg transition duration-200 ease-in-out"
               >
                 Submit
-              </button>
+              </button> */}
             </form>
 
             <div className="flex justify-between whitespace-nowrap sm:text-sm my-6">

@@ -15,7 +15,7 @@ export default function HomeGuest() {
           easy-to-use CMS. No coding required!
         </p>
         <a
-          href="/options"
+          href="/login"
           className="inline-block mt-8 bg-white text-gray-800 px-6 py-3 rounded-lg font-semibold"
         >
           Get Started

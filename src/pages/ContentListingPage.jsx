@@ -2,7 +2,7 @@ import React from "react";
 
 export default function ContentListingPage() {
   return (
-    <div className="container mt-10 md:m-10 space-y-5">
+    <div className="mt-10 md:m-10 space-y-5">
       <a
         class="py-2 px-10 rounded-full font-medium select-none border text-yellow-800 dark:text-white bg-white dark:bg-yellow-800 transition-colors hover:border-yellow-900 hover:bg-yellow-900 hover:text-white dark:hover:text-white"
         href="/options"
