@@ -26,6 +26,7 @@ export default function Register() {
 
   const { name, phone, email, password, confirm_password } = formData;
   const navigate = useNavigate();
+ 
 
   useEffect(() => {
     if (error) {
@@ -129,7 +130,8 @@ export default function Register() {
       toast.success("Success! Your account has been created!");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
-        setError("Email address already in use. Please sign in.");
+        setError("Email address already in use. Please sign in instead.");
+        toast.error("Email address already in use. Please sign in instead.");
       } else {
         setError(error.message || "An unexpected error occurred.");
       }
