@@ -10,9 +10,9 @@ export default function Profile() {
   const navigate = useNavigate();
   const [changeDetail, setChangeDetail] = useState(false);
   const [formData, setFormData] = useState({
-    name: auth.currentUser.displayName,
-    email: auth.currentUser.email,
-    phone: "",
+    name: auth.currentUser.displayName || "",
+    email: auth.currentUser.email || "",
+    phone: "", // Initialize as an empty string
   });
   const [oldPhone, setOldPhone] = useState(""); // Store the old phone number
   const [oldName, setOldName] = useState(""); // Store the old name
@@ -29,11 +29,11 @@ export default function Profile() {
         const userData = docSnap.data();
         setFormData((prevState) => ({
           ...prevState,
-          phone: userData.phone, // Set phone number from Firestore
-          name: userData.name,
+          phone: userData?.phone || "", // Set phone number from Firestore (handle null or missing)
+          name: userData?.name || "", // Handle missing name
         }));
-        setOldPhone(userData.phone); // Store the original phone number
-        setOldName(userData.name); // Store the original name
+        setOldPhone(userData?.phone || ""); // Store the original phone number (handle null)
+        setOldName(userData?.name || ""); // Store the original name (handle missing)
       } else {
         console.log("No such document!");
       }

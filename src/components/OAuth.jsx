@@ -8,6 +8,7 @@ import { useNavigate } from "react-router";
 
 export default function OAuth() {
   const navigate = useNavigate();
+
   async function onGoogleClick() {
     try {
       const auth = getAuth();
@@ -16,11 +17,12 @@ export default function OAuth() {
       const user = result.user;
       console.log(user);
 
-      // check for the user
+      // Check for the user
       const docRef = doc(db, "users", user.uid);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
+        // If the user doesn't exist, create a new record
         await setDoc(docRef, {
           name: user.displayName,
           email: user.email,
@@ -28,13 +30,20 @@ export default function OAuth() {
           timestamp: serverTimestamp(),
           isVerified: user.emailVerified,
         });
+        toast.success("Success! Your account has been created!");
+      } else {
+        // If the user already exists, display a personalized message
+        const userData = docSnap.data();
+        toast.success(`Successfully logged in! Hello ${userData.name}!`);
       }
+
+      // Navigate to home or dashboard
       navigate("/");
-      toast.success("Success! Your account has been created!");
     } catch (error) {
       toast.error("Could not authorize with Google");
     }
   }
+
   return (
     <button
       type="button"
