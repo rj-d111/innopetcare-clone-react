@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebase.js";
 import { doc, updateDoc, onSnapshot } from "firebase/firestore";
-import { useParams } from "react-router-dom"; 
+import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import ColorDropdown from "../ColorDropDown.jsx";
 
@@ -22,7 +22,7 @@ export default function GlobalSections() {
           setFormData(docSnap.data());
         }
       });
-      return unsubscribe; 
+      return unsubscribe;
     }
   }, [projectUuid]);
 
@@ -63,9 +63,12 @@ export default function GlobalSections() {
         </label>
         <input
           type="text"
+          id="name"
+          name="name"
           value={formData.name}
+          placeholder="Enter here"
+          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition ease-in-out"
           onChange={(e) => updateField("name", e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-yellow-300"
         />
       </div>
 
