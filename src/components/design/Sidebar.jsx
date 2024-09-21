@@ -9,7 +9,7 @@ const Sidebar = ({ activeSection, setActiveSection, formStatus }) => {
   };
 
   return (
-   <aside className="flex flex-col space-y-4 bg-gray-200 h-screen p-4 w-1/12 items-center">
+   <aside className="flex flex-col space-y-2 bg-gray-200 p-4 w-1/12 items-center">
   <div
     className={`p-4 ${activeSection === 'globalSections' ? 'bg-yellow-100 rounded-md' : 'rounded-full bg-gray-500'} transition-all duration-300`}
     onClick={() => setActiveSection('globalSections')}

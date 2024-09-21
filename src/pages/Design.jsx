@@ -38,16 +38,17 @@ function Design() {
   };
 
   return (
-    <div className="flex h-screen">
-      <Sidebar
-        activeSection={activeSection}
-        setActiveSection={setActiveSection}
-        formStatus={formStatus}
-      />
+    <div className="flex overflow-hidden">
+        <Sidebar
+          activeSection={activeSection}
+          setActiveSection={setActiveSection}
+          formStatus={formStatus}
+        
+        />
       <div className="w-full">
         <div className="flex">
-          <div className="md:w-1/2 md:shadow-right-md">{renderSection()}</div>
-          <div className="hidden md:block md:w-full p-10">
+          <div className="md:w-1/2 md:shadow-right-md max-h-screen overflow-auto">{renderSection()}</div>
+          <div className="hidden md:block md:w-full mx-10 mt-10 overflow-hidden">
             {isWebVersion ? <CanvasWeb /> : <CanvasMobile />}
           </div>
         </div>
