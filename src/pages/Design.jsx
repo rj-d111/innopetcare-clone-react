@@ -39,20 +39,21 @@ function Design() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar
-        activeSection={activeSection}
-        setActiveSection={setActiveSection}
-        formStatus={formStatus}
-      />
-      <div className="w-10/12">
-        <div className="flex">
-          <div className="w-1/3">{renderSection()}</div>
-          <div className="w-2/3">
-            {isWebVersion ? <CanvasWeb /> : <CanvasMobile />}
-          </div>
+    <Sidebar
+      activeSection={activeSection}
+      setActiveSection={setActiveSection}
+      formStatus={formStatus}
+    />
+    <div className="w-full">
+      <div className="flex">
+        <div className="md:w-1/2 md:shadow-right-md">{renderSection()}</div>
+        <div className="hidden md:block md:w-full">
+          {isWebVersion ? <CanvasWeb /> : <CanvasMobile />}
         </div>
       </div>
     </div>
+  </div>
+  
   );
 }
 

@@ -90,7 +90,7 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
         </Route>
         <Route path="design" element={<PrivateRoute />}>
-          <Route path="/design/:projectId" element={<Design />} />{" "}
+          <Route path="/design/:projectId" element={<Design />} />
           {/* Add project-specific route */}
         </Route>
       </Routes>
