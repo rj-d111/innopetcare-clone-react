@@ -2,13 +2,16 @@ import React, { useState, useEffect } from "react";
 import { FaPlus, FaTrashAlt, FaPencilAlt } from "react-icons/fa";
 import { BsThreeDots } from "react-icons/bs";
 import { MdViewList, MdViewModule } from "react-icons/md";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "../firebase"; // Import Firebase
 import Modal from "../components/Modal";
 import ModalTrash from "../components/ModalTrash";
 import { toast } from "react-toastify";
 import ModalRename from "../components/ModalRename";
+import { Navigate } from "react-router";
+import { useNavigate } from "react-router-dom";
+
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -27,7 +30,7 @@ export default function Home() {
   const fetchProjects = async (userId) => {
     const projectsQuery = query(
       collection(db, "projects"),
-      where("userId", "==", userId)
+      where("userId", "==", userId),
     );
     const projectsCollection = await getDocs(projectsQuery);
     const projectList = projectsCollection.docs.map((doc) => ({
@@ -36,6 +39,14 @@ export default function Home() {
     }));
     setProjects(projectList);
   };
+
+  // Use the hook inside your component
+  const navigate = useNavigate();
+
+    // Fetch projects from Firestore and other existing code...
+    const handleProjectClick = (project) => {
+      navigate(`/design/${project.id}`); // Use the unique identifier from the project
+    };
 
   // Fetch user data and projects
   useEffect(() => {
@@ -152,8 +163,8 @@ export default function Home() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="relative bg-white p-4 rounded-lg shadow-md"
-              onContextMenu={(e) => handleRightClick(e, project.id)} // Right-click
+              className="relative bg-white p-4 rounded-lg shadow-md cursor-pointer"
+              onClick={() => handleProjectClick(project)} // Navigate on click
             >
               <h3 className="text-lg font-bold">{project.name}</h3>
               <p className="text-gray-600">{project.type}</p>
@@ -164,46 +175,6 @@ export default function Home() {
                   { year: "numeric", month: "long", day: "numeric" }
                 )}
               </p>
-
-              {/* Three dots menu */}
-              <div className="absolute top-2 right-2">
-                <button
-                  className="text-gray-600"
-                  onClick={() => handleMenuClick(project.id)}
-                >
-                  <BsThreeDots size={20} />
-                </button>
-
-                {/* Dropdown menu */}
-                {menuOpen === project.id && (
-                  <ul
-                    className="dropdown-menu absolute right-0 bg-white text-gray-700 pt-1 border rounded shadow-lg"
-                    onMouseLeave={() => setMenuOpen(null)} // Hide when mouse leaves
-                  >
-                    <li
-                      className="rounded-t hover:bg-gray-400 py-2 px-4 whitespace-no-wrap cursor-pointer flex items-center"
-                      onClick={() => handleRenameClick(project)} // Correctly trigger handleRenameClick
-                    >
-                      <FaPencilAlt className="mr-2" /> Rename
-                    </li>
-                    <li
-                      className="hover:bg-gray-400 py-2 px-4  whitespace-no-wrap cursor-pointer flex items-center"
-                      onClick={() => handleSelectProject(project.id)}
-                    >
-                      <FaPencilAlt className="mr-2" /> Select items
-                    </li>
-                    <li
-                      className="rounded-b hover:bg-gray-400 py-2 px-4 whitespace-no-wrap cursor-pointer flex items-center"
-                      onClick={() => {
-                        setProjectToDelete(project.id); // Set the project to be deleted
-                        setShowTrashModal(true); // Show the delete confirmation modal
-                      }}
-                    >
-                      <FaTrashAlt className="mr-2" /> Delete
-                    </li>
-                  </ul>
-                )}
-              </div>
             </div>
           ))}
         </div>
