@@ -8,6 +8,8 @@ import Services from "../components/design/Services";
 import ContactUs from "../components/design/ContactUs";
 import CanvasWeb from "../components/design/CanvasWeb";
 import CanvasMobile from "../components/design/CanvasMobile";
+import { useParams } from "react-router";
+
 
 function Design() {
   const [isWebVersion, setWebVersion] = useState(true);
@@ -19,6 +21,7 @@ function Design() {
     services: "pending",
     contactUs: "pending",
   });
+
 
   const renderSection = () => {
     switch (activeSection) {
@@ -37,17 +40,19 @@ function Design() {
     }
   };
 
+
   return (
     <div className="flex overflow-hidden">
-        <Sidebar
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-          formStatus={formStatus}
-        
-        />
+      <Sidebar
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        formStatus={formStatus}
+      />
       <div className="w-full">
         <div className="flex">
-          <div className="md:w-1/2 md:shadow-right-md max-h-screen overflow-auto">{renderSection()}</div>
+          <div className="md:w-1/2 md:shadow-right-md max-h-screen overflow-auto">
+            {renderSection()}
+          </div>
           <div className="hidden md:block md:w-full mx-10 mt-10 overflow-hidden">
             {isWebVersion ? <CanvasWeb /> : <CanvasMobile />}
           </div>

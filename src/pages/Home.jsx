@@ -12,7 +12,6 @@ import ModalRename from "../components/ModalRename";
 import { Navigate } from "react-router";
 import { useNavigate } from "react-router-dom";
 
-
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [projects, setProjects] = useState([]);
@@ -30,7 +29,7 @@ export default function Home() {
   const fetchProjects = async (userId) => {
     const projectsQuery = query(
       collection(db, "projects"),
-      where("userId", "==", userId),
+      where("userId", "==", userId)
     );
     const projectsCollection = await getDocs(projectsQuery);
     const projectList = projectsCollection.docs.map((doc) => ({
@@ -43,10 +42,10 @@ export default function Home() {
   // Use the hook inside your component
   const navigate = useNavigate();
 
-    // Fetch projects from Firestore and other existing code...
-    const handleProjectClick = (project) => {
-      navigate(`/design/${project.id}`); // Use the unique identifier from the project
-    };
+  // Fetch projects from Firestore and other existing code...
+  const handleProjectClick = (project) => {
+    navigate(`/design/${project.id}`); // Use the unique identifier from the project
+  };
 
   // Fetch user data and projects
   useEffect(() => {
@@ -163,10 +162,13 @@ export default function Home() {
           {projects.map((project) => (
             <div
               key={project.id}
-              className="relative bg-white p-4 rounded-lg shadow-md cursor-pointer"
+              className="bg-white p-4 rounded-lg shadow-md cursor-pointer"
               onClick={() => handleProjectClick(project)} // Navigate on click
             >
-              <h3 className="text-lg font-bold">{project.name}</h3>
+              <div className="flex justify-between">
+                <h3 className="text-lg font-bold">{project.name}</h3>
+                <BsThreeDots className="text-gray-600 cursor-pointer" />
+              </div>
               <p className="text-gray-600">{project.type}</p>
               <p className="text-sm text-gray-500">
                 Created on:{" "}

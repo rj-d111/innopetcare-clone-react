@@ -2,9 +2,9 @@ import { FaUserCircle } from "react-icons/fa";
 import InnoPetCareSmall from "../../assets/png/InnoPetCareSmall.png";
 import { useState } from "react";
 
-const CanvasWeb = () => {
+const CanvasWeb = ({ formData }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-
+  console.log(formData);
   return (
     <>
       <div className="mockup-browser border-base-300 border h-[80vh]">

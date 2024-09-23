@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const ColorDropdown = ({ onColorSelect }) => {
+const ColorDropdown = ({ onColorSelect}) => {
   const [selectedColor, setSelectedColor] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
