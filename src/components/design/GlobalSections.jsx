@@ -14,23 +14,19 @@ import ColorDropdown from "../ColorDropDown.jsx"; // Assuming you have a ColorDr
 import Spinner from "../Spinner.jsx"; // Assuming you have a Spinner component
 import { useParams } from "react-router-dom";
 
-export default function GlobalSections() {
+export default function GlobalSections({ formData, setFormData }) {
   const auth = getAuth();
   const { id } = useParams(); // Get project UUID from the URL
   const [loading, setLoading] = useState(false);
 
-  // Form data state
-  const [formData, setFormData] = useState({
-    name: "",
-    slug: "",
-    headerColor: "",
-    headerTextColor: "",
-    logoPicture: null, // Single image
-  });
   const [image, setImage] = useState(null);
 
   // Handle form changes
   function onChange(e) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ [name]: value });
+
     if (e.target.files && e.target.files[0]) {
       setImage(e.target.files[0]); // Set the image file
 

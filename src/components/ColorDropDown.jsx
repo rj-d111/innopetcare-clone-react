@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 
-const ColorDropdown = ({ onColorSelect}) => {
+const ColorDropdown = ({ color, onColorSelect }) => {
   const [selectedColor, setSelectedColor] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+
 
   const colors = [
     "#000000",
@@ -292,6 +293,7 @@ const ColorDropdown = ({ onColorSelect}) => {
     <div className="relative inline-flex flex-col">
       {/* Dropdown button */}
       <button
+        value={color}
         id="dropdownButton"
         type="button"
         className="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none"
@@ -333,9 +335,9 @@ const ColorDropdown = ({ onColorSelect}) => {
           role="menu"
           aria-orientation="vertical"
         >
-          {colors.map((color) => (
+          {colors.map((color, index) => (
             <li
-              key={color}
+              key={`${color}-${index}`} // Make the key unique by combining the color and its index
               onClick={() => handleColorSelect(color)}
               className="cursor-pointer p-2 flex items-center justify-center"
             >

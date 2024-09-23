@@ -12,6 +12,15 @@ import { useParams } from "react-router";
 
 
 function Design() {
+
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    headerColor: "",
+    headerTextColor: "",
+    image: null,
+  });
+
   const [isWebVersion, setWebVersion] = useState(true);
   const [activeSection, setActiveSection] = useState("globalSections");
   const [formStatus, setFormStatus] = useState({
@@ -26,7 +35,7 @@ function Design() {
   const renderSection = () => {
     switch (activeSection) {
       case "globalSections":
-        return <GlobalSections />;
+        return <GlobalSections formData={formData} setFormData={setFormData} />;
       case "homePage":
         return <HomePage />;
       case "aboutUs":
@@ -42,7 +51,7 @@ function Design() {
 
 
   return (
-    <div className="flex overflow-hidden">
+    <div className="flex">
       <Sidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
@@ -50,12 +59,12 @@ function Design() {
       />
       <div className="w-full">
         <div className="flex">
-          <div className="md:w-1/2 md:shadow-right-md max-h-screen overflow-auto">
+          <div className="md:w-1/2 md:shadow-right-md">
             {renderSection()}
           </div>
           <div className="hidden md:block md:w-full mx-10 mt-10 overflow-hidden">
-            {isWebVersion ? <CanvasWeb /> : <CanvasMobile />}
-          </div>
+          {isWebVersion ? <CanvasWeb formData={formData} /> : <CanvasMobile />}
+            </div>
         </div>
       </div>
     </div>

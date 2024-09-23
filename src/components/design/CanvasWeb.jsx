@@ -4,23 +4,22 @@ import { useState } from "react";
 
 const CanvasWeb = ({ formData }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  console.log(formData);
   return (
     <>
       <div className="mockup-browser border-base-300 border h-[80vh]">
         <div className="mockup-browser-toolbar">
           <div className="input border-base-300 border">
-            https://innopetcare.com/
+            https://innopetcare.com/{formData.slug ||""}
           </div>
         </div>
 
         {/* Nav Bar */}
-        <nav className="flex items-center justify-between bg-blue-500 py-4 sticky text-sm px-5">
-          {/* Logo */}
+        <nav className="flex items-center justify-between py-4 sticky text-sm px-5" style={{ background: formData.headerColor ?? "#1e88e5", color: formData.headerTextColor ?? "#ffffff" }}>
+        {/* Logo */}
 
           <div className="flex items-center space-x-6">
             <img src={InnoPetCareSmall} alt="Logo" className="h-8" />
-            <p>Fort Deo</p>
+            <p>{formData.name || 'Default Project Name'}</p>
           </div>
           {/* Combined Flex Container */}
           <div className="flex items-center space-x-6">
@@ -48,7 +47,7 @@ const CanvasWeb = ({ formData }) => {
                   data-popover-placement="bottom"
                   className={`absolute right-0 z-10 min-w-[180px] overflow-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg focus:outline-none transition-all duration-300 ease-in-out transform`}
                 >
-                  <li className="flex flex-col rounded-md p-2">
+                  <li className="flex flex-col rounded-md p-2 text-black">
                     Example Name example@gmail.com
                   </li>
                   <hr className="my-2 border-slate-200" role="menuitem" />
