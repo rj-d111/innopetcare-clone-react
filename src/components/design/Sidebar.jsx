@@ -1,5 +1,6 @@
 import React from 'react';
-import { FaHome, FaInfoCircle, FaPaw, FaPhone, FaList } from 'react-icons/fa';
+import { FaHome, FaInfoCircle, FaPaw, FaList } from 'react-icons/fa';
+import { FaPhone } from "react-icons/fa6";
 
 const Sidebar = ({ activeSection, setActiveSection, formStatus }) => {
   const getIconBgColor = (status) => {

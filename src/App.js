@@ -104,6 +104,7 @@ function AppContent() {
               <Design isWebVersion={isWebVersion} setWebVersion={setWebVersion} />
             }
           />
+
           {/* Add project-specific route */}
         </Route>
       </Routes>

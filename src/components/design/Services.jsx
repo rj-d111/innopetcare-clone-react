@@ -1,15 +1,21 @@
-import { collection, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
+import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
 import { useParams } from "react-router";
 import ServicesModal from "./ServicesModal";
+import ModalDelete from "../ModalDelete"; // Import your delete modal
 import { db } from "../../firebase.js";
+import { TbPencil } from "react-icons/tb";
+import { CiTrash } from "react-icons/ci";
+import { toast } from "react-toastify";
 
 export default function Services() {
   const [services, setServices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { id } = useParams(); // Get project UUID from the URL
+  const [selectedService, setSelectedService] = useState(null); 
+  const [serviceToDelete, setServiceToDelete] = useState(null); 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); 
+  const { id } = useParams(); 
 
-  // Fetch services from Firestore
   useEffect(() => {
     const fetchServices = async () => {
       const q = query(collection(db, "services"), where("projectId", "==", id));
@@ -24,7 +30,6 @@ export default function Services() {
     fetchServices();
   }, [id]);
 
-  // Handle adding a service and refreshing the list
   const handleServiceAdded = async () => {
     const q = query(collection(db, "services"), where("projectId", "==", id));
     const querySnapshot = await getDocs(q);
@@ -35,27 +40,60 @@ export default function Services() {
     setServices(servicesList);
   };
 
+  const handleEditClick = (service) => {
+    setSelectedService(service);
+    setIsModalOpen(true); 
+  };
+
+  const handleDeleteClick = (service) => {
+    setServiceToDelete(service); 
+    setIsDeleteModalOpen(true); 
+  };
+
+  const handleDeleteService = async () => {
+    if (serviceToDelete) {
+      try {
+        await deleteDoc(doc(db, "services", serviceToDelete.id)); 
+        setServices((prevServices) =>
+          prevServices.filter((service) => service.id !== serviceToDelete.id)
+        ); 
+        toast.success(`Successfully deleted`); // Show success toast
+        setIsDeleteModalOpen(false); 
+        setServiceToDelete(null); 
+      } catch (error) {
+        console.error("Error deleting service:", error);
+      }
+    }
+  };
+
   return (
     <>
-      {/* Modal to add a service */}
       {isModalOpen && (
         <ServicesModal
           projectId={id}
           closeModal={() => setIsModalOpen(false)}
           onServiceAdded={handleServiceAdded}
+          selectedService={selectedService}
         />
       )}
+
+      {/* ModalDelete is conditionally rendered based on isDeleteModalOpen */}
+      {isDeleteModalOpen && (
+        <ModalDelete
+          message={`Are you sure you want to delete ${serviceToDelete?.title}?`}
+          onConfirm={handleDeleteService} 
+          onCancel={() => setIsDeleteModalOpen(false)} 
+        />
+      )}
+
       <div className="p-6 md:max-w-md mx-auto bg-gray-100 shadow-md rounded-lg space-y-4 min-h-screen">
         <div className="bg-yellow-100 p-4 rounded-md">
           <h2 className="text-lg font-semibold">Services Page</h2>
           <p className="text-sm text-gray-700">
-            The "Services page" typically outlines the various features and
-            functionalities that the CMS offers to help manage a veterinary
-            practice or animal care facility.
+            The "Services page" typically outlines the various features and functionalities...
           </p>
         </div>
 
-        {/* Display services */}
         <div className="mt-4">
           {services.length === 0 ? (
             <div className="bg-white h-40 text-sm text-gray-600 flex items-center justify-center">
@@ -64,32 +102,36 @@ export default function Services() {
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {services.map((service) => (
-                <div
-                  key={service.id}
-                  className="p-4 bg-white rounded-lg shadow-md"
-                >
-                  <h3 className="text-lg font-semibold">{service.title}</h3>
+                <div key={service.id} className="p-4 bg-white rounded-lg shadow-md">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">{service.title}</h3>
+                    <div className="justify-end flex">
+                      <TbPencil
+                        className="text-blue-600 cursor-pointer text-lg"
+                        onClick={() => handleEditClick(service)}
+                      />
+                      <CiTrash
+                        className="text-red-600 cursor-pointer text-lg"
+                        onClick={() => handleDeleteClick(service)}
+                      />
+                    </div>
+                  </div>
                   <p className="text-gray-700">{service.description}</p>
                 </div>
               ))}
             </div>
           )}
         </div>
-        {/* Button to add service */}
 
         <button
           type="button"
-          className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-3 rounded-full font-semibold transition duration-200 ease-in-out active:bg-yellow-800 shadow-md hover:shadow-lg active:shadow-lg"
-          onClick={() => setIsModalOpen(true)}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-3 rounded-full font-semibold"
+          onClick={() => {
+            setSelectedService(null);
+            setIsModalOpen(true);
+          }}
         >
           + Add Services
-        </button>
-
-        <button
-          type="button"
-          className="w-full uppercase bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:bg-yellow-800 shadow-md hover:shadow-lg active:shadow-lg"
-        >
-          Save Changes
         </button>
       </div>
     </>

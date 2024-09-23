@@ -2,30 +2,38 @@ import React, { useState, useEffect } from "react";
 import { FaPlus, FaTrashAlt, FaPencilAlt } from "react-icons/fa";
 import { BsThreeDots } from "react-icons/bs";
 import { MdViewList, MdViewModule } from "react-icons/md";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { db } from "../firebase"; // Import Firebase
+import { db } from "../firebase";
 import Modal from "../components/Modal";
 import ModalTrash from "../components/ModalTrash";
-import { toast } from "react-toastify";
 import ModalRename from "../components/ModalRename";
-import { Navigate } from "react-router";
+import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [projects, setProjects] = useState([]);
   const [userData, setUserData] = useState({ name: "" });
-  const [isLoading, setIsLoading] = useState(true); // isLoading state
-  const [viewMode, setViewMode] = useState("grid"); // Grid or List view
-  const [selectedProjects, setSelectedProjects] = useState([]); // For bulk selection
-  const [showTrashModal, setShowTrashModal] = useState(false); // Show trash confirmation modal
-  const [menuOpen, setMenuOpen] = useState(null); // Track which project dropdown is open
-  const [showRenameModal, setShowRenameModal] = useState(false); // For rename modal
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState("grid");
+  const [selectedProjects, setSelectedProjects] = useState([]);
+  const [showTrashModal, setShowTrashModal] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(null);
+  const [showRenameModal, setShowRenameModal] = useState(false);
   const [projectToRename, setProjectToRename] = useState(null);
   const [projectToDelete, setProjectToDelete] = useState(null);
 
-  // Fetch projects from Firestore
+  const navigate = useNavigate();
+
   const fetchProjects = async (userId) => {
     const projectsQuery = query(
       collection(db, "projects"),
@@ -39,15 +47,10 @@ export default function Home() {
     setProjects(projectList);
   };
 
-  // Use the hook inside your component
-  const navigate = useNavigate();
-
-  // Fetch projects from Firestore and other existing code...
   const handleProjectClick = (project) => {
-    navigate(`/design/${project.id}`); // Use the unique identifier from the project
+    navigate(`/design/${project.id}`);
   };
 
-  // Fetch user data and projects
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -55,65 +58,58 @@ export default function Home() {
         setUserData({ name: user.displayName || "User" });
         fetchProjects(user.uid);
       }
-      setIsLoading(false); // Stop loading after user data is fetched
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Callback when a new project is created
+  const handleMenuToggle = (projectId, event) => {
+    event.stopPropagation(); // Prevent card click from firing
+    setMenuOpen((prev) => (prev === projectId ? null : projectId)); // Toggle the clicked menu
+  };
+
   const handleProjectCreate = (newProject) => {
     toast.success("Successfully created a new project");
     setProjects((prevProjects) => [...prevProjects, newProject]);
   };
 
-  // Toggle selection of projects for bulk actions
-  const handleSelectProject = (projectId) => {
-    if (selectedProjects.includes(projectId)) {
-      setSelectedProjects(selectedProjects.filter((id) => id !== projectId));
-    } else {
-      setSelectedProjects([...selectedProjects, projectId]);
-    }
-  };
-
-  // Toggle between Grid and List view
-  const toggleViewMode = () => {
-    setViewMode(viewMode === "grid" ? "list" : "grid");
-  };
-
-  // Handle right click to show the menu
-  const handleRightClick = (e, projectId) => {
-    e.preventDefault();
-    setMenuOpen(menuOpen === projectId ? null : projectId);
-  };
-
-  // Handle click on three dots to show the menu
-  const handleMenuClick = (projectId) => {
-    setMenuOpen(menuOpen === projectId ? null : projectId);
-  };
-
-  if (isLoading) {
-    return null; // Do not render anything while loading
-  }
-  // Handle project rename
   const handleRenameClick = (project) => {
     setProjectToRename(project);
     setShowRenameModal(true);
   };
 
-  const handleProjectRename = (projectId, newName) => {
+  const handleProjectRename = async (projectId, newName) => {
+    const projectRef = doc(db, "projects", projectId);
+    await updateDoc(projectRef, { name: newName });
     setProjects((prevProjects) =>
       prevProjects.map((project) =>
         project.id === projectId ? { ...project, name: newName } : project
       )
     );
+    toast.success("Project name updated");
   };
 
-  const handleProjectDelete = (projectId) => {
+  const handleProjectDelete = async (projectId) => {
+    const projectRef = doc(db, "projects", projectId);
+    await deleteDoc(projectRef);
     setProjects((prevProjects) =>
       prevProjects.filter((project) => project.id !== projectId)
     );
+    setShowTrashModal(false);
   };
+
+  const handleMouseEnter = (projectId) => {
+    setMenuOpen(projectId);
+  };
+
+  const handleMouseLeave = () => {
+    setMenuOpen(null);
+  };
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <>
@@ -128,9 +124,8 @@ export default function Home() {
           </h2>
 
           <div className="flex items-center space-x-4">
-            {/* View Mode Toggle */}
             <button
-              onClick={toggleViewMode}
+              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
               className="bg-gray-200 p-2 rounded"
             >
               {viewMode === "grid" ? (
@@ -151,31 +146,52 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Display project cards based on view mode */}
-        <div
-          className={`mt-6 ${
-            viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-              : "flex flex-col space-y-4"
-          }`}
-        >
+        <div className={`mt-6 ${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col space-y-4"}`}>
           {projects.map((project) => (
             <div
               key={project.id}
-              className="bg-white p-4 rounded-lg shadow-md cursor-pointer"
-              onClick={() => handleProjectClick(project)} // Navigate on click
+              className="bg-white p-4 rounded-lg shadow-md cursor-pointer relative"
+              onClick={() => handleProjectClick(project)} // Card click handler
             >
               <div className="flex justify-between">
                 <h3 className="text-lg font-bold">{project.name}</h3>
-                <BsThreeDots className="text-gray-600 cursor-pointer" />
+                <BsThreeDots
+                  className="text-gray-600 cursor-pointer"
+                  onClick={(e) => handleMenuToggle(project.id, e)} // Show/hide menu on click
+                />
               </div>
+
+              {menuOpen === project.id && (
+                <div className="absolute bg-white shadow-lg rounded-lg right-0 z-10">
+                  <button
+                    className="block w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRenameClick(project);
+                    }}
+                  >
+                    <div className="flex items-center justify-between p-2">
+                      <FaPencilAlt className="mr-2" /> Edit
+                    </div>
+                  </button>
+                  <button
+                    className="block w-full px-4 py-2 text-red-600 hover:bg-red-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProjectToDelete(project.id);
+                      setShowTrashModal(true);
+                    }}
+                  >
+                    <div className="flex items-center justify-between p-2">
+                      <FaTrashAlt className="mr-2" /> Delete
+                    </div>
+                  </button>
+                </div>
+              )}
+
               <p className="text-gray-600">{project.type}</p>
               <p className="text-sm text-gray-500">
-                Created on:{" "}
-                {new Date(project.createdAt.seconds * 1000).toLocaleDateString(
-                  "en-US",
-                  { year: "numeric", month: "long", day: "numeric" }
-                )}
+                Created on: {new Date(project.createdAt.seconds * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
               </p>
             </div>
           ))}
@@ -186,23 +202,20 @@ export default function Home() {
         show={showRenameModal}
         onClose={() => setShowRenameModal(false)}
         project={projectToRename}
-        projects={projects}
         onProjectRename={handleProjectRename}
       />
 
-      {/* Modal for creating a new project */}
       <Modal
         show={showModal}
         onClose={() => setShowModal(false)}
         onProjectCreate={handleProjectCreate}
       />
 
-      {/* Trash confirmation modal */}
       <ModalTrash
         show={showTrashModal}
         onClose={() => setShowTrashModal(false)}
-        projectId={projectToDelete} // Pass the selected project to be deleted
-        onDelete={handleProjectDelete} // Callback to update the UI after deletion
+        projectId={projectToDelete}
+        onDelete={handleProjectDelete}
       />
     </>
   );
