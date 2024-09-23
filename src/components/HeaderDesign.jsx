@@ -64,14 +64,14 @@ const HeaderDesign = ({
         <IoDesktop
           onClick={() => setWebVersion(true)}
           className={`cursor-pointer ${
-            isWebVersion ? "text-black" : "text-white"
+            isWebVersion ? "text-white" : "text-slate-900"
           }`}
           size={24}
         />
         <IoPhonePortrait
           onClick={() => setWebVersion(false)}
           className={`cursor-pointer ${
-            !isWebVersion ? "text-black" : "text-white"
+            !isWebVersion ? "text-white" : "text-slate-900"
           }`}
           size={24}
         />

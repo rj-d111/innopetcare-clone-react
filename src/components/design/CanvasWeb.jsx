@@ -6,20 +6,30 @@ const CanvasWeb = ({ formData }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   return (
     <>
-      <div className="mockup-browser border-base-300 border h-[80vh]">
+      <div className="grow mockup-browser border-base-300 border h-[80vh]">
         <div className="mockup-browser-toolbar">
           <div className="input border-base-300 border">
-            https://innopetcare.com/{formData.slug ||""}
+            https://innopetcare.com/{formData.slug || ""}
           </div>
         </div>
 
         {/* Nav Bar */}
-        <nav className="flex items-center justify-between py-4 sticky text-sm px-5" style={{ background: formData.headerColor ?? "#1e88e5", color: formData.headerTextColor ?? "#ffffff" }}>
-        {/* Logo */}
+        <nav
+          className="flex items-center justify-between py-4 sticky text-sm px-5"
+          style={{
+            background:
+              formData.headerColor === "" ? "#1e88e5" : formData.headerColor,
+            color:
+              formData.headerTextColor === ""
+                ? "#ffffff"
+                : formData.headerTextColor,
+          }}
+        >
+          {/* Logo */}
 
           <div className="flex items-center space-x-6">
             <img src={InnoPetCareSmall} alt="Logo" className="h-8" />
-            <p>{formData.name || 'Default Project Name'}</p>
+            <p>{formData.name || "Default Project Name"}</p>
           </div>
           {/* Combined Flex Container */}
           <div className="flex items-center space-x-6">
@@ -37,7 +47,14 @@ const CanvasWeb = ({ formData }) => {
               onMouseEnter={() => setDropdownOpen(true)}
               onMouseLeave={() => setDropdownOpen(false)}
             >
-              <FaUserCircle className="text-white text-3xl cursor-pointer" />
+              <FaUserCircle
+                className="text-3xl cursor-pointer"
+                fill={
+                  formData.headerTextColor === ""
+                    ? "#ffffff"
+                    : formData.headerTextColor
+                }
+              />
 
               {/* Dropdown Menu */}
               {isDropdownOpen && (

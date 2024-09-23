@@ -1,6 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { db } from "../../firebase.js";
-import { doc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+} from "firebase/firestore"; // Firestore methods
 import { getAuth } from "firebase/auth";
 import {
   ref,
@@ -18,18 +27,30 @@ export default function GlobalSections({ formData, setFormData }) {
   const auth = getAuth();
   const { id } = useParams(); // Get project UUID from the URL
   const [loading, setLoading] = useState(false);
-
   const [image, setImage] = useState(null);
+  const [documentExists, setDocumentExists] = useState(false);
+
+  useEffect(() => {
+    const checkDocumentExists = async () => {
+      const q = query(
+        collection(db, "global-sections"),
+        where("projectId", "==", id)
+      ); // Use the project ID here
+      const querySnapshot = await getDocs(q);
+
+      setDocumentExists(!querySnapshot.empty); // Set state based on query result
+    };
+
+    checkDocumentExists();
+  }, [id]);
 
   // Handle form changes
   function onChange(e) {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setFormData({ [name]: value });
 
     if (e.target.files && e.target.files[0]) {
       setImage(e.target.files[0]); // Set the image file
-
       setFormData((prevState) => ({
         ...prevState,
         logoPicture: e.target.files[0], // Update the formData with the image
@@ -69,6 +90,16 @@ export default function GlobalSections({ formData, setFormData }) {
     });
   }
 
+  // Check if the slug already exists in the global-sections collection
+  async function isSlugDuplicate(slug) {
+    const slugQuery = query(
+      collection(db, "global-sections"),
+      where("slug", "==", slug)
+    );
+    const slugSnapshot = await getDocs(slugQuery);
+    return !slugSnapshot.empty; // Returns true if the slug is already in use
+  }
+
   // Handle form submission
   async function onSubmit(e) {
     e.preventDefault();
@@ -80,7 +111,7 @@ export default function GlobalSections({ formData, setFormData }) {
       !formData.slug ||
       !formData.headerColor ||
       !formData.headerTextColor ||
-      !image // Ensure the image is set before submitting
+      !image
     ) {
       setLoading(false);
       toast.error("Please fill all the required fields");
@@ -88,23 +119,113 @@ export default function GlobalSections({ formData, setFormData }) {
     }
 
     try {
-      // Upload the logo image and get the URL
+      // Check for duplicate slug
+      const slugExists = await isSlugDuplicate(formData.slug);
+      if (slugExists) {
+        setLoading(false);
+        toast.error("Slug name already been used, please choose another one.");
+        return;
+      }
+
+      // Upload the image and get the URL
+      const logoPictureUrl = await storeImage(image);
+      const q = query(
+        collection(db, "global-sections"),
+        where("projectId", "==", id)
+      ); // Use the project ID here
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // Document exists, update it
+        const docRef = querySnapshot.docs[0].ref; // Get the reference of the first matching document
+        await updateDoc(docRef, {
+          name: formData.name,
+          slug: formData.slug,
+          headerColor: formData.headerColor,
+          headerTextColor: formData.headerTextColor,
+          image: logoPictureUrl, // Save the uploaded image URL
+        });
+        toast.success("Global section updated successfully!");
+      } else {
+        await addDoc(collection(db, "global-sections"), {
+          name: formData.name,
+          slug: formData.slug,
+          headerColor: formData.headerColor,
+          headerTextColor: formData.headerTextColor,
+          image: logoPictureUrl, // Store the uploaded image URL
+          projectId: id, // Link to the related project
+        });
+        toast.success("Global section created successfully!");
+      }
+    } catch (error) {
+      console.error("Error saving document:", error);
+      toast.error("Failed to save changes");
+    } finally {
+      setLoading(false);
+    }
+  }
+  // Upload image to Firebase Storage and return the download URL
+  async function storeImage(image) {
+    return new Promise((resolve, reject) => {
+      const storage = getStorage();
+      const filename = `${auth.currentUser.uid}-${image.name}-${uuidv4()}`;
+      const storageRef = ref(storage, filename);
+      const uploadTask = uploadBytesResumable(storageRef, image);
+
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(`Upload is ${progress}% done`);
+        },
+        (error) => {
+          reject(error);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            resolve(downloadURL);
+          });
+        }
+      );
+    });
+  }
+
+  // Handle form submission
+  async function onSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+
+    // Validate required fields
+    if (
+      !formData.name ||
+      !formData.slug ||
+      !formData.headerColor ||
+      !formData.headerTextColor ||
+      !image
+    ) {
+      setLoading(false);
+      toast.error("Please fill all the required fields");
+      return;
+    }
+
+    try {
+      // Upload the image to Firebase Storage and get the URL
       const logoPictureUrl = await storeImage(image);
 
-      // Update Firestore with form data and logo URL
-      const docRef = doc(db, "projects", id);
-      await updateDoc(docRef, {
+      // Add the global-sections data to Firestore
+      await addDoc(collection(db, "global-sections"), {
         name: formData.name,
         slug: formData.slug,
         headerColor: formData.headerColor,
         headerTextColor: formData.headerTextColor,
-        logoPicture: logoPictureUrl, // Save the logo image URL
-        projectId: id,
+        image: logoPictureUrl, // Store the uploaded image URL
+        projectId: id, // Link to the related project
       });
 
-      toast.success("Changes saved successfully!");
+      toast.success("Global section saved successfully!");
     } catch (error) {
-      console.error("Error updating document:", error);
+      console.error("Error saving document:", error);
       toast.error("Failed to save changes");
     } finally {
       setLoading(false);
@@ -195,12 +316,16 @@ export default function GlobalSections({ formData, setFormData }) {
       </div>
 
       <button
-        type="button"
-        onClick={onSubmit}
-        className="w-full uppercase bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:bg-yellow-800 shadow-md hover:shadow-lg active:shadow-lg"
-      >
-        Save Changes
-      </button>
+      type="button"
+      onClick={onSubmit}
+      className={`w-full uppercase py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:shadow-lg ${
+        documentExists 
+          ? "bg-violet-600 hover:bg-violet-700 active:bg-violet-800" 
+          : "bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800"
+      } text-white`}
+    >
+      {documentExists ? "Update Changes" : "Save Changes"}
+    </button>
     </div>
   );
 }

@@ -10,9 +10,7 @@ import CanvasWeb from "../components/design/CanvasWeb";
 import CanvasMobile from "../components/design/CanvasMobile";
 import { useParams } from "react-router";
 
-
-function Design() {
-
+function Design({ isWebVersion, setWebVersion }) {
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -21,7 +19,14 @@ function Design() {
     image: null,
   });
 
-  const [isWebVersion, setWebVersion] = useState(true);
+  const [formDataHome, setFormDataHome] = useState({
+    title: "",
+    subtext: "",
+    content: "",
+    picture: null,
+  });
+
+
   const [activeSection, setActiveSection] = useState("globalSections");
   const [formStatus, setFormStatus] = useState({
     globalSections: "pending",
@@ -31,13 +36,12 @@ function Design() {
     contactUs: "pending",
   });
 
-
   const renderSection = () => {
     switch (activeSection) {
       case "globalSections":
         return <GlobalSections formData={formData} setFormData={setFormData} />;
       case "homePage":
-        return <HomePage />;
+        return <HomePage formData={formDataHome} setFormData={setFormDataHome}/>;
       case "aboutUs":
         return <AboutUs />;
       case "services":
@@ -49,7 +53,6 @@ function Design() {
     }
   };
 
-
   return (
     <div className="flex">
       <Sidebar
@@ -59,12 +62,14 @@ function Design() {
       />
       <div className="w-full">
         <div className="flex">
-          <div className="md:w-1/2 md:shadow-right-md">
-            {renderSection()}
+          <div className="md:w-1/2 md:shadow-right-md">{renderSection()}</div>
+          <div className="hidden md:flex md:flex-grow md:justify-center md:w-full mx-10 mt-10 overflow-hidden">
+          {isWebVersion ? (
+              <CanvasWeb formData={formData} />
+            ) : (
+              <CanvasMobile />
+            )}
           </div>
-          <div className="hidden md:block md:w-full mx-10 mt-10 overflow-hidden">
-          {isWebVersion ? <CanvasWeb formData={formData} /> : <CanvasMobile />}
-            </div>
         </div>
       </div>
     </div>

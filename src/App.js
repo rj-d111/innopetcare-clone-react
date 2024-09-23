@@ -28,6 +28,8 @@ function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const auth = getAuth();
   const location = useLocation(); // Hook to access the current route
+  const [isWebVersion, setWebVersion] = useState(true); // State for toggling between web and mobile views
+
 
   // Check authentication status
   useEffect(() => {
@@ -39,13 +41,19 @@ function AppContent() {
   }, [auth]);
 
   // Conditionally render headers based on the route
-  const renderHeader = () => {
+   // Conditionally render headers based on the route
+   const renderHeader = () => {
     if (location.pathname.startsWith("/design")) {
-      return <HeaderDesign />; // Show HeaderDesign for design routes
+      return (
+        <HeaderDesign
+          isWebVersion={isWebVersion}
+          setWebVersion={setWebVersion}
+        />
+      );
     }
-    return isAuthenticated ? <Header /> : <HeaderGuest />; // Default headers
+    return isAuthenticated ? <Header /> : <HeaderGuest />;
   };
-
+  
   return (
     <>
       {renderHeader()}
@@ -90,7 +98,12 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
         </Route>
         <Route path="design" element={<PrivateRoute />}>
-          <Route path="/design/:id" element={<Design />} />
+          <Route
+            path="/design/:id"
+            element={
+              <Design isWebVersion={isWebVersion} setWebVersion={setWebVersion} />
+            }
+          />
           {/* Add project-specific route */}
         </Route>
       </Routes>
