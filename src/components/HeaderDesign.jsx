@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import innoPetCareSmallLogo from "../assets/png/InnoPetCareSmall.png";
 import { IoDesktop, IoPhonePortrait } from "react-icons/io5";
 import { MdModeEdit, MdPublish } from "react-icons/md";
-import { useParams, useNavigate } from "react-router-dom"; // Import useNavigate for redirection
+import { useParams, useNavigate, Link } from "react-router-dom"; // Import useNavigate for redirection
 import {
   doc,
   getDoc,
@@ -122,7 +122,9 @@ const HeaderDesign = ({
   return (
     <header className="flex justify-between items-center p-4 bg-yellow-500 shadow-sm sticky top-0 z-40">
       <div className="flex items-center  space-x-6">
-        <img src={innoPetCareSmallLogo} alt="Logo" className="h-12" />
+        <Link to="/">
+          <img src={innoPetCareSmallLogo} alt="Logo" className="h-12" />
+        </Link>
         <div className="flex items-center space-x-2">
           <h1 className="text-xl font-bold text-white">{projectName}</h1>
           <MdModeEdit
@@ -134,9 +136,11 @@ const HeaderDesign = ({
       </div>
 
       <div class="join ">
-        <button class={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
-              !isWebVersion ? "bg-white" : "bg-yellow-600"
-            }` }>
+        <button
+          class={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
+            !isWebVersion ? "bg-white" : "bg-yellow-600"
+          }`}
+        >
           <IoDesktop
             onClick={() => setWebVersion(true)}
             className={`cursor-pointer ${
@@ -145,21 +149,22 @@ const HeaderDesign = ({
             size={24}
           />
         </button>
-        <button class={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
-              isWebVersion ? "bg-white" : "bg-yellow-600"
-            }` }>
-        <IoPhonePortrait
-          onClick={() => setWebVersion(false)}
-          className={`cursor-pointer ${
-            !isWebVersion ? "text-white" : "text-yellow-600"
+        <button
+          class={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
+            isWebVersion ? "bg-white" : "bg-yellow-600"
           }`}
-          size={24}
-        />
+        >
+          <IoPhonePortrait
+            onClick={() => setWebVersion(false)}
+            className={`cursor-pointer ${
+              !isWebVersion ? "text-white" : "text-yellow-600"
+            }`}
+            size={24}
+          />
         </button>
       </div>
 
       <div className="flex items-center space-x-4">
-      
         <button
           type="submit"
           onClick={handlePublish}

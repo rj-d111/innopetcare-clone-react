@@ -16,20 +16,25 @@ import PrivateRoute from "./components/PrivateRoute";
 import Header from "./components/Header";
 import HeaderGuest from "./components/HeaderGuest";
 import HeaderDesign from "./components/HeaderDesign";
+import HeaderDynamic from "./components/HeaderDynamic"; // Import HeaderDynamic
 import Options from "./pages/Options";
 import ContentListingPage from "./pages/ContentListingPage";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import EmailVerification from "./pages/EmailVerification";
-import GuestRoute from "./components/GuestRoute"; // Import GuestRoute
+import GuestRoute from "./components/GuestRoute";
 import Design from "./pages/Design";
+import ProjectHome from "./components/projects/ProjectHome";
+import ProjectAbout from "./components/projects/ProjectAbout";
+import ProjectServices from "./components/projects/ProjectServices";
+import ProjectAppointments from "./components/projects/ProjectAppointments";
+import ProjectContact from "./components/projects/ProjectContact";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const auth = getAuth();
   const location = useLocation(); // Hook to access the current route
   const [isWebVersion, setWebVersion] = useState(true); // State for toggling between web and mobile views
-
 
   // Check authentication status
   useEffect(() => {
@@ -41,8 +46,7 @@ function AppContent() {
   }, [auth]);
 
   // Conditionally render headers based on the route
-   // Conditionally render headers based on the route
-   const renderHeader = () => {
+  const renderHeader = () => {
     if (location.pathname.startsWith("/design")) {
       return (
         <HeaderDesign
@@ -51,9 +55,13 @@ function AppContent() {
         />
       );
     }
+
+    // Check if the route matches the dynamic slug pattern
+ 
+    // Default to authenticated or guest headers
     return isAuthenticated ? <Header /> : <HeaderGuest />;
   };
-  
+
   return (
     <>
       {renderHeader()}
@@ -104,9 +112,15 @@ function AppContent() {
               <Design isWebVersion={isWebVersion} setWebVersion={setWebVersion} />
             }
           />
-
-          {/* Add project-specific route */}
         </Route>
+
+        {/* Route for dynamic project pages */}
+        <Route path=":slug" element={<ProjectHome />} />
+        <Route path=":slug/about" element={<ProjectAbout />} />
+        <Route path=":slug/services" element={<ProjectServices />} />
+        <Route path=":slug/appointments" element={<ProjectAppointments />} />
+        <Route path=":slug/contact" element={<ProjectContact />} />
+
       </Routes>
     </>
   );
