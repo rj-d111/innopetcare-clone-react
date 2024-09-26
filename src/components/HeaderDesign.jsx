@@ -84,7 +84,7 @@ const HeaderDesign = ({
 
       // If all validations pass, show success message and redirect
       toast.success("Successfully deployed your website!");
-      navigate("/content-listing-page");
+      navigate("/sites");
     } catch (error) {
       console.error("Error validating data:", error);
       toast.error("An error occurred during the publishing process.");

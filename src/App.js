@@ -55,9 +55,12 @@ function AppContent() {
         />
       );
     }
-
-    // Check if the route matches the dynamic slug pattern
- 
+    const pathname = window.location.href;
+    if(pathname.includes('sites/')){
+      const parts = pathname.split("sites/");
+        if(parts[1] != "")
+           return <HeaderDynamic />;
+    }
     // Default to authenticated or guest headers
     return isAuthenticated ? <Header /> : <HeaderGuest />;
   };
@@ -101,7 +104,7 @@ function AppContent() {
           }
         />
         <Route path="/email-verification" element={<EmailVerification />} />
-        <Route path="/content-listing-page" element={<ContentListingPage />} />
+        <Route path="/sites" element={<ContentListingPage />} />
         <Route path="profile" element={<PrivateRoute />}>
           <Route path="/profile" element={<Profile />} />
         </Route>
@@ -115,11 +118,11 @@ function AppContent() {
         </Route>
 
         {/* Route for dynamic project pages */}
-        <Route path=":slug" element={<ProjectHome />} />
-        <Route path=":slug/about" element={<ProjectAbout />} />
-        <Route path=":slug/services" element={<ProjectServices />} />
-        <Route path=":slug/appointments" element={<ProjectAppointments />} />
-        <Route path=":slug/contact" element={<ProjectContact />} />
+        <Route path="sites/:slug" element={<ProjectHome />} />
+        <Route path="sites/:slug/about" element={<ProjectAbout />} />
+        <Route path="sites/:slug/services" element={<ProjectServices />} />
+        <Route path="sites/:slug/appointments" element={<ProjectAppointments />} />
+        <Route path="sites/:slug/contact" element={<ProjectContact />} />
 
       </Routes>
     </>

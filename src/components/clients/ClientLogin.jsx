@@ -8,7 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 import {db} from "../firebase";
 import platformImage from "../assets/png/platform.png";
 
-export default function Login() {
+export default function ClientLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",

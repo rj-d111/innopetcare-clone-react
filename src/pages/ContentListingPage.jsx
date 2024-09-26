@@ -76,9 +76,8 @@ export default function ContentListingPage() {
       </h1>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         {veterinarySites.map((site) => (
-          <button
-            key={site.slug}
-            className="w-full max-w-sm bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+          <div
+            className="w-full text-center max-w-sm bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
           >
             <div className="flex flex-col items-center p-10">
               <img
@@ -94,14 +93,14 @@ export default function ContentListingPage() {
               </span>
               <div className="flex mt-4 md:mt-6">
                 <Link
-                  to={`/${site.slug}`}
+                  to={`/sites/${site.slug}`}
                   className="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                 >
                   Visit Now
                 </Link>
               </div>
             </div>
-          </button>
+          </div>
         ))}
       </div>
 

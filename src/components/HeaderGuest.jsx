@@ -33,8 +33,8 @@ export default function HeaderGuest() {
     <div className="hidden md:block">
       <ul className="flex space-x-4 items-center"> {/* Add flex here to ul and space between li items */}
         <li
-          onClick={() => navigate("content-listing-page")}
-          className={`text-white cursor-pointer ${(pathMatchRoute("/content-listing-page")) ? "hidden": ""}`}
+          onClick={() => navigate("sites")}
+          className={`text-white cursor-pointer ${(pathMatchRoute("/sites")) ? "hidden": ""}`}
         >
           Explore Clinics & Shelters
         </li>

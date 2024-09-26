@@ -19,7 +19,7 @@ export default function Options() {
     </div>
     <h2 className="text-lg font-semibold mb-6">How do you want to Login</h2>
     <div className="md:w-1/2 grid grid-cols-1 gap-6 md:grid-cols-2">
-      <a href="/content-listing-page">
+      <a href="/sites">
         <div className="bg-white p-4 rounded-lg shadow-md flex flex-col h-full">
           <img
             src="images/visitor.png"

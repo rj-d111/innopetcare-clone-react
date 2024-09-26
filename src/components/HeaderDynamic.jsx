@@ -12,8 +12,20 @@ import {
 } from "firebase/firestore"; // Firestore functions
 
 export default function HeaderDynamic() {
-  const url = window.location.href;
-  const slug = url.split("/").pop(); // Access the slug from the URL
+
+  const pathname = window.location.href;
+  const parts = pathname.split("sites/");
+  var slug;
+
+ 
+
+  // Check if there's a part after "sites/"
+  if (parts.length > 1) {
+    slug = parts[1].split("/")[0]; // Get only the first part after "/"
+   } 
+
+
+
   const [headerData, setHeaderData] = useState({
     headerColor: "",
     headerTextColor: "",
@@ -73,10 +85,10 @@ export default function HeaderDynamic() {
         <div className="flex items-center space-x-6">
           {/* Navigation Links */}
           <ul className="flex items-center space-x-6">
-            <Link to={`/${slug}/about`}>About Us</Link>
-            <Link to={`/${slug}/services`}>Services</Link>
-            <Link to={`/${slug}/appointments`}>Appointments</Link>
-            <Link to={`/${slug}/contact`}>Contact Us</Link>
+            <Link to={`sites/${slug}/about`}>About Us</Link>
+            <Link to={`sites/${slug}/services`}>Services</Link>
+            <Link to={`sites/${slug}/appointments`}>Appointments</Link>
+            <Link to={`sites/${slug}/contact`}>Contact Us</Link>
           </ul>
 
           {/* Profile Section */}
