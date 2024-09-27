@@ -39,8 +39,8 @@ import ForApproval from "./pages/ForApproval";
 import TermsConditions from "./pages/TermsConditions";
 import ProjectDashboard from "./components/projects/ProjectDashboard";
 import ProjectHelp from "./components/projects/ProjectHelp";
-import TechAdminLogin from "./pages/TechAdminLogin";
 import TechAdminRegister from "./pages/TechAdminRegister";
+import TechAdminHome from "./pages/TechAdminHome";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -149,9 +149,7 @@ function AppContent() {
            <Route
           path="/admin"
           element={
-            <GuestRoute>
-              <TechAdminLogin />
-            </GuestRoute>
+           <TechAdminHome />
           }
         />
            <Route
