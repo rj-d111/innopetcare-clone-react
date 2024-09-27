@@ -6,6 +6,9 @@ import {
 } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase";
+
 import Home from "./pages/Home";
 import HomeGuest from "./pages/HomeGuest";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -29,17 +32,53 @@ import ProjectAbout from "./components/projects/ProjectAbout";
 import ProjectServices from "./components/projects/ProjectServices";
 import ProjectAppointments from "./components/projects/ProjectAppointments";
 import ProjectContact from "./components/projects/ProjectContact";
+import ProjectLogin from "./components/projects/ProjectLogin";
+import ProjectRegister from "./components/projects/ProjectRegister";
+import ProjectForgotPassword from "./components/projects/ProjectForgotPassword";
+import ForApproval from "./pages/ForApproval";
+import TermsConditions from "./pages/TermsConditions";
+import ProjectDashboard from "./components/projects/ProjectDashboard";
+import ProjectHelp from "./components/projects/ProjectHelp";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [userRole, setUserRole] = useState(null); // Track user role
   const auth = getAuth();
-  const location = useLocation(); // Hook to access the current route
-  const [isWebVersion, setWebVersion] = useState(true); // State for toggling between web and mobile views
+  const location = useLocation();
+  const [isWebVersion, setWebVersion] = useState(true);
 
-  // Check authentication status
+  // Check authentication status and fetch the user's role
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user); // Set to true if logged in, false otherwise
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setIsAuthenticated(true);
+
+        // Fetch user role from Firestore based on UID from both "users" and "clients"
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role); // Fetch role from 'users'
+          } else {
+            // Check if the user exists in the 'clients' collection
+            const clientDocRef = doc(db, "clients", user.uid);
+            const clientDoc = await getDoc(clientDocRef);
+            if (clientDoc.exists()) {
+              const clientData = clientDoc.data();
+              setUserRole(clientData.role); // Fetch role from 'clients'
+            } else {
+              setUserRole(null); // Default to guest if role not found
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUserRole(null); // Guest user
+      }
     });
 
     return () => unsubscribe();
@@ -55,13 +94,15 @@ function AppContent() {
         />
       );
     }
-    const pathname = window.location.href;
-    if(pathname.includes('sites/')){
-      const parts = pathname.split("sites/");
-        if(parts[1] != "")
-           return <HeaderDynamic />;
+
+    if (location.pathname === "/sites/") {
+      return <HeaderGuest />;
     }
-    // Default to authenticated or guest headers
+  
+    if (location.pathname.includes("/sites/")) {
+      return <HeaderDynamic />;
+    }
+  
     return isAuthenticated ? <Header /> : <HeaderGuest />;
   };
 
@@ -105,10 +146,15 @@ function AppContent() {
         />
         <Route path="/email-verification" element={<EmailVerification />} />
         <Route path="/sites" element={<ContentListingPage />} />
-        <Route path="profile" element={<PrivateRoute />}>
-          <Route path="/profile" element={<Profile />} />
-        </Route>
-        <Route path="design" element={<PrivateRoute />}>
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          }
+        />
+         <Route path="design" element={<PrivateRoute />}>
           <Route
             path="/design/:id"
             element={
@@ -117,13 +163,46 @@ function AppContent() {
           />
         </Route>
 
-        {/* Route for dynamic project pages */}
-        <Route path="sites/:slug" element={<ProjectHome />} />
-        <Route path="sites/:slug/about" element={<ProjectAbout />} />
-        <Route path="sites/:slug/services" element={<ProjectServices />} />
-        <Route path="sites/:slug/appointments" element={<ProjectAppointments />} />
-        <Route path="sites/:slug/contact" element={<ProjectContact />} />
+        {/* Route for client-specific access to appointments */}
+        {/* <PrivateProjectRoute>
 
+        </PrivateProjectRoute> */}
+        <Route
+          path="/sites/:slug/appointments"
+          element={
+            userRole !== "client" ? <ProjectAppointments /> : <ProjectLogin />
+          }
+        />
+        <Route
+          path="/sites/:slug/appointments/register"
+          element={
+            userRole === "client" ? (
+              <ProjectAppointments />
+            ) : (
+              <ProjectRegister />
+            )
+          }
+        />
+        <Route
+          path="/sites/:slug/appointments/forgot-password"
+          element={
+            userRole === "client" ? (
+              <ProjectAppointments />
+            ) : (
+              <ProjectForgotPassword />
+            )
+          }
+        />
+        <Route path="sites/:slug/approval" element={<ForApproval /> } />
+        <Route path="sites/:slug/terms-and-conditions" element={<TermsConditions /> } />
+
+        {/* Other routes */}
+        <Route path="/sites/:slug" element={<ProjectHome />} />
+        <Route path="/sites/:slug/about" element={<ProjectAbout />} />
+        <Route path="/sites/:slug/services" element={<ProjectServices />} />
+        <Route path="/sites/:slug/contact" element={<ProjectContact />} />
+        <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
+        <Route path="/sites/:slug/help" element={<ProjectHelp />} />
       </Routes>
     </>
   );

@@ -9,6 +9,8 @@ import ContactUs from "../components/design/ContactUs";
 import CanvasWeb from "../components/design/CanvasWeb";
 import CanvasMobile from "../components/design/CanvasMobile";
 import { useParams } from "react-router";
+import Forum from "../components/design/Forum";
+import AdoptPet from "../components/design/AdoptPet";
 
 function Design({ isWebVersion, setWebVersion }) {
   const [formData, setFormData] = useState({
@@ -34,6 +36,7 @@ function Design({ isWebVersion, setWebVersion }) {
     aboutUs: "pending",
     services: "pending",
     contactUs: "pending",
+    adoptPets: "pending",
   });
 
   const renderSection = () => {
@@ -48,6 +51,8 @@ function Design({ isWebVersion, setWebVersion }) {
         return <Services />;
       case "contactUs":
         return <ContactUs />;
+      case "adoptPets":
+        return <AdoptPet />;
       default:
         return null;
     }

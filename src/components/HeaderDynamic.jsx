@@ -25,7 +25,6 @@ export default function HeaderDynamic() {
    } 
 
 
-
   const [headerData, setHeaderData] = useState({
     headerColor: "",
     headerTextColor: "",
@@ -78,7 +77,7 @@ export default function HeaderDynamic() {
 
         <div className="flex items-center space-x-6">
           {/* Logo Picture Here */}
-          <img src={headerData.image} alt="Logo" className="h-8" />
+          <Link to={`sites/${slug}/`}><img src={headerData.image} alt="Logo" className="h-8" /></Link>
           <p>{headerData.name}</p> {/* Dynamic name from Firebase */}
         </div>
         {/* Combined Flex Container */}
@@ -118,7 +117,7 @@ export default function HeaderDynamic() {
                   role="menuitem"
                   className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
                 >
-                  <p className="text-slate-800 font-medium ml-2">Dashboard</p>
+                  <Link to={`/sites/${slug}/dashboard`} className="text-slate-800 font-medium ml-2">Dashboard</Link>
                 </li>
                 <li
                   role="menuitem"
@@ -140,7 +139,7 @@ export default function HeaderDynamic() {
                   role="menuitem"
                   className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
                 >
-                  <p className="text-slate-800 font-medium ml-2">Help</p>
+                  <Link to={`/sites/${slug}/help`} className="text-slate-800 font-medium ml-2">Help</Link>
                 </li>
                 <li
                   role="menuitem"

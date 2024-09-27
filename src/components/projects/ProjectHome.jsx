@@ -9,8 +9,19 @@ export default function ProjectHome() {
     content: "",
   });
 
-  const slug = window.location.href.split("/").pop(); // Extract the slug from the URL
-  const db = getFirestore();
+  const pathname = window.location.href;
+  const parts = pathname.split("sites/");
+  var slug;
+
+ 
+
+  // Check if there's a part after "sites/"
+  if (parts.length > 1) {
+    slug = parts[1].split("/")[0]; // Get only the first part after "/"
+   }   
+   console.log(slug);
+   
+   const db = getFirestore();
 
   // Fetch projectId from global-sections using the slug, then fetch home-sections data
   useEffect(() => {

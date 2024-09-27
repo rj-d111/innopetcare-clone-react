@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import OAuth from "../components/OAuth";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -7,11 +6,12 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { db } from "../firebase";
+import { db } from "../../firebase";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { toast } from "react-toastify";
+import ProjectOAuth from "./ProjectOAuth";
 
-export default function Register() {
+export default function ProjectRegister() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -26,6 +26,23 @@ export default function Register() {
 
   const { name, phone, email, password, confirm_password } = formData;
   const navigate = useNavigate();
+  const [slug, setSlug] = useState(""); // Replace with actual logic to get the slug
+
+  // Function to extract the slug from the URL
+  useEffect(() => {
+    const pathname = window.location.href;
+    const parts = pathname.split("sites/");
+    if (parts.length > 1) {
+      const extractedSlug = parts[1].split("/")[0]; // Get only the first part after "/"
+      setSlug(extractedSlug); // Set the slug state
+    }
+  }, []); // Runs once when component mounts
+
+  // Redirect to specific register page based on user role
+  const handleLoginClick = () => {
+    navigate(`/sites/${slug}/appointments/`);
+  
+};
  
 
   useEffect(() => {
@@ -125,7 +142,7 @@ export default function Register() {
       // Add the user.isVerified field
       formDataCopy.isVerified = false;
 
-      await setDoc(doc(db, "users", user.uid), formDataCopy);
+      await setDoc(doc(db, "clients", user.uid), formDataCopy);
       navigate("/");
       toast.success("Success! Your account has been created!");
     } catch (error) {
@@ -155,7 +172,8 @@ export default function Register() {
             <p className="text-sm text-gray-600 mt-1">
               Already Registered?{" "}
               <span className="text-sm text-yellow-600 hover:underline hover:text-yellow-800 transition duration-200 ease-in-out">
-                <Link to="/login">Login</Link>
+                <span onClick={handleLoginClick} className="cursor-pointer"
+                >Login</span>
               </span>
             </p>
           </div>
@@ -276,7 +294,7 @@ export default function Register() {
               OR
             </p>
           </div>
-          <OAuth />
+          <ProjectOAuth />
         </div>
       </div>
     </section>

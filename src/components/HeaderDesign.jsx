@@ -10,6 +10,7 @@ import {
   collection,
   where,
   getDocs,
+  updateDoc, // Import updateDoc for updating documents
 } from "firebase/firestore"; // Firestore functions
 import { db } from "../firebase"; // Firebase config
 import ModalRename from "./ModalRename"; // Import ModalRename component
@@ -84,6 +85,11 @@ const HeaderDesign = ({
 
       // If all validations pass, show success message and redirect
       toast.success("Successfully deployed your website!");
+
+      // Update the project status to "active"
+      const projectDocRef = doc(db, "projects", uuid); // Reference to the project document
+      await updateDoc(projectDocRef, { status: "active" }); // Set the status field
+
       navigate("/sites");
     } catch (error) {
       console.error("Error validating data:", error);
@@ -120,13 +126,13 @@ const HeaderDesign = ({
   };
 
   return (
-    <header className="flex justify-between items-center p-4 bg-yellow-500 shadow-sm sticky top-0 z-40">
+    <header className="flex justify-between items-center p-1 md:p-4 bg-yellow-500 shadow-sm sticky top-0 z-40">
       <div className="flex items-center  space-x-6">
         <Link to="/">
-          <img src={innoPetCareSmallLogo} alt="Logo" className="h-12" />
+          <img src={innoPetCareSmallLogo} alt="Logo" className="h-8 md:h-12" />
         </Link>
         <div className="flex items-center space-x-2">
-          <h1 className="text-xl font-bold text-white">{projectName}</h1>
+          <h1 className="text-xs md:text-xl font-bold text-white">{projectName}</h1>
           <MdModeEdit
             className="cursor-pointer text-white"
             onClick={handleEditClick} // Show rename modal on click
@@ -135,31 +141,29 @@ const HeaderDesign = ({
         </div>
       </div>
 
-      <div class="join ">
+      <div className="join">
         <button
-          class={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
+          className={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
             !isWebVersion ? "bg-white" : "bg-yellow-600"
           }`}
         >
           <IoDesktop
             onClick={() => setWebVersion(true)}
-            className={`cursor-pointer ${
+            className={`cursor-pointer text-[18px] md:text-[24px] ${
               isWebVersion ? "text-white" : "text-yellow-600"
             }`}
-            size={24}
           />
         </button>
         <button
-          class={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
+          className={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
             isWebVersion ? "bg-white" : "bg-yellow-600"
           }`}
         >
           <IoPhonePortrait
             onClick={() => setWebVersion(false)}
-            className={`cursor-pointer ${
+            className={`cursor-pointer text-[18px] md:text-[24px] ${
               !isWebVersion ? "text-white" : "text-yellow-600"
             }`}
-            size={24}
           />
         </button>
       </div>
@@ -170,8 +174,8 @@ const HeaderDesign = ({
           onClick={handlePublish}
           className="bg-white hover:bg-yellow-100 text-yellow-800 px-3 py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:bg-yellow-200 shadow-md hover:shadow-lg active:shadow-lg flex items-center space-x-2"
         >
-          <MdPublish className="text-lg" />
-          <span>Publish Website</span>
+          <MdPublish className="md:text-lg" />
+          <span className="hidden md:block">Publish Website</span>
         </button>
       </div>
 
