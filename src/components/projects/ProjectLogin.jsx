@@ -3,33 +3,28 @@ import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { toast } from "react-toastify";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, query, where, collection, getDocs } from "firebase/firestore";
 import platformImage from "../../assets/png/platform.png";
 import { db } from "../../firebase";
 import ProjectOAuth from "./ProjectOAuth";
 
 export default function ProjectLogin() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const { email, password } = formData;
   const navigate = useNavigate();
-  const [userRole, setUserRole] = useState(null); // Track the user role
-  const [slug, setSlug] = useState(""); // Replace with actual logic to get the slug
+  const [slug, setSlug] = useState(""); 
 
-  // Function to extract the slug from the URL
   useEffect(() => {
     const pathname = window.location.href;
     const parts = pathname.split("sites/");
     if (parts.length > 1) {
-      const extractedSlug = parts[1].split("/")[0]; // Get only the first part after "/"
-      setSlug(extractedSlug); // Set the slug state
+      const extractedSlug = parts[1].split("/")[0];
+      setSlug(extractedSlug);
     }
-  }, []); // Runs once when component mounts
+  }, []);
 
-  // Function to handle input change
+  // Handle input change
   function onChange(e) {
     setFormData((prevState) => ({
       ...prevState,
@@ -41,51 +36,65 @@ export default function ProjectLogin() {
   async function onSubmit(e) {
     e.preventDefault();
     try {
+      // Fetch the global-sections document based on slug
+      const globalQuery = query(collection(db, "global-sections"), where("slug", "==", slug));
+      const globalSnap = await getDocs(globalQuery);
+
+      if (globalSnap.empty) {
+        toast.error("Invalid website");
+        return;
+      }
+
+      const globalData = globalSnap.docs[0].data(); // Get the first matched document
+      const projectId = globalData.projectId;
+      
+      // Fetch the client document using projectId and email
+      const clientQuery = query(collection(db, "clients"), where("email", "==", email), where("projectId", "==", projectId));
+      const clientSnap = await getDocs(clientQuery);
+
+      if (clientSnap.empty) {
+        toast.error("Email not found");
+        return;
+      }
+
+      const clientData = clientSnap.docs[0].data();
+
+      // Authenticate user
       const auth = getAuth();
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      if (userCredential.user) {
-        const user = userCredential.user;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-        // Navigate to home page if login is successful
-        navigate("/");
+      if (user) {
+        // Check if password matches
+        const userDoc = await getDoc(doc(db, "clients", user.uid));
+        const userPassword = userDoc.data().password;
 
-        // Fetch the user document from Firestore
-        const docRef = doc(db, "clients", user.uid);
-        const docSnap = await getDoc(docRef);
+        // if (password !== userPassword) {
+        //   toast.error("Password does not match");
+        //   return;
+        // }
 
-        if (docSnap.exists()) {
-          const userData = docSnap.data();
-          setUserRole(userData.role); // Set user role from Firestore
+        // If approved, navigate to appointments and show success message
+        toast.success(`Welcome to ${globalData.name}, ${clientData.name}`);
+        navigate(`/sites/${slug}/appointments`);
 
-          // Access the name field from the fetched document
-          const userName = userData.name;
-          toast.success(`Welcome, ${userName}`);
-        } else {
-          console.log("No such document!");
+        // Check if user is approved
+        if (!clientData.isApproved) {
+          navigate(`/sites/${slug}/approval`);
+          return;
         }
+
+
       }
     } catch (error) {
-      toast.error("Invalid user credentials");
+      toast.error("Login failed");
     }
   }
-
-  // Redirect to specific register page based on user role
-  const handleRegisterClick = () => {
-    navigate(`/sites/${slug}/appointments/register`);
-  };
-  const handleForgotPasswordClick = () => {
-    navigate(`/sites/${slug}/appointments/forgot-password`);
-  };
 
   return (
     <div className="bg-gray-100">
       <section className="min-h-screen flex items-center justify-center mx-3">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-center my-10">
-          {/* Left side with laptop and phone image */}
           <div className="hidden md:block md:w-3/4 lg:w-1/2">
             <div className="p-10">
               <img
@@ -95,7 +104,6 @@ export default function ProjectLogin() {
               />
             </div>
           </div>
-          {/* Right side login form */}
           <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 lg:w-1/3 w-full">
             <div className="text-center mb-6">
               <img
@@ -104,23 +112,18 @@ export default function ProjectLogin() {
                 className="mx-auto mb-4 select-none"
               />
               <p className="text-gray-600 text-sm">
-                InnoPetCare is a content management system (CMS) designed
-                specifically for veterinary clinics and animal shelters to
-                manage their online presence.
+                InnoPetCare is a content management system (CMS) designed specifically for veterinary clinics and animal shelters to manage their online presence.
               </p>
             </div>
             <h2 className="font-bold text-yellow-900 flex flex-col sm:flex-row items-center justify-center">
-              Welcome!
-              <span className="sm:ml-1">Login to your account.</span>
+              Welcome! <span className="sm:ml-1">Login to your account.</span>
             </h2>
             <p className="text-gray-600 text-sm mb-6 text-center mt-1">
               Let's work together to care for our furry friends.
             </p>
             <form onSubmit={onSubmit}>
               <div className="mb-5">
-                <label htmlFor="email" className="block text-gray-500 mb-2">
-                  Email
-                </label>
+                <label htmlFor="email" className="block text-gray-500 mb-2">Email</label>
                 <input
                   type="email"
                   id="email"
@@ -132,9 +135,7 @@ export default function ProjectLogin() {
                 />
               </div>
               <div className="mb-5">
-                <label htmlFor="password" className="block text-gray-500 mb-2">
-                  Password
-                </label>
+                <label htmlFor="password" className="block text-gray-500 mb-2">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -165,27 +166,6 @@ export default function ProjectLogin() {
                 Log In
               </button>
             </form>
-            <div className="text-center mt-6">
-              <p className="text-sm text-yellow-600 hover:underline hover:text-yellow-800 transition duration-200 ease-in-out">
-                <span
-                  onClick={handleForgotPasswordClick}
-                  className="cursor-pointer"
-                >
-                  Forgot password?
-                </span>
-              </p>
-            </div>
-            <div className="text-center mt-4">
-              <p className="text-sm text-gray-600">
-                Don't have an account?
-                <span
-                  className="ms-1 text-yellow-600 font-semibold hover:underline hover:text-yellow-800 transition duration-200 ease-in-out cursor-pointer"
-                  onClick={handleRegisterClick}
-                >
-                  Register
-                </span>
-              </p>
-            </div>
           </div>
         </div>
       </section>

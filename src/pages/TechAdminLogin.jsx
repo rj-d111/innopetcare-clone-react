@@ -35,7 +35,7 @@ export default function TechAdminLogin() {
         navigate("/");
   
         // Fetch the user document from Firestore using the user's uid
-        const docRef = doc(db, "users", user.uid);
+        const docRef = doc(db, "tech-admin", user.uid);
         const docSnap = await getDoc(docRef);
   
         if (docSnap.exists()) {
