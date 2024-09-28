@@ -186,7 +186,7 @@ function AppContent() {
         <Route
           path="/sites/:slug/appointments"
           element={
-            userRole !== "client" ? <ProjectAppointments /> : <ProjectLogin />
+            userRole === "client" ? <ProjectAppointments /> : <ProjectLogin />
           }
         />
         <Route

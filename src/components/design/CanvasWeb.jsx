@@ -9,7 +9,7 @@ const CanvasWeb = ({ formData }) => {
       <div className="grow mockup-browser border-base-300 border h-[80vh]">
         <div className="mockup-browser-toolbar">
           <div className="input border-base-300 border">
-            https://innopetcare.com/{formData.slug || ""}
+            https://innopetcare.com/sites/{formData.slug || ""}
           </div>
         </div>
 

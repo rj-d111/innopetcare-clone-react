@@ -74,7 +74,7 @@ export default function ProjectAbout() {
   }, [slug, db]);
 
   return (
-    <div className="container">
+    <div className="container mx-auto">
       <div className="flex flex-col md:flex-row items-center p-10">
         <div className="md:w-1/2 p-4">
           <h1 className="text-slate-900 text-3xl font-bold mb-2">

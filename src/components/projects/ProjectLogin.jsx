@@ -42,7 +42,11 @@ export default function ProjectLogin() {
     e.preventDefault();
     try {
       const auth = getAuth();
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       if (userCredential.user) {
         const user = userCredential.user;
 
@@ -71,12 +75,10 @@ export default function ProjectLogin() {
 
   // Redirect to specific register page based on user role
   const handleRegisterClick = () => {
-      navigate(`/sites/${slug}/appointments/register`);
-    
+    navigate(`/sites/${slug}/appointments/register`);
   };
   const handleForgotPasswordClick = () => {
-      navigate(`/sites/${slug}/appointments/forgot-password`);
-    
+    navigate(`/sites/${slug}/appointments/forgot-password`);
   };
 
   return (
@@ -102,7 +104,9 @@ export default function ProjectLogin() {
                 className="mx-auto mb-4 select-none"
               />
               <p className="text-gray-600 text-sm">
-                InnoPetCare is a content management system (CMS) designed specifically for veterinary clinics and animal shelters to manage their online presence.
+                InnoPetCare is a content management system (CMS) designed
+                specifically for veterinary clinics and animal shelters to
+                manage their online presence.
               </p>
             </div>
             <h2 className="font-bold text-yellow-900 flex flex-col sm:flex-row items-center justify-center">
@@ -114,7 +118,9 @@ export default function ProjectLogin() {
             </p>
             <form onSubmit={onSubmit}>
               <div className="mb-5">
-                <label htmlFor="email" className="block text-gray-500 mb-2">Email</label>
+                <label htmlFor="email" className="block text-gray-500 mb-2">
+                  Email
+                </label>
                 <input
                   type="email"
                   id="email"
@@ -126,7 +132,9 @@ export default function ProjectLogin() {
                 />
               </div>
               <div className="mb-5">
-                <label htmlFor="password" className="block text-gray-500 mb-2">Password</label>
+                <label htmlFor="password" className="block text-gray-500 mb-2">
+                  Password
+                </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -159,7 +167,12 @@ export default function ProjectLogin() {
             </form>
             <div className="text-center mt-6">
               <p className="text-sm text-yellow-600 hover:underline hover:text-yellow-800 transition duration-200 ease-in-out">
-                <span onClick={handleForgotPasswordClick} className="cursor-pointer">Forgot password?</span>
+                <span
+                  onClick={handleForgotPasswordClick}
+                  className="cursor-pointer"
+                >
+                  Forgot password?
+                </span>
               </p>
             </div>
             <div className="text-center mt-4">
@@ -173,17 +186,6 @@ export default function ProjectLogin() {
                 </span>
               </p>
             </div>
-            <div
-              className="my-4 items-center 
-              before:border-t flex before:flex-1
-              after:border-t after:flex-1
-              "
-            >
-              <p className="text-center text-sm font-semibold text-gray-600 mx-4">
-                OR
-              </p>
-            </div>
-            <ProjectOAuth />
           </div>
         </div>
       </section>

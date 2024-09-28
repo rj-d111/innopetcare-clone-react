@@ -7,9 +7,8 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { db } from "../../firebase";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { toast } from "react-toastify";
-import ProjectOAuth from "./ProjectOAuth";
 
 export default function ProjectRegister() {
   const [showPassword, setShowPassword] = useState(false);
@@ -41,9 +40,7 @@ export default function ProjectRegister() {
   // Redirect to specific register page based on user role
   const handleLoginClick = () => {
     navigate(`/sites/${slug}/appointments/`);
-  
-};
- 
+  };
 
   useEffect(() => {
     if (error) {
@@ -132,18 +129,34 @@ export default function ProjectRegister() {
       });
       const user = userCredential.user;
 
-      console.log(user);
+      // Fetch the projectId based on the slug from global-sections
+      const q = query(collection(db, "global-sections"), where("slug", "==", slug));
+      const querySnapshot = await getDocs(q);
+
+      let projectId = null;
+      if (!querySnapshot.empty) {
+        projectId = querySnapshot.docs[0].data().projectId; // Get the projectId
+      } else {
+        throw new Error("No project found for the given slug.");
+      }
 
       const formDataCopy = { ...formData };
       delete formDataCopy.password;
       delete formDataCopy.confirm_password;
       formDataCopy.phone = "+63" + formDataCopy.phone;
       formDataCopy.timestamp = serverTimestamp();
-      // Add the user.isVerified field
-      formDataCopy.isVerified = false;
+      formDataCopy.isApproved = false; // Set isApproved to false
+      formDataCopy.projectId = projectId; // Add projectId
 
       await setDoc(doc(db, "clients", user.uid), formDataCopy);
-      navigate("/");
+      
+      // Redirect to the appropriate page based on isApproved
+      if (!formDataCopy.isApproved) {
+        navigate(`/sites/${slug}/approval`);
+      } else {
+        navigate(`/sites/${slug}/appointments`);
+      }
+
       toast.success("Success! Your account has been created!");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
@@ -218,7 +231,7 @@ export default function ProjectRegister() {
             </div>
             <div className="mb-5">
               <label htmlFor="phone" className="block text-gray-500 mb-2">
-                Phone No. (Format: +639XXXXXXXXX)
+                Phone No. (Format: 9XXXXXXXXX)
               </label>
               <div className="flex">
                 <div className="w-1/6 bg-gray-200 text-center py-2 rounded-l-lg border border-gray-300">
@@ -284,17 +297,6 @@ export default function ProjectRegister() {
               Sign Up
             </button>
           </form>
-          <div
-            className="my-4 items-center 
-            before:border-t flex before:flex-1
-            after:border-t after:flex-1
-            "
-          >
-            <p className="text-center text-sm font-semibold text-gray-600 mx-4">
-              OR
-            </p>
-          </div>
-          <ProjectOAuth />
         </div>
       </div>
     </section>
