@@ -3,7 +3,7 @@ import React from 'react';
 export default function ProjectHelp() {
   return (
     <div className="container mx-auto py-16">
-      <h2 className="text-3xl font-bold text-center text-blue-900 mb-4">Peace of Mind From Home</h2>
+      <h2 className="text-3xl font-bold text-center text-blue-900 mb-4">Help Menu</h2>
       <p className="text-center text-gray-700 mb-12">
         Get reassurance from Fort Deo via free chat via Messenger or with a scheduled video call.
       </p>

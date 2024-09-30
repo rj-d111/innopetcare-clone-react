@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaPlus, FaTrashAlt, FaPencilAlt } from "react-icons/fa";
 import { BsThreeDots } from "react-icons/bs";
 import { MdViewList, MdViewModule } from "react-icons/md";
+import { BiSolidDashboard } from "react-icons/bi";
 import {
   collection,
   getDocs,
@@ -34,6 +35,27 @@ export default function Home() {
 
   const navigate = useNavigate();
 
+  const toggleProjectStatus = async (project) => {
+    try {
+      const newStatus = project.status === "active" ? "disabled" : "active";
+      const projectRef = doc(db, "projects", project.id);
+      await updateDoc(projectRef, { status: newStatus });
+
+      // Update local state to reflect the change immediately
+      setProjects((prevProjects) =>
+        prevProjects.map((p) =>
+          p.id === project.id ? { ...p, status: newStatus } : p
+        )
+      );
+
+      toast.success(
+        `Project is now ${newStatus === "active" ? "enabled" : "disabled"}`
+      );
+    } catch (error) {
+      toast.error("Failed to update project status");
+    }
+  };
+
   const fetchProjects = async (userId) => {
     const projectsQuery = query(
       collection(db, "projects"),
@@ -49,6 +71,12 @@ export default function Home() {
 
   const handleProjectClick = (project) => {
     navigate(`/design/${project.id}`);
+  };
+
+  const showOwnerDashboard = (project) => {
+    if (project.status === "active") {
+      navigate(`/${project.id}/dashboard`);
+    }
   };
 
   useEffect(() => {
@@ -103,8 +131,10 @@ export default function Home() {
     setMenuOpen(projectId);
   };
 
-  const handleMouseLeave = () => {
-    setMenuOpen(null);
+  const handleMouseLeave = (projectId) => {
+    if (menuOpen === projectId) {
+      setMenuOpen(null);
+    }
   };
 
   if (isLoading) {
@@ -146,18 +176,26 @@ export default function Home() {
           </div>
         </div>
 
-        <div className={`mt-6 ${viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col space-y-4"}`}>
+        <div
+          className={`mt-6 ${
+            viewMode === "grid"
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+              : "flex flex-col space-y-4"
+          }`}
+        >
           {projects.map((project) => (
             <div
               key={project.id}
               className="bg-white p-4 rounded-lg shadow-md cursor-pointer relative"
               onClick={() => handleProjectClick(project)} // Card click handler
+              onMouseEnter={() => handleMouseEnter(project.id)}
+              onMouseLeave={() => handleMouseLeave(project.id)}
             >
               <div className="flex justify-between">
                 <h3 className="text-lg font-bold">{project.name}</h3>
                 <BsThreeDots
                   className="text-gray-600 cursor-pointer"
-                  onClick={(e) => handleMenuToggle(project.id, e)} // Show/hide menu on click
+                  onClick={(e) => handleMenuToggle(project.id, e)} // Toggle menu on click
                 />
               </div>
 
@@ -170,7 +208,7 @@ export default function Home() {
                       handleRenameClick(project);
                     }}
                   >
-                    <div className="flex items-center justify-between p-2">
+                    <div className="flex items-center justify-start p-2">
                       <FaPencilAlt className="mr-2" /> Edit
                     </div>
                   </button>
@@ -182,8 +220,56 @@ export default function Home() {
                       setShowTrashModal(true);
                     }}
                   >
-                    <div className="flex items-center justify-between p-2">
+                    <div className="flex items-center justify-start p-2">
                       <FaTrashAlt className="mr-2" /> Delete
+                    </div>
+                  </button>
+                  <button
+                    className={`block w-full px-4 py-2 text-blue-600 hover:bg-blue-100 ${
+                      project.status !== "active"
+                        ? "cursor-not-allowed opacity-50"
+                        : ""
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (project.status === "active") {
+                        showOwnerDashboard(project);
+                      }
+                    }}
+                    disabled={project.status !== "active"}
+                  >
+                    <div className="flex items-center justify-start p-2">
+                      <BiSolidDashboard className="mr-2" /> Dashboard
+                    </div>
+                  </button>
+                  <button
+                    className={`block w-full px-4 py-2 ${
+                      project.status === "active"
+                        ? "text-green-600 hover:bg-green-100"
+                        : project.status === "disabled"
+                        ? "text-gray-600 hover:bg-gray-100"
+                        : "cursor-not-allowed opacity-50"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (project.status !== "pending") {
+                        toggleProjectStatus(project);
+                      }
+                    }}
+                    disabled={project.status === "pending"}
+                  >
+                    <div className="flex items-center justify-start p-2">
+                      <input
+                        type="checkbox"
+                        className={`toggle toggle-xs mr-2 ${
+                          project.status === "disabled" ? "" : "toggle-success"
+                        }`}
+                        checked={project.status === "active"}
+                        readOnly
+                      />
+                      {project.status === "active"
+                        ? "Disable Site"
+                        : "Enable Site"}
                     </div>
                   </button>
                 </div>
@@ -191,7 +277,11 @@ export default function Home() {
 
               <p className="text-gray-600">{project.type}</p>
               <p className="text-sm text-gray-500">
-                Created on: {new Date(project.createdAt.seconds * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                Created on:{" "}
+                {new Date(project.createdAt.seconds * 1000).toLocaleDateString(
+                  "en-US",
+                  { year: "numeric", month: "long", day: "numeric" }
+                )}
               </p>
             </div>
           ))}
@@ -214,8 +304,7 @@ export default function Home() {
       <ModalTrash
         show={showTrashModal}
         onClose={() => setShowTrashModal(false)}
-        projectId={projectToDelete}
-        onDelete={handleProjectDelete}
+        onProjectDelete={handleProjectDelete}
       />
     </>
   );

@@ -41,6 +41,19 @@ import ProjectForgotPassword from "./components/projects/ProjectForgotPassword";
 import TermsConditions from "./pages/TermsConditions";
 import ProjectHelp from "./components/projects/ProjectHelp";
 import TechAdminRegister from "./pages/TechAdminRegister";
+import ProjectMessages from "./components/projects/ProjectMessages";
+import ProjectNotifications from "./components/projects/ProjectNotifications";
+import ProjectAdoption from "./components/projects/ProjectAdoption";
+import OwnerHome from "./pages/OwnerHome";
+
+// For Owner Pages
+import OwnerSchedule from "../src/components/owners/OnwerSchedule";
+import OwnerAdoptions from "../src/components/owners/OwnerAdoption";
+import OwnerMessages from "../src/components/owners/OwnerMessages";
+import OwnerPetHealthRecords from "../src/components/owners/OwnerPetHealthRecords";
+import OwnerPetOwners from "../src/components/owners/OwnerPetOwners";
+import OwnerDashboard from "../src/components/owners/OwnerDashboard";
+import OwnerPending from "./components/owners/OwnerPending";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -135,7 +148,7 @@ function AppContent() {
         {/* Other Routes for guests */}
         <Route
           path="/"
-          element={userRole == "users" ? <Home /> : <HomeGuest />}
+          element={userRole === "users" ? <Home /> : <HomeGuest />}
         />
         <Route
           path="/login"
@@ -182,6 +195,23 @@ function AppContent() {
               />
             }
           />
+      <Route element={<PrivateRoute allowedRoles={["users"]} />}>
+        {/* Nest all routes under OwnerHome */}
+        <Route path="/:id" element={<OwnerHome />}>
+          <Route path="dashboard" element={<OwnerDashboard />} />
+          <Route path="schedule" element={<OwnerSchedule />} />
+          <Route path="pet-records" element={<OwnerPetHealthRecords />} />
+          <Route path="pet-owners" element={<OwnerPetOwners />} />
+          <Route path="messages" element={<OwnerMessages />} />
+          <Route path="adoptions" element={<OwnerAdoptions />} />
+          <Route path="pending" element={<OwnerPending />} />
+          {/* Other nested routes */}
+        </Route>
+      </Route>
+
+        </Route>
+        <Route element={<PrivateRoute allowedRoles={["users"]} />}>
+          <Route path="/design/:id/dashboard" element={<OwnerHome />} />
         </Route>
 
         {/* Protected Route for Users */}
@@ -198,14 +228,20 @@ function AppContent() {
         <Route element={<PrivateRoute allowedRoles={["clients"]} />}>
           <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
         </Route>
-             {/* Routes for Clients */}
-             <Route element={<PrivateRoute allowedRoles={["clients"]} />}>
+        {/* Routes for Clients */}
+        <Route element={<PrivateRoute allowedRoles={["clients"]} />}>
           <Route
             path="/sites/:slug/appointments"
             element={
-              userRole === "clients"
-                ? (isApproved ? <ProjectAppointments /> : <ForApproval />)
-                : <ProjectLogin />
+              userRole === "clients" ? (
+                isApproved ? (
+                  <ProjectAppointments />
+                ) : (
+                  <ForApproval />
+                )
+              ) : (
+                <ProjectLogin />
+              )
             }
           />
         </Route>
@@ -231,6 +267,7 @@ function AppContent() {
           }
         />
         <Route path="sites/:slug/approval" element={<ForApproval />} />
+        <Route path="sites/:slug/messages" element={<ProjectMessages />} />
         <Route
           path="sites/:slug/terms-and-conditions"
           element={<TermsConditions />}
@@ -243,7 +280,11 @@ function AppContent() {
         <Route path="/sites/:slug/contact" element={<ProjectContact />} />
         <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
         <Route path="/sites/:slug/help" element={<ProjectHelp />} />
-        
+        <Route
+          path="/sites/:slug/notifications"
+          element={<ProjectNotifications />}
+        />
+        <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} />
       </Routes>
     </>
   );

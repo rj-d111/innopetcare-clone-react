@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import { Link, useParams } from "react-router-dom";
+import { FiMessageCircle } from "react-icons/fi";
 import { db } from "../firebase"; // import Firebase configuration
 import {
   doc,
@@ -10,6 +11,8 @@ import {
   where,
   getDocs,
 } from "firebase/firestore"; // Firestore functions
+import adoptPet from "../assets/png/adopt pet.png";
+import { IoIosHelpCircleOutline, IoIosNotificationsOutline } from "react-icons/io";
 
 export default function HeaderDynamic() {
 
@@ -88,6 +91,21 @@ export default function HeaderDynamic() {
             <Link to={`sites/${slug}/services`}>Services</Link>
             <Link to={`sites/${slug}/appointments`}>Appointments</Link>
             <Link to={`sites/${slug}/contact`}>Contact Us</Link>
+            <Link to={`sites/${slug}/adopt-pet`}>Adopt Pets</Link>
+            <Link to={`sites/${slug}/messages`}>
+            <FiMessageCircle size={24}  />
+            </Link>
+            <Link to={`sites/${slug}/notifications`}>
+            <IoIosNotificationsOutline
+            size={24} />
+            </Link>
+            <Link to={`sites/${slug}/help`}>
+            <IoIosHelpCircleOutline
+            size={24} />
+            </Link>
+            <Link>
+            <img src={adoptPet} alt="" srcset="" className="h-9" />
+            </Link>
           </ul>
 
           {/* Profile Section */}
