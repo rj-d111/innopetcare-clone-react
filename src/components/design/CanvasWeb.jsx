@@ -2,7 +2,7 @@ import { FaUserCircle } from "react-icons/fa";
 import InnoPetCareSmall from "../../assets/png/InnoPetCareSmall.png";
 import { useState } from "react";
 
-const CanvasWeb = ({ formData }) => {
+const CanvasWeb = ({ formData, imagePreview }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   return (
     <>
@@ -28,7 +28,14 @@ const CanvasWeb = ({ formData }) => {
           {/* Logo */}
 
           <div className="flex items-center space-x-6">
-            <img src={InnoPetCareSmall} alt="Logo" className="h-8" />
+            {/* <img src={InnoPetCareSmall} alt="Logo" className="h-8" /> */}
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Uploaded Logo"
+                className="h-8"
+              />
+            )}
             <p>{formData.name || "Default Project Name"}</p>
           </div>
           {/* Combined Flex Container */}

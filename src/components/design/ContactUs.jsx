@@ -49,6 +49,24 @@ export default function ContactUs() {
     setContactInfo({ ...contactInfo, [name]: value });
   };
 
+  // Validate Philippine phone number format
+  const isValidPhoneNumber = (phone) => {
+    const phoneRegex = /^(09|\+639)\d{9}$/; // Matches formats like 09123456789 or +639123456789
+    return phoneRegex.test(phone);
+  };
+
+  // Validate email format
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email validation
+    return emailRegex.test(email);
+  };
+
+  // Validate Facebook link
+  const isValidFacebookLink = (link) => {
+    const facebookRegex = /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.me)\/.+$/; // Basic Facebook link validation
+    return facebookRegex.test(link);
+  };
+
   // Save or update contact info in Firestore
   const handleSave = async (e) => {
     try {
@@ -60,6 +78,22 @@ export default function ContactUs() {
         !contactInfo.facebook
       ) {
         toast.error("Please fill all the required fields");
+        return;
+      }
+
+      // Validate specific fields
+      if (!isValidPhoneNumber(contactInfo.phone)) {
+        toast.error("Please enter a valid Philippine phone number (e.g., 09123456789)");
+        return;
+      }
+
+      if (!isValidEmail(contactInfo.email)) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
+
+      if (!isValidFacebookLink(contactInfo.facebook)) {
+        toast.error("Please enter a valid Facebook link (e.g., https://facebook.com/yourpage)");
         return;
       }
 
@@ -158,9 +192,10 @@ export default function ContactUs() {
         type="button"
         onClick={handleSave}
         className={`w-full uppercase ${
-        isUpdateMode ? "bg-violet-600 hover:bg-violet-700 active:bg-violet-800" 
-          : "bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800"
-      } text-white py-3 rounded-lg font-semibold transition duration-200 ease-in-out`}
+          isUpdateMode
+            ? "bg-violet-600 hover:bg-violet-700 active:bg-violet-800"
+            : "bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800"
+        } text-white py-3 rounded-lg font-semibold transition duration-200 ease-in-out`}
       >
         {isUpdateMode ? "Update Changes" : "Save Changes"}
       </button>

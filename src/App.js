@@ -54,6 +54,7 @@ import OwnerPetHealthRecords from "../src/components/owners/OwnerPetHealthRecord
 import OwnerPetOwners from "../src/components/owners/OwnerPetOwners";
 import OwnerDashboard from "../src/components/owners/OwnerDashboard";
 import OwnerPending from "./components/owners/OwnerPending";
+import EmailVerification from "./pages/EmailVerification";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -63,11 +64,16 @@ function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isWebVersion, setWebVersion] = useState(true);
+  const [isVerified, setIsVerified] = useState(); // Add isVerified state
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsAuthenticated(true);
+
+        // Check if email is verified
+        setIsVerified(user.emailVerified);
+
         try {
           const userRoles = ["users", "clients", "tech-admin"];
           let foundRole = null;
@@ -113,8 +119,6 @@ function AppContent() {
         navigate("/admin");
       } else if (userRole === "clients") {
         navigate(`/sites/${auth.currentUser?.uid}`);
-      } else if (userRole === "users") {
-        navigate("/"); // Add redirection to "/" for users
       }
     }
   }, [userRole, location, navigate]);
@@ -140,15 +144,25 @@ function AppContent() {
     return isAuthenticated ? <Header /> : <HeaderGuest />;
   };
 
+  useEffect(() => {
+    // Redirect to email verification if email is not verified
+    if (isAuthenticated && !isVerified) {
+      navigate("/email-verification");
+    }
+  }, [isAuthenticated, isVerified, navigate]);
+
   return (
     <>
       {renderHeader()}
 
       <Routes>
         {/* Other Routes for guests */}
+        <Route path="/" element={isVerified ? <Home /> : <HomeGuest />} />
+
+        {/* Email Verification Route */}
         <Route
-          path="/"
-          element={userRole === "users" ? <Home /> : <HomeGuest />}
+          path="/email-verification"
+          element={!isVerified ? <EmailVerification /> : <Home />}
         />
         <Route
           path="/login"
@@ -195,29 +209,17 @@ function AppContent() {
               />
             }
           />
-      <Route element={<PrivateRoute allowedRoles={["users"]} />}>
-        {/* Nest all routes under OwnerHome */}
-        <Route path="/:id" element={<OwnerHome />}>
-          <Route path="dashboard" element={<OwnerDashboard />} />
-          <Route path="schedule" element={<OwnerSchedule />} />
-          <Route path="pet-records" element={<OwnerPetHealthRecords />} />
-          <Route path="pet-owners" element={<OwnerPetOwners />} />
-          <Route path="messages" element={<OwnerMessages />} />
-          <Route path="adoptions" element={<OwnerAdoptions />} />
-          <Route path="pending" element={<OwnerPending />} />
-          {/* Other nested routes */}
+          <Route path="/:id" element={<OwnerHome />}>
+            <Route path="dashboard" element={<OwnerDashboard />} />
+            <Route path="schedule" element={<OwnerSchedule />} />
+            <Route path="pet-records" element={<OwnerPetHealthRecords />} />
+            <Route path="pet-owners" element={<OwnerPetOwners />} />
+            <Route path="messages" element={<OwnerMessages />} />
+            <Route path="adoptions" element={<OwnerAdoptions />} />
+            <Route path="pending" element={<OwnerPending />} />
+            {/* Other nested routes */}
+          </Route>
         </Route>
-      </Route>
-
-        </Route>
-        <Route element={<PrivateRoute allowedRoles={["users"]} />}>
-          <Route path="/design/:id/dashboard" element={<OwnerHome />} />
-        </Route>
-
-        {/* Protected Route for Users */}
-        {/* <Route element={<PrivateRoute allowedRoles={['users']} />}>
-          <Route path="/" element={<Home />} />
-        </Route> */}
 
         {/* Routes for TechAdmin */}
         <Route element={<PrivateRoute allowedRoles={["tech-admin"]} />}>
@@ -227,63 +229,40 @@ function AppContent() {
         {/* Routes for Clients */}
         <Route element={<PrivateRoute allowedRoles={["clients"]} />}>
           <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
-        </Route>
-        {/* Routes for Clients */}
-        <Route element={<PrivateRoute allowedRoles={["clients"]} />}>
-          <Route
-            path="/sites/:slug/appointments"
-            element={
-              userRole === "clients" ? (
-                isApproved ? (
-                  <ProjectAppointments />
-                ) : (
-                  <ForApproval />
-                )
+          <Route path="/sites/:slug/appointments" element={
+            userRole === "clients" ? (
+              isApproved ? (
+                <ProjectAppointments />
               ) : (
-                <ProjectLogin />
+                <ForApproval />
               )
-            }
-          />
-        </Route>
-
-        <Route
-          path="/sites/:slug/appointments/register"
-          element={
+            ) : (
+              <ProjectLogin />
+            )
+          } />
+          <Route path="/sites/:slug/appointments/register" element={
             userRole === "clients" ? (
               <ProjectAppointments />
             ) : (
               <ProjectRegister />
             )
-          }
-        />
-        <Route
-          path="/sites/:slug/appointments/forgot-password"
-          element={
+          } />
+          <Route path="/sites/:slug/appointments/forgot-password" element={
             userRole === "clients" ? (
               <ProjectAppointments />
             ) : (
               <ProjectForgotPassword />
             )
-          }
-        />
+          } />
+        </Route>
+        
         <Route path="sites/:slug/approval" element={<ForApproval />} />
         <Route path="sites/:slug/messages" element={<ProjectMessages />} />
-        <Route
-          path="sites/:slug/terms-and-conditions"
-          element={<TermsConditions />}
-        />
-
-        {/* Other routes */}
-        <Route path="/sites/:slug" element={<ProjectHome />} />
         <Route path="/sites/:slug/about" element={<ProjectAbout />} />
         <Route path="/sites/:slug/services" element={<ProjectServices />} />
         <Route path="/sites/:slug/contact" element={<ProjectContact />} />
-        <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
         <Route path="/sites/:slug/help" element={<ProjectHelp />} />
-        <Route
-          path="/sites/:slug/notifications"
-          element={<ProjectNotifications />}
-        />
+        <Route path="/sites/:slug/notifications" element={<ProjectNotifications />} />
         <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} />
       </Routes>
     </>
@@ -296,9 +275,9 @@ function App() {
       <AppContent />
       <ToastContainer
         position="top-center"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
+        autoClose={2000}
+        hideProgressBar
+        newestOnTop
         closeOnClick
         rtl={false}
         pauseOnFocusLoss

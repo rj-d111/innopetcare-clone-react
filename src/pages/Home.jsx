@@ -119,13 +119,17 @@ export default function Home() {
   };
 
   const handleProjectDelete = async (projectId) => {
-    const projectRef = doc(db, "projects", projectId);
-    await deleteDoc(projectRef);
-    setProjects((prevProjects) =>
-      prevProjects.filter((project) => project.id !== projectId)
-    );
+    if (!projectId) return; // Make sure projectId is not null
+    try {
+        const projectRef = doc(db, "projects", projectId);
+        await deleteDoc(projectRef);
+        setProjects((prevProjects) => prevProjects.filter((project) => project.id !== projectId));
+    } catch (error) {
+        console.error("Error deleting project: ", error);
+        toast.error("Failed to delete the project. Please try again.");
+    }
     setShowTrashModal(false);
-  };
+};
 
   const handleMouseEnter = (projectId) => {
     setMenuOpen(projectId);
@@ -304,7 +308,8 @@ export default function Home() {
       <ModalTrash
         show={showTrashModal}
         onClose={() => setShowTrashModal(false)}
-        onProjectDelete={handleProjectDelete}
+        projectId={projectToDelete} // Pass the project ID here
+        onDelete={handleProjectDelete}
       />
     </>
   );

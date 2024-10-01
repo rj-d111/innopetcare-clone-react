@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import innoPetCareSmallLogo from "../assets/png/InnoPetCareSmall.png";
 import { IoDesktop, IoPhonePortrait } from "react-icons/io5";
 import { MdModeEdit, MdPublish } from "react-icons/md";
-import { useParams, useNavigate, Link } from "react-router-dom"; // Import useNavigate for redirection
+import { useParams, useNavigate, Link } from "react-router-dom"; 
 import {
   doc,
   getDoc,
@@ -10,10 +10,10 @@ import {
   collection,
   where,
   getDocs,
-  updateDoc, // Import updateDoc for updating documents
-} from "firebase/firestore"; // Firestore functions
-import { db } from "../firebase"; // Firebase config
-import ModalRename from "./ModalRename"; // Import ModalRename component
+  updateDoc,
+} from "firebase/firestore"; 
+import { db } from "../firebase"; 
+import ModalRename from "./ModalRename"; 
 import { toast } from "react-toastify";
 
 const HeaderDesign = ({
@@ -23,7 +23,7 @@ const HeaderDesign = ({
   onProjectRename,
 }) => {
   const [projectName, setProjectName] = useState("");
-  const [showRenameModal, setShowRenameModal] = useState(false); // Modal visibility state
+  const [showRenameModal, setShowRenameModal] = useState(false);
   const [project, setProject] = useState(null);
 
   const url = window.location.href;
@@ -42,7 +42,7 @@ const HeaderDesign = ({
       // Check if data exists in global-sections table
       const globalSectionsQuery = query(
         collection(db, "global-sections"),
-        where("projectId", "==", uuid) // Use uuid instead of id
+        where("projectId", "==", uuid)
       );
       const globalSectionsSnapshot = await getDocs(globalSectionsQuery);
       if (globalSectionsSnapshot.empty) {
@@ -53,7 +53,7 @@ const HeaderDesign = ({
       // Check if data exists in home-sections table
       const homeSectionsQuery = query(
         collection(db, "home-sections"),
-        where("projectId", "==", uuid) // Use uuid instead of id
+        where("projectId", "==", uuid)
       );
       const homeSectionsSnapshot = await getDocs(homeSectionsQuery);
       if (homeSectionsSnapshot.empty) {
@@ -64,7 +64,7 @@ const HeaderDesign = ({
       // Check if data exists in contact-info table
       const contactInfoQuery = query(
         collection(db, "contact-info"),
-        where("projectId", "==", uuid) // Use uuid instead of id
+        where("projectId", "==", uuid)
       );
       const contactInfoSnapshot = await getDocs(contactInfoQuery);
       if (contactInfoSnapshot.empty) {
@@ -75,7 +75,7 @@ const HeaderDesign = ({
       // Check if at least one service exists in services table
       const servicesQuery = query(
         collection(db, "services"),
-        where("projectId", "==", uuid) // Use uuid instead of id
+        where("projectId", "==", uuid)
       );
       const servicesSnapshot = await getDocs(servicesQuery);
       if (servicesSnapshot.empty) {
@@ -87,8 +87,8 @@ const HeaderDesign = ({
       toast.success("Successfully deployed your website!");
 
       // Update the project status to "active"
-      const projectDocRef = doc(db, "projects", uuid); // Reference to the project document
-      await updateDoc(projectDocRef, { status: "active" }); // Set the status field
+      const projectDocRef = doc(db, "projects", uuid);
+      await updateDoc(projectDocRef, { status: "active" });
 
       navigate("/sites");
     } catch (error) {
@@ -105,8 +105,8 @@ const HeaderDesign = ({
         const projectSnapshot = await getDoc(projectDoc);
         if (projectSnapshot.exists()) {
           const projectData = projectSnapshot.data();
-          setProjectName(projectData.name); // Set project name
-          setProject(projectData); // Set the project data
+          setProjectName(projectData.name);
+          setProject(projectData);
         } else {
           toast.error("Project not found");
         }
@@ -127,17 +127,17 @@ const HeaderDesign = ({
 
   return (
     <header className="flex justify-between items-center p-1 md:p-4 bg-yellow-500 shadow-sm sticky top-0 z-40">
-      <div className="flex items-center  space-x-6">
+      <div className="flex items-center space-x-6">
         <Link to="/">
           <img src={innoPetCareSmallLogo} alt="Logo" className="h-8 md:h-12" />
         </Link>
         <div className="flex items-center space-x-2">
           <h1 className="text-xs md:text-xl font-bold text-white">{projectName}</h1>
-          <MdModeEdit
+          {/* <MdModeEdit
             className="cursor-pointer text-white"
-            onClick={handleEditClick} // Show rename modal on click
+            onClick={handleEditClick}
             size={24}
-          />
+          /> */}
         </div>
       </div>
 

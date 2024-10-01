@@ -33,7 +33,7 @@ export default function Options() {
       </a>
       <a href="/login">
         <div className="bg-white p-4 rounded-lg shadow-md flex flex-col h-full">
-          <img
+          <imgc
             src="images/create-website.png"
             alt="Create Website"
             className="rounded-t-lg w-full object-cover object-top"

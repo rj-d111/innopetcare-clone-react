@@ -27,6 +27,7 @@ function Design({ isWebVersion, setWebVersion }) {
     content: "",
     picture: null,
   });
+  const [imagePreview, setImagePreview] = useState(null);
 
 
   const [activeSection, setActiveSection] = useState("globalSections");
@@ -42,7 +43,7 @@ function Design({ isWebVersion, setWebVersion }) {
   const renderSection = () => {
     switch (activeSection) {
       case "globalSections":
-        return <GlobalSections formData={formData} setFormData={setFormData} />;
+        return <GlobalSections formData={formData} setFormData={setFormData} setImagePreview={setImagePreview}/>;
       case "homePage":
         return <HomePage formData={formDataHome} setFormData={setFormDataHome}/>;
       case "aboutUs":
@@ -70,7 +71,7 @@ function Design({ isWebVersion, setWebVersion }) {
           <div className="md:w-1/2 md:shadow-right-md">{renderSection()}</div>
           <div className="hidden md:flex md:flex-grow md:justify-center md:w-full mx-10 mt-10 overflow-hidden">
           {isWebVersion ? (
-              <CanvasWeb formData={formData} />
+              <CanvasWeb formData={formData} imagePreview={imagePreview}  />
             ) : (
               <CanvasMobile />
             )}

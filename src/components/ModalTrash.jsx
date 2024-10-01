@@ -6,17 +6,22 @@ import { toast } from "react-toastify";
 
 const ModalTrash = ({ show, onClose, projectId, onDelete }) => {
   const handleDelete = async () => {
-    try {
-      const projectRef = doc(db, "projects", projectId);
-      await deleteDoc(projectRef);
-      onDelete(projectId); // Callback to update the UI after deletion
-      toast.success("Project deleted successfully"); // Show success message
-      onClose();
-    } catch (error) {
-      console.error("Error deleting project: ", error);
-      toast.error("Failed to delete the project. Please try again."); // Show error message
+    if (!projectId) {
+        console.error("Project ID is null or undefined");
+        return;
     }
-  };
+
+    try {
+        const projectRef = doc(db, "projects", projectId);
+        await deleteDoc(projectRef);
+        onDelete(projectId); // Callback to update the UI after deletion
+        toast.success("Project deleted successfully");
+        onClose();
+    } catch (error) {
+        console.error("Error deleting project: ", error);
+        toast.error("Failed to delete the project. Please try again.");
+    }
+};
 
   if (!show) return null;
 
