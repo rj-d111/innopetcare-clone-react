@@ -31,8 +31,8 @@ export default function Login() {
       if (userCredential.user) {
         const user = userCredential.user;
   
-        // Navigate to another page if successful
-        navigate("/");
+        // Navigate to email verification if successful
+        navigate("/email-verification");
   
         // Fetch the user document from Firestore using the user's uid
         const docRef = doc(db, "users", user.uid);

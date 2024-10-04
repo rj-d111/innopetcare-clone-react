@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { toast } from "react-toastify";
 import { doc, getDoc, query, where, collection, getDocs } from "firebase/firestore";
@@ -166,6 +166,22 @@ export default function ProjectLogin() {
                 Log In
               </button>
             </form>
+            <div className="text-center mt-6">
+              <p className="text-sm text-yellow-600 hover:underline hover:text-yellow-800 transition duration-200 ease-in-out">
+                <Link to="/forgot-password">Forgot password?</Link>
+              </p>
+            </div>
+            <div className="text-center mt-4">
+              <p className="text-sm text-gray-600">
+                Don't have an account?
+                <Link
+                  to="register"
+                  className="ms-1 text-yellow-600 font-semibold hover:underline hover:text-yellow-800 transition duration-200 ease-in-out"
+                >
+                  Register
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </section>

@@ -82,7 +82,7 @@ export default function EmailVerification() {
         <p className="font-bold">{email || "your email"}</p>
         <p className="text-gray-600 my-4">
           Just click on the link in that email to complete your signup. If you
-          don't see it, check your spam folder.
+          don't see it, check your spam folder. Please refresh the page after verifying your email.
         </p>
         <p className="mt-4 text-gray-600">Can't find the email? No problem</p>
         <button

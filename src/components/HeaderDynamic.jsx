@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { FiMessageCircle } from "react-icons/fi";
 import { db } from "../firebase"; // import Firebase configuration
 import {
@@ -13,6 +13,8 @@ import {
 } from "firebase/firestore"; // Firestore functions
 import adoptPet from "../assets/png/adopt pet.png";
 import { IoIosHelpCircleOutline, IoIosNotificationsOutline } from "react-icons/io";
+import { toast } from "react-toastify";
+import { getAuth } from "firebase/auth";
 
 export default function HeaderDynamic() {
 
@@ -20,7 +22,9 @@ export default function HeaderDynamic() {
   const parts = pathname.split("sites/");
   var slug;
 
- 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const auth = getAuth();
 
   // Check if there's a part after "sites/"
   if (parts.length > 1) {
@@ -36,6 +40,17 @@ export default function HeaderDynamic() {
   });
   const [isDropdownOpen, setDropdownOpen] = useState(false);
 
+  function onLogout() {
+    auth.signOut()
+      .then(() => {
+        toast.success("Signed out successfully");
+        navigate("/"); // Redirect to HomeGuest after sign out
+      })
+      .catch((error) => {
+        toast.error("Failed to sign out"); // Optional error handling
+      })
+
+  }
   useEffect(() => {
     // Function to fetch global section data by slug
     const fetchHeaderData = async () => {
@@ -170,7 +185,10 @@ export default function HeaderDynamic() {
                   role="menuitem"
                   className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
                 >
-                  <p className="text-slate-800 font-medium ml-2">Sign Out</p>
+                  <p className="text-slate-800 font-medium ml-2"
+                    onClick={onLogout}
+
+                  >Sign Out</p>
                 </li>
               </ul>
             )}

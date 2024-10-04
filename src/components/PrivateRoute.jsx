@@ -7,7 +7,7 @@ import { useLocation } from "react-router-dom";
 export default function PrivateRoute({ allowedRoles }) {
   const { loggedIn, checkingStatus, userRole } = useAuthStatus();
   const location = useLocation();
-
+  
   if (checkingStatus) {
     return <Spinner />;
   }

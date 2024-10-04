@@ -294,8 +294,8 @@ export default function GlobalSections({
       <div className="space-y-1">
         <label className="block text-sm font-medium">Header Color</label>
         <ColorDropdown
-          selectedColor={formData.headerColor}
-          setSelectedColor={(color) =>
+            color={formData.headerColor} // Pass the current header text color
+            onColorSelect={(color) =>
             setFormData((prev) => ({ ...prev, headerColor: color }))
           }
         />
@@ -304,8 +304,8 @@ export default function GlobalSections({
       <div className="space-y-1">
         <label className="block text-sm font-medium">Header Text Color</label>
         <ColorDropdown
-          selectedColor={formData.headerTextColor}
-          setSelectedColor={(color) =>
+            color={formData.headerTextColor} // Pass the current header text color
+            onColorSelect={(color) =>
             setFormData((prev) => ({ ...prev, headerTextColor: color }))
           }
         />

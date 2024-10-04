@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 import { useNavigate } from "react-router-dom"; // Corrected useNavigate import
 import { useState, useEffect } from "react";
@@ -124,6 +125,13 @@ function AppContent() {
   }, [userRole, location, navigate]);
 
   const renderHeader = () => {
+    if (location.pathname === "/sites/") {
+      return <HeaderGuest />;
+    }
+
+    if (location.pathname.includes("/sites/")) {
+      return <HeaderDynamic />;
+    }
     if (location.pathname.startsWith("/design")) {
       return (
         <HeaderDesign
@@ -133,20 +141,12 @@ function AppContent() {
       );
     }
 
-    if (location.pathname === "/sites/") {
-      return <HeaderGuest />;
-    }
-
-    if (location.pathname.includes("/sites/")) {
-      return <HeaderDynamic />;
-    }
-
     return isAuthenticated ? <Header /> : <HeaderGuest />;
   };
 
   useEffect(() => {
     // Redirect to email verification if email is not verified
-    if (isAuthenticated && !isVerified) {
+    if (isAuthenticated && !isVerified && userRole === "users") {
       navigate("/email-verification");
     }
   }, [isAuthenticated, isVerified, navigate]);
@@ -157,13 +157,9 @@ function AppContent() {
 
       <Routes>
         {/* Other Routes for guests */}
+        <Route path="/" element={isAuthenticated ? <Home /> : <HomeGuest />} />
         <Route path="/" element={isVerified ? <Home /> : <HomeGuest />} />
 
-        {/* Email Verification Route */}
-        <Route
-          path="/email-verification"
-          element={!isVerified ? <EmailVerification /> : <Home />}
-        />
         <Route
           path="/login"
           element={
@@ -200,6 +196,11 @@ function AppContent() {
 
         {/* Other general routes */}
         <Route element={<PrivateRoute allowedRoles={["users"]} />}>
+          {/* Email Verification Route */}
+          <Route
+            path="/email-verification"
+            element={!isVerified ? <EmailVerification /> : <Navigate to="/" />}
+          />
           <Route
             path="/design/:id"
             element={
@@ -229,40 +230,52 @@ function AppContent() {
         {/* Routes for Clients */}
         <Route element={<PrivateRoute allowedRoles={["clients"]} />}>
           <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
-          <Route path="/sites/:slug/appointments" element={
-            userRole === "clients" ? (
-              isApproved ? (
+          <Route
+            path="/sites/:slug/appointments"
+            element={
+              userRole === "clients" ? (
+                isApproved ? (
+                  <ProjectAppointments />
+                ) : (
+                  <ForApproval />
+                )
+              ) : (
+                <ProjectLogin />
+              )
+            }
+          />
+          <Route
+            path="/sites/:slug/appointments/register"
+            element={
+              userRole === "clients" ? (
                 <ProjectAppointments />
               ) : (
-                <ForApproval />
+                <ProjectRegister />
               )
-            ) : (
-              <ProjectLogin />
-            )
-          } />
-          <Route path="/sites/:slug/appointments/register" element={
-            userRole === "clients" ? (
-              <ProjectAppointments />
-            ) : (
-              <ProjectRegister />
-            )
-          } />
-          <Route path="/sites/:slug/appointments/forgot-password" element={
-            userRole === "clients" ? (
-              <ProjectAppointments />
-            ) : (
-              <ProjectForgotPassword />
-            )
-          } />
+            }
+          />
+          <Route
+            path="/sites/:slug/appointments/forgot-password"
+            element={
+              userRole === "clients" ? (
+                <ProjectAppointments />
+              ) : (
+                <ProjectForgotPassword />
+              )
+            }
+          />
         </Route>
-        
+
         <Route path="sites/:slug/approval" element={<ForApproval />} />
         <Route path="sites/:slug/messages" element={<ProjectMessages />} />
         <Route path="/sites/:slug/about" element={<ProjectAbout />} />
         <Route path="/sites/:slug/services" element={<ProjectServices />} />
         <Route path="/sites/:slug/contact" element={<ProjectContact />} />
         <Route path="/sites/:slug/help" element={<ProjectHelp />} />
-        <Route path="/sites/:slug/notifications" element={<ProjectNotifications />} />
+        <Route
+          path="/sites/:slug/notifications"
+          element={<ProjectNotifications />}
+        />
         <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} />
       </Routes>
     </>

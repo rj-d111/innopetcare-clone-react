@@ -25,9 +25,18 @@ export default function Header() {
   const auth = getAuth();
 
   function onLogout() {
-    auth.signOut();
-    navigate("/");
-    toast.success("Signed out successfully");
+    setIsLoading(true); // Show spinner
+    auth.signOut()
+      .then(() => {
+        toast.success("Signed out successfully");
+        navigate("/"); // Redirect to HomeGuest after sign out
+      })
+      .catch((error) => {
+        toast.error("Failed to sign out"); // Optional error handling
+      })
+      .finally(() => {
+        setIsLoading(false); // Hide spinner after sign-out completes
+      });
   }
 
   useEffect(() => {
@@ -37,7 +46,6 @@ export default function Header() {
       if (user) {
         setPageState("Profile");
 
-        // Fetch user data from Firestore
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
 
@@ -103,19 +111,21 @@ export default function Header() {
             </ul>
 
             {/* Profile Section */}
-            <div className="relative">
+            <div className="relative"
+                 onMouseLeave={() => setIsMenuOpen(false)} // Close menu on mouse leave
+            >
               {/* Profile Picture or Default Icon */}
               {userData.photoURL ? (
                 <img
                   src={userData.photoURL}
                   alt="User Profile"
                   className="h-8 w-8 rounded-full cursor-pointer"
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  onMouseEnter={() => setIsMenuOpen(true)} // Open menu on hover
                 />
               ) : (
                 <FaUserCircle
                   className="text-white text-3xl cursor-pointer"
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  onMouseEnter={() => setIsMenuOpen(true)} // Open menu on hover
                 />
               )}
 
@@ -140,9 +150,7 @@ export default function Header() {
                   className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
                   onClick={() => navigate("/profile")}
                 >
-                  <p className="text-slate-800 font-medium ml-2">
-                    Edit Profile
-                  </p>
+                  <p className="text-slate-800 font-medium ml-2">Edit Profile</p>
                 </li>
                 <li
                   role="menuitem"

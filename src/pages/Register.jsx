@@ -126,7 +126,7 @@ export default function Register() {
       formDataCopy.isVerified = false;
 
       await setDoc(doc(db, "users", user.uid), formDataCopy);
-      navigate("/");
+      navigate("/email-verification"); //Go to email verification
       toast.success("Success! Your account has been created!");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
