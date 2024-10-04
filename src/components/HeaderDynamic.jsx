@@ -30,8 +30,7 @@ export default function HeaderDynamic() {
   if (parts.length > 1) {
     slug = parts[1].split("/")[0]; // Get only the first part after "/"
    } 
-
-
+   
   const [headerData, setHeaderData] = useState({
     headerColor: "",
     headerTextColor: "",
@@ -39,6 +38,10 @@ export default function HeaderDynamic() {
     name: "",
   });
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [clientData, setClientData] = useState({
+    name: "",
+    email: "",
+  })
 
   function onLogout() {
     auth.signOut()
@@ -80,6 +83,19 @@ export default function HeaderDynamic() {
 
     fetchHeaderData();
   }, [slug]); // Runs whenever the slug changes
+
+
+    // Fetch the clientId based on logged-in user's UID
+    useEffect(() => {
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          setClientData({
+            name: user.displayName,
+            email: user.email,
+        })
+        }
+      });
+    }, [auth]);
 
   return (
     <>
@@ -143,7 +159,9 @@ export default function HeaderDynamic() {
                 className={`absolute right-0 z-10 min-w-[180px] overflow-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg focus:outline-none transition-all duration-300 ease-in-out transform`}
               >
                 <li className="flex flex-col rounded-md p-2 text-black">
-                  Example Name example@gmail.com
+                  {clientData.name} 
+                  <br />
+                {clientData.email}               
                 </li>
                 <hr className="my-2 border-slate-200" role="menuitem" />
                 <li

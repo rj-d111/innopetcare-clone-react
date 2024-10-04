@@ -30,6 +30,10 @@ export default function ProjectAppointments() {
   const [clientId, setClientId] = useState(""); // To store clientId
   const [userEmail, setUserEmail] = useState(""); // To store user's email
 
+
+  const [services, setServices] = useState([]); // State to store services
+
+
   const navigate = useNavigate();
   const auth = getAuth();
   // Extract slug from URL
@@ -63,6 +67,26 @@ export default function ProjectAppointments() {
     };
     fetchProjectId();
   }, [slug]);
+
+   // Fetch the services for the projectId
+   useEffect(() => {
+    const fetchServices = async () => {
+      if (projectId) {
+        try {
+          const q = query(collection(db, "services"), where("projectId", "==", projectId));
+          const querySnapshot = await getDocs(q);
+          const servicesData = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            title: doc.data().title,
+          }));
+          setServices(servicesData);
+        } catch (error) {
+          console.error("Error fetching services: ", error);
+        }
+      }
+    };
+    fetchServices();
+  }, [projectId]);
 
   // Fetch the clientId based on logged-in user's email
   useEffect(() => {
@@ -180,7 +204,7 @@ export default function ProjectAppointments() {
               <label htmlFor="reason" className="block text-left font-medium">
                 Reason for Appointment
               </label>
-              <select
+                         <select
                 id="reason"
                 name="reason"
                 value={formData.reason}
@@ -188,13 +212,15 @@ export default function ProjectAppointments() {
                 className="w-full mt-2 p-2 border rounded-lg"
               >
                 <option value="">-- Select Reason --</option>
-                <option value="Vaccination">Vaccination</option>
-                <option value="Consultation">Consultation</option>
-                <option value="Deworming">Deworming</option>
-                <option value="Surgeries">Surgeries</option>
-                <option value="Confinement">Confinement</option>
-                <option value="Grooming">Grooming</option>
-                <option value="Pharmacy">Pharmacy & Pet Supplies</option>
+                {services.length > 0 ? (
+                  services.map(service => (
+                    <option key={service.id} value={service.title}>
+                      {service.title}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No services available</option>
+                )}
               </select>
             </div>
 
