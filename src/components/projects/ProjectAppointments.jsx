@@ -1,29 +1,120 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { db, auth } from "../../firebase"; // Import Firebase auth
+import { toast } from "react-toastify";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+  addDoc,
+} from "firebase/firestore"; // Firestore functions
+import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase auth functions
 
 export default function ProjectAppointments() {
   const [pets, setPets] = useState([]); // Replace with actual data fetching logic
   const [noPets, setNoPets] = useState(pets.length === 0);
   const [formData, setFormData] = useState({
-    reason: '',
-    pet: '',
-    event_datetime: '',
-    condition: '',
-    additional: '',
+    reason: "",
+    pet: "",
+    event_datetime: "",
+    condition: "",
+    additional: "",
     agree: false,
   });
 
+  const [projectId, setProjectId] = useState(""); // To store projectId
+  const [clientId, setClientId] = useState(""); // To store clientId
+  const [userEmail, setUserEmail] = useState(""); // To store user's email
+
+  const navigate = useNavigate();
+  const auth = getAuth();
+  // Extract slug from URL
   const pathname = window.location.href;
   const parts = pathname.split("sites/");
   var slug;
 
- 
-
-  // Check if there's a part after "sites/"
   if (parts.length > 1) {
     slug = parts[1].split("/")[0]; // Get only the first part after "/"
-   } 
+  }
 
+  // Fetch the projectId from global-sections table using slug
+  useEffect(() => {
+    const fetchProjectId = async () => {
+      try {
+        // Reference the 'global-sections' collection and query by slug
+        const q = query(
+          collection(db, "global-sections"),
+          where("slug", "==", slug)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const docData = querySnapshot.docs[0].data();
+          setProjectId(docData.projectId);
+        } else {
+          console.log("No matching documents.");
+        }
+      } catch (error) {
+        console.error("Error fetching header data: ", error);
+      }
+    };
+    fetchProjectId();
+  }, [slug]);
+
+  // Fetch the clientId based on logged-in user's email
+  useEffect(() => {
+    const fetchClientId = async (email) => {
+      try {
+        const q = query(collection(db, "clients"), where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const clientDoc = querySnapshot.docs[0];
+          setClientId(clientDoc.id); // Get the Firestore document ID as clientId
+        } else {
+          console.log("No client found with this email.");
+        }
+      } catch (error) {
+        console.error("Error fetching client data: ", error);
+      }
+    };
+
+    // Check if a user is logged in and get the email
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserEmail(user.email); // Store the user's email
+        fetchClientId(user.email); // Fetch clientId using the email
+      } else {
+        console.log("No user logged in");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const [timeSlots, setTimeSlots] = useState([]);
+
+  // Convert 24-hour time to 12-hour format with AM/PM
+  const convertTo12HourFormat = (hour, minute) => {
+    const period = hour >= 12 ? "PM" : "AM";
+    const adjustedHour = hour % 12 || 12; // Convert 0 to 12 for midnight/noon
+    const formattedMinute = minute.toString().padStart(2, "0");
+    return `${adjustedHour}:${formattedMinute} ${period}`;
+  };
+
+  useEffect(() => {
+    const slots = [];
+    const startHour = 8;
+    const endHour = 18;
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      slots.push(convertTo12HourFormat(hour, 0)); // Push xx:00 time
+      slots.push(convertTo12HourFormat(hour, 30)); // Push xx:30 time
+    }
+    setTimeSlots(slots);
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -34,9 +125,47 @@ export default function ProjectAppointments() {
     setFormData({ ...formData, agree: e.target.checked });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add form submission logic here
+
+    // Validate form fields
+    if (!formData.reason) {
+      return toast.error("Reason is required.");
+    }
+    if (!formData.event_date || !formData.event_time) {
+      return toast.error("Date and time are required.");
+    }
+    if (!formData.condition) {
+      return toast.error("Condition is required.");
+    }
+    if (!formData.additional) {
+      return toast.error("Additional information is required.");
+    }
+
+    // Merge date and time
+    const event_datetime = new Date(
+      `${formData.event_date} ${formData.event_time}`
+    );
+
+    // Upload data to Firebase
+    try {
+      await addDoc(collection(db, "appointments"), {
+        projectId: projectId,
+        reason: formData.reason,
+        pet: formData.pet || "No Pets", // Allow submitting even if no pets
+        event_datetime: event_datetime,
+        condition: formData.condition,
+        additional: formData.additional,
+        createdAt: serverTimestamp(),
+        status: "pending",
+        clientId: clientId, // Save the fetched clientId
+      });
+      toast.success("Appointment booked successfully!");
+      navigate(`/sites/${slug}/dashboard`);
+    } catch (error) {
+      console.error("Error booking appointment: ", error);
+      toast.error("Failed to book the appointment.");
+    }
   };
 
   return (
@@ -46,17 +175,9 @@ export default function ProjectAppointments() {
           <div className="text-center">
             <h2 className="text-3xl font-bold mt-6">Set Appointment</h2>
           </div>
-          {noPets && (
-            <div className="bg-red-500 text-white text-center py-2 px-4 my-6 rounded">
-              Please add a new pet to continue scheduling your appointment.
-            </div>
-          )}
           <form className="mt-6" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label
-                htmlFor="reason"
-                className="block text-left font-medium"
-              >
+              <label htmlFor="reason" className="block text-left font-medium">
                 Reason for Appointment
               </label>
               <select
@@ -66,20 +187,19 @@ export default function ProjectAppointments() {
                 onChange={handleInputChange}
                 className="w-full mt-2 p-2 border rounded-lg"
               >
-                <option>Vaccination</option>
-                <option>Consultation</option>
-                <option>Deworming</option>
-                <option>Surgeries</option>
-                <option>Confinement</option>
-                <option>Grooming</option>
-                <option>Pharmacy & Pet Supplies</option>
+                <option value="">-- Select Reason --</option>
+                <option value="Vaccination">Vaccination</option>
+                <option value="Consultation">Consultation</option>
+                <option value="Deworming">Deworming</option>
+                <option value="Surgeries">Surgeries</option>
+                <option value="Confinement">Confinement</option>
+                <option value="Grooming">Grooming</option>
+                <option value="Pharmacy">Pharmacy & Pet Supplies</option>
               </select>
             </div>
+
             <div className="mb-4">
-              <label
-                htmlFor="pet"
-                className="block text-left font-medium"
-              >
+              <label htmlFor="pet" className="block text-left font-medium">
                 Select Pet
               </label>
               <select
@@ -90,33 +210,43 @@ export default function ProjectAppointments() {
                 className="w-full mt-2 p-2 border rounded-lg"
                 disabled={noPets}
               >
-                {!noPets ? (
-                  pets.map((pet) => (
-                    <option key={pet.id} value={pet.id}>
-                      {pet.name}
-                    </option>
-                  ))
-                ) : (
-                  <option>--No Pets Selected--</option>
-                )}
+                <option value="">--No Pets Selected--</option>
+                {!noPets && pets.map((pet) => (
+                  <option key={pet.id} value={pet.id}>
+                    {pet.name}
+                  </option>
+                ))}
               </select>
             </div>
+
             <div className="mb-4">
-              <label
-                className="block text-gray-700 text-sm font-bold mb-2"
-                htmlFor="event-datetime"
-              >
-                Event Date and Time
+              <label htmlFor="event-datetime" className="block text-left font-medium">
+                Select Appointment Date and Time
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="event-datetime"
-                name="event_datetime"
-                type="datetime-local"
-                value={formData.event_datetime}
+                className="w-full mt-2 p-2 border rounded-lg"
+                type="date"
+                name="event_date"
+                value={formData.event_date}
                 onChange={handleInputChange}
+                required
               />
+              <select
+                className="w-full mt-2 p-2 border rounded-lg"
+                name="event_time"
+                value={formData.event_time}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="">-- Select a Time Slot --</option>
+                {timeSlots.map((slot, index) => (
+                  <option key={index} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
             </div>
+
             <div className="mb-4">
               <label htmlFor="condition" className="block text-left font-medium">
                 Please share condition about your pet
@@ -130,6 +260,7 @@ export default function ProjectAppointments() {
                 className="w-full mt-2 p-2 border rounded-lg"
               ></textarea>
             </div>
+
             <div className="mb-4">
               <label htmlFor="additional" className="block text-left font-medium">
                 Additional Information
@@ -143,14 +274,16 @@ export default function ProjectAppointments() {
                 className="w-full mt-2 p-2 border rounded-lg"
               ></textarea>
             </div>
+
             <div className="mb-4">
               <p>
-                By completing and submitting this form you agree to the following{' '}
-                <Link to={`/sites/${slug}/terms-and-conditions`}className="text-blue-500">
+                By completing and submitting this form you agree to the following{" "}
+                <Link to={`/sites/${slug}/terms-and-conditions`} className="text-blue-500">
                   Terms & Conditions
                 </Link>
               </p>
             </div>
+
             <div className="mb-4">
               <input
                 type="checkbox"
@@ -162,17 +295,13 @@ export default function ProjectAppointments() {
               />
               <label htmlFor="agree">Yes, I agree</label>
             </div>
-            <div className="text-center">
-              <button
-                type="submit"
-                className={`px-6 py-3 text-white rounded-lg shadow transition duration-300 ${
-                  noPets ? 'cursor-not-allowed bg-gray-300' : 'hover:bg-red-600 bg-red-500'
-                }`}
-                disabled={noPets}
-              >
-                Book Now
-              </button>
-            </div>
+
+            <button
+              type="submit"
+              className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 w-full"
+            >
+              Submit Appointment
+            </button>
           </form>
         </section>
       </main>

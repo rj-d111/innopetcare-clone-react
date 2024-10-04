@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "chart.js": "^4.4.4",
     "chartjs-adapter-date-fns": "^3.0.0",
+    "datetime-slot-picker": "^0.1.8",
     "firebase": "^10.13.2",
     "inno_inno_web": "file:",
     "react": "^18.3.1",
