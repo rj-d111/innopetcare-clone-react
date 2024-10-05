@@ -34,7 +34,7 @@ export default function OwnerHome() {
   return (
     <div className="flex">
       <OwnerSidebar projectType={projectType} />
-      <div className="flex-grow p-6">
+      <div className="flex-grow">
         {/* Outlet will render the matched route component */}
         <Outlet /> 
       </div>

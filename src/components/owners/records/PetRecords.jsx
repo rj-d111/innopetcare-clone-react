@@ -1,44 +1,61 @@
-import React from 'react'
+import React, { useState } from 'react';
+import { IoIosAddCircleOutline } from 'react-icons/io';
+import RecordsVaccination from './RecordsVaccination';
+import RecordsDeworming from './RecordsDeworming';
+import RecordsMedicalHistory from './RecordsMedicalHistory';
+import RecordsRecentRecord from './RecordsRecentRecord';
+import RecordsServices from './RecordsServices';
 
 const PetRecords = () => {
+    const [activeTab, setActiveTab] = useState('Vaccination'); // State to manage active tab
+
+    // Handler to change the active tab
+    const handleTabClick = (tab) => {
+        setActiveTab(tab);
+    };
+
+    // Function to render the component based on active tab
+    const renderActiveComponent = () => {
+        switch (activeTab) {
+            case 'Vaccination':
+                return <RecordsVaccination />;
+            case 'Deworming':
+                return <RecordsDeworming />;
+            case 'Services':
+                return <RecordsServices />;
+            case 'Medical History':
+                return <RecordsMedicalHistory />;
+            case 'Recent Record':
+                return <RecordsRecentRecord />;
+            default:
+                return null;
+        }
+    };
+
     return (
-      <div className="bg-white p-6 rounded-lg shadow-lg mt-4">
-        <div className="tabs">
-          <p className="tab tab-bordered">Vaccination</p>
-          <p className="tab tab-bordered">Deworming</p>
-          <p className="tab tab-bordered">Services</p>
-          <p className="tab tab-bordered">Medical History</p>
-          <p className="tab tab-bordered">Recent Record</p>
+        <div className="bg-white p-6 rounded-lg shadow-lg mt-4">
+            <div className="tabs tabs-boxed">
+                {/* Tab Buttons */}
+                {['Vaccination', 'Deworming', 'Services', 'Medical History', 'Recent Record'].map((tab) => (
+                    <p
+                        key={tab}
+                        className={`tab ${activeTab === tab ? 'tab-active' : 'tab-bordered'}`}
+                        onClick={() => handleTabClick(tab)} // Change active tab on click
+                    >
+                        {tab}
+                    </p>
+                ))}
+            </div>
+            <div className="mt-4">
+                <button className="btn btn-success btn-sm text-white">
+                    <IoIosAddCircleOutline /> Add Record
+                </button>
+                
+                {/* Render the active component */}
+                {renderActiveComponent()}
+            </div>
         </div>
-        <div className="mt-4">
-          {/* Table for Vaccination Records */}
-          <table className="table w-full">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Due</th>
-                <th>Weight (kg)</th>
-                <th>Against</th>
-                <th>Manufacturer</th>
-                <th>Veterinarian</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>5/02/23</td>
-                <td>5/10/24</td>
-                <td>11.0</td>
-                <td>Rabies</td>
-                <td>RABIAN</td>
-                <td>Dr. Fortunato Hernandez</td>
-              </tr>
-              {/* Add more rows as needed */}
-            </tbody>
-          </table>
-        </div>
-      </div>
     );
-  };
-  
-  export default PetRecords;
-  
+};
+
+export default PetRecords;

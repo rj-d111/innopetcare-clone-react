@@ -94,7 +94,7 @@ export default function OwnerPending() {
   };
 
   return (
-    <div>
+    <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Pending Requests</h2>
 
       <div className="flex justify-between">
