@@ -10,12 +10,12 @@ export default function RecordsMedicalHistory() {
                 <th>Date</th>
                 <th>Description</th>
                 <th>Diagnosis</th>
-                <th>Notes</th>
-                <th>Prescribed Action</th>
-                <th>Prescribed Medication</th>
                 <th>Test Performed</th>
                 <th>Test Results</th>
+                <th>Prescribed Action</th>
+                <th>Prescribed Medication</th>
                 <th>Veterinarian</th>
+                <th>Notes</th>
               </tr>
             </thead>
             <tbody>
