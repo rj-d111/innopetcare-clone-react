@@ -56,6 +56,9 @@ import OwnerPetOwners from "../src/components/owners/OwnerPetOwners";
 import OwnerDashboard from "../src/components/owners/OwnerDashboard";
 import OwnerPending from "./components/owners/OwnerPending";
 import EmailVerification from "./pages/EmailVerification";
+import About from "./pages/About";
+import ProjectProfile from "./components/projects/ProjectProfile";
+import ProjectFeedback from "./components/projects/ProjectFeedback";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -159,6 +162,8 @@ function AppContent() {
         {/* Other Routes for guests */}
         <Route path="/" element={isAuthenticated ? <Home /> : <HomeGuest />} />
         <Route path="/" element={isVerified ? <Home /> : <HomeGuest />} />
+        <Route path="/approval" element={<ForApproval /> } />
+        <Route path="/about" element={<About /> } />
 
         <Route
           path="/login"
@@ -265,18 +270,51 @@ function AppContent() {
             }
           />
         </Route>
+        <Route
+            path="/sites/:slug/messages"
+            element={
+              userRole === "clients" ? (
+                <ProjectMessages />
+              ) : (
+                <ProjectLogin />
+              )
+            }
+          />
+        <Route
+            path="/sites/:slug/notifications"
+            element={
+              userRole === "clients" ? (
+                <ProjectNotifications />
+              ) : (
+                <ProjectLogin />
+              )
+            }
+          />
+        <Route
+            path="/sites/:slug/adopt-pet"
+            element={
+              userRole === "clients" ? (
+                <ProjectAdoption />
+              ) : (
+                <ProjectLogin />
+              )
+            }
+          />
 
+        <Route path="sites/:slug/" element={<ProjectHome />} />
         <Route path="sites/:slug/approval" element={<ForApproval />} />
-        <Route path="sites/:slug/messages" element={<ProjectMessages />} />
+        {/* <Route path="sites/:slug/messages" element={<ProjectMessages />} /> */}
         <Route path="/sites/:slug/about" element={<ProjectAbout />} />
         <Route path="/sites/:slug/services" element={<ProjectServices />} />
         <Route path="/sites/:slug/contact" element={<ProjectContact />} />
+        <Route path="/sites/:slug/profile" element={<ProjectProfile />} />
         <Route path="/sites/:slug/help" element={<ProjectHelp />} />
-        <Route
+        <Route path="/sites/:slug/feedback" element={<ProjectFeedback />} />
+        {/* <Route
           path="/sites/:slug/notifications"
           element={<ProjectNotifications />}
-        />
-        <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} />
+        /> */}
+        {/* <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} /> */}
       </Routes>
     </>
   );

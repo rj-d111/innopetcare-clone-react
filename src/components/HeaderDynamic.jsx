@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiMessageCircle } from "react-icons/fi";
-import { db } from "../firebase"; // import Firebase configuration
+import { db } from "../firebase";
 import {
-  doc,
-  getDoc,
   collection,
   query,
   where,
   getDocs,
-} from "firebase/firestore"; // Firestore functions
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import adoptPet from "../assets/png/adopt pet.png";
-import { IoIosHelpCircleOutline, IoIosNotificationsOutline } from "react-icons/io";
+import {
+  IoIosHelpCircleOutline,
+  IoIosNotificationsOutline,
+} from "react-icons/io";
 import { toast } from "react-toastify";
 import { getAuth } from "firebase/auth";
+import AnimalShelterSitesModal from "./AnimalShelterSitesModal"; // Import the modal component
 
 export default function HeaderDynamic() {
-
   const pathname = window.location.href;
   const parts = pathname.split("sites/");
   var slug;
@@ -26,11 +29,10 @@ export default function HeaderDynamic() {
   const navigate = useNavigate();
   const auth = getAuth();
 
-  // Check if there's a part after "sites/"
   if (parts.length > 1) {
-    slug = parts[1].split("/")[0]; // Get only the first part after "/"
-   } 
-   
+    slug = parts[1].split("/")[0];
+  }
+
   const [headerData, setHeaderData] = useState({
     headerColor: "",
     headerTextColor: "",
@@ -41,24 +43,25 @@ export default function HeaderDynamic() {
   const [clientData, setClientData] = useState({
     name: "",
     email: "",
-  })
+  });
+  const [projectType, setProjectType] = useState(""); // For storing the project type
+  const [isModalOpen, setIsModalOpen] = useState(false); // State to manage modal visibility
 
   function onLogout() {
-    auth.signOut()
+    auth
+      .signOut()
       .then(() => {
         toast.success("Signed out successfully");
-        navigate("/"); // Redirect to HomeGuest after sign out
+        navigate("/");
       })
       .catch((error) => {
-        toast.error("Failed to sign out"); // Optional error handling
-      })
-
+        toast.error("Failed to sign out");
+      });
   }
+
   useEffect(() => {
-    // Function to fetch global section data by slug
     const fetchHeaderData = async () => {
       try {
-        // Reference the 'global-sections' collection and query by slug
         const q = query(
           collection(db, "global-sections"),
           where("slug", "==", slug)
@@ -82,41 +85,69 @@ export default function HeaderDynamic() {
     };
 
     fetchHeaderData();
-  }, [slug]); // Runs whenever the slug changes
+  }, [slug]);
 
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      try {
+        const globalSectionQuery = query(
+          collection(db, "global-sections"),
+          where("slug", "==", slug)
+        );
 
-    // Fetch the clientId based on logged-in user's UID
-    useEffect(() => {
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          setClientData({
-            name: user.displayName,
-            email: user.email,
-        })
+        const globalSectionSnapshot = await getDocs(globalSectionQuery);
+
+        if (!globalSectionSnapshot.empty) {
+          const globalSectionData = globalSectionSnapshot.docs[0].data();
+          const projectId = globalSectionData.projectId;
+
+          const projectDoc = await getDoc(doc(db, "projects", projectId));
+
+          if (projectDoc.exists()) {
+            const projectData = projectDoc.data();
+            setProjectType(projectData.type);
+          } else {
+            console.log("No project found with this projectId.");
+          }
+        } else {
+          console.log("No matching global section found.");
         }
-      });
-    }, [auth]);
+      } catch (error) {
+        console.error("Error fetching project data: ", error);
+      }
+    };
+
+    fetchProjectData();
+  }, [slug]);
+
+  useEffect(() => {
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        setClientData({
+          name: user.displayName,
+          email: user.email,
+        });
+      }
+    });
+  }, [auth]);
 
   return (
     <>
-      {/* Nav Bar */}
       <nav
         className="flex items-center justify-between py-4 sticky px-5"
         style={{
-          background: headerData.headerColor, // Use headerColor here
-          color: headerData.headerTextColor, // Use headerTextColor here
+          background: headerData.headerColor,
+          color: headerData.headerTextColor,
         }}
       >
-        {/* Logo */}
+        <div className="flex items-center space-x-6">
+          <Link to={`sites/${slug}/`}>
+            <img src={headerData.image} alt="Logo" className="h-8" />
+          </Link>
+          <p>{headerData.name}</p>
+        </div>
 
         <div className="flex items-center space-x-6">
-          {/* Logo Picture Here */}
-          <Link to={`sites/${slug}/`}><img src={headerData.image} alt="Logo" className="h-8" /></Link>
-          <p>{headerData.name}</p> {/* Dynamic name from Firebase */}
-        </div>
-        {/* Combined Flex Container */}
-        <div className="flex items-center space-x-6">
-          {/* Navigation Links */}
           <ul className="flex items-center space-x-6">
             <Link to={`sites/${slug}/about`}>About Us</Link>
             <Link to={`sites/${slug}/services`}>Services</Link>
@@ -124,95 +155,103 @@ export default function HeaderDynamic() {
             <Link to={`sites/${slug}/contact`}>Contact Us</Link>
             <Link to={`sites/${slug}/adopt-pet`}>Adopt Pets</Link>
             <Link to={`sites/${slug}/messages`}>
-            <FiMessageCircle size={24}  />
+              <FiMessageCircle size={24} />
             </Link>
             <Link to={`sites/${slug}/notifications`}>
-            <IoIosNotificationsOutline
-            size={24} />
+              <IoIosNotificationsOutline size={24} />
             </Link>
             <Link to={`sites/${slug}/help`}>
-            <IoIosHelpCircleOutline
-            size={24} />
+              <IoIosHelpCircleOutline size={24} />
             </Link>
-            <Link>
-            <img src={adoptPet} alt="" srcset="" className="h-9" />
-            </Link>
+
+            {/* Conditionally render the adoptPet image if it's not an Animal Shelter Site */}
+            {projectType !== "Animal Shelter Site" && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="cursor-pointer"
+              >
+                <img src={adoptPet} alt="Adopt Pet" className="h-9" />
+              </button>
+            )}
           </ul>
 
-          {/* Profile Section */}
-          <div
-            className="relative"
-            onMouseEnter={() => setDropdownOpen(true)}
-            onMouseLeave={() => setDropdownOpen(false)}
-          >
-            <FaUserCircle
-              className="text-3xl cursor-pointer"
-              fill={headerData.headerTextColor} // Use headerTextColor here
-            />
-
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <ul
-                role="menu"
-                data-popover="profile-menu"
-                data-popover-placement="bottom"
-                className={`absolute right-0 z-10 min-w-[180px] overflow-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg focus:outline-none transition-all duration-300 ease-in-out transform`}
+          <div className="relative">
+            {clientData.name ? (
+              <div
+                onMouseEnter={() => setDropdownOpen(true)}
+                onMouseLeave={() => setDropdownOpen(false)}
               >
-                <li className="flex flex-col rounded-md p-2 text-black">
-                  {clientData.name} 
-                  <br />
-                {clientData.email}               
-                </li>
-                <hr className="my-2 border-slate-200" role="menuitem" />
-                <li
-                  role="menuitem"
-                  className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                >
-                  <Link to={`/sites/${slug}/dashboard`} className="text-slate-800 font-medium ml-2">Dashboard</Link>
-                </li>
-                <li
-                  role="menuitem"
-                  className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                >
-                  <p className="text-slate-800 font-medium ml-2">
-                    Edit Profile
-                  </p>
-                </li>
-                <li
-                  role="menuitem"
-                  className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                >
-                  <p className="text-slate-800 font-medium ml-2">
-                    Notifications
-                  </p>
-                </li>
-                <li
-                  role="menuitem"
-                  className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                >
-                  <Link to={`/sites/${slug}/help`} className="text-slate-800 font-medium ml-2">Help</Link>
-                </li>
-                <li
-                  role="menuitem"
-                  className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                >
-                  <p className="text-slate-800 font-medium ml-2">Settings</p>
-                </li>
-                <hr className="my-2 border-slate-200" role="menuitem" />
-                <li
-                  role="menuitem"
-                  className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                >
-                  <p className="text-slate-800 font-medium ml-2"
-                    onClick={onLogout}
-
-                  >Sign Out</p>
-                </li>
-              </ul>
+                <FaUserCircle
+                  className="text-3xl cursor-pointer"
+                  fill={headerData.headerTextColor}
+                />
+                {isDropdownOpen && (
+                  <ul
+                    role="menu"
+                    className="absolute right-0 z-10 min-w-[180px] overflow-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg text-black"
+                  >
+                    <li className="flex flex-col rounded-md p-2 text-black">
+                      {clientData.name}
+                      <br />
+                      {clientData.email}
+                    </li>
+                    <hr className="my-2 border-slate-200" role="menuitem" />
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                      <Link to={`/sites/${slug}/dashboard`} className="ml-2">
+                        Dashboard
+                      </Link>
+                    </li>
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                    <Link to={`/sites/${slug}/profile`} className="ml-2">
+                        User Profile
+                    </Link>
+                    </li>
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                    <Link to={`/sites/${slug}/feedback`} className="ml-2">
+                        User Feedback
+                    </Link>
+                    </li>
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                      <Link to={`/sites/${slug}/notifications`} className="ml-2">
+                        Notifications
+                    </Link>
+                    </li>
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                      <Link to={`/sites/${slug}/help`} className="ml-2">
+                        Help
+                      </Link>
+                    </li>
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                      <Link to={`/sites/${slug}/profile`} className="ml-2">
+                        Settings
+                    </Link>
+                    </li>
+                    <hr className="my-2 border-slate-200" />
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                      <p className="ml-2" onClick={onLogout}>
+                        Sign Out
+                      </p>
+                    </li>
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <Link
+                to={`/sites/${slug}/appointments`}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              >
+                Sign In
+              </Link>
             )}
           </div>
         </div>
       </nav>
+
+      {/* Render the Animal Shelter Sites Modal */}
+      <AnimalShelterSitesModal
+        isOpen={isModalOpen}
+        closeModal={() => setIsModalOpen(false)}
+      />
     </>
   );
 }

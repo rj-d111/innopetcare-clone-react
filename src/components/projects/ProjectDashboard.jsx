@@ -4,6 +4,7 @@ import { collection, query, where, getDocs } from "firebase/firestore"; // Fires
 import { db } from "../../firebase"; // Import Firebase auth
 import { format } from "date-fns"; // Optional for better date formatting
 import { getAuth } from "firebase/auth";
+import { Link } from "react-router-dom";
 
 export default function ProjectDashboard() {
   const [projectName, setProjectName] = useState(""); // To store projectName
@@ -70,7 +71,9 @@ export default function ProjectDashboard() {
 
           querySnapshot.forEach((doc) => {
             const appointment = doc.data();
-            const appointmentDate = new Date(appointment.event_datetime.seconds * 1000);
+            const appointmentDate = new Date(
+              appointment.event_datetime.seconds * 1000
+            );
 
             // Only include upcoming appointments (future dates)
             if (appointmentDate > new Date()) {
@@ -82,7 +85,6 @@ export default function ProjectDashboard() {
           });
 
           setUpcomingAppointment(foundAppointment);
-
         } catch (error) {
           console.error("Error fetching appointments: ", error);
         }
@@ -106,7 +108,9 @@ export default function ProjectDashboard() {
           <div className="container mx-auto p-6">
             {/* Welcome Section */}
             <div className="bg-white p-10 rounded-lg shadow-md mb-6">
-              <h2 className="text-4xl font-bold">Welcome {clientName ?? "" }!</h2>
+              <h2 className="text-4xl font-bold">
+                Welcome {clientName ?? ""}!
+              </h2>
               <p className="text-gray-700 pt-4 text-lg">
                 We're happy to see you here at {projectName ?? ""}
               </p>
@@ -138,19 +142,13 @@ export default function ProjectDashboard() {
                     keep you updated on any changes. Please don't hesitate to
                     contact us if you have any concerns.
                   </p>
-                  <div className="mt-4">
-                    <img
-                      src="/images/precious.jpg" // Use a proper path or dynamic image loading
-                      alt="Precious the cat"
-                      className="rounded-lg w-full object-cover"
-                    />
-                  </div>
-                  <a
-                    href="#"
-                    className="mt-4 inline-block bg-red-600 text-white px-4 py-2 rounded-lg"
+
+                  <Link
+                    to={`/sites/${slug}/messages`} // Dynamically insert the slug into the URL
+                    className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg"
                   >
-                    Go to Pet Owner Forum
-                  </a>
+                    Chat with Veterinary Now
+                  </Link>
                 </div>
               </div>
 
@@ -170,7 +168,11 @@ export default function ProjectDashboard() {
                             upcomingAppointment.event_datetime
                           )}
                         </p>
-                        <p>Status: {upcomingAppointment.status.charAt(0).toUpperCase() + upcomingAppointment.status.slice(1)}</p>
+                        <p>
+                          Status:{" "}
+                          {upcomingAppointment.status.charAt(0).toUpperCase() +
+                            upcomingAppointment.status.slice(1)}
+                        </p>
                       </div>
                     ) : (
                       <p className="text-xl mb-2">No upcoming appointments</p>
