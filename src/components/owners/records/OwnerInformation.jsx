@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../../../firebase'; // Adjust the import based on your folder structure
 import { doc, getDoc } from 'firebase/firestore';
+import Spinner from '../../Spinner';
 
 const OwnerInformation = ({ clientId }) => {
   const [ownerInfo, setOwnerInfo] = useState(null); // State to store owner's information
@@ -31,7 +32,7 @@ const OwnerInformation = ({ clientId }) => {
   }, [clientId]);
 
   if (loading) {
-    return <p>Loading...</p>; // Show loading message while fetching data
+    return <Spinner />; // Show loading message while fetching data
   }
 
   if (!ownerInfo) {

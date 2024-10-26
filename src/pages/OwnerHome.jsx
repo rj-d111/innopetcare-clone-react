@@ -3,6 +3,7 @@ import { useParams, useNavigate, Outlet } from 'react-router-dom'; // Import Out
 import { doc, getDoc } from 'firebase/firestore'; 
 import { db } from "../firebase";
 import OwnerSidebar from '../components/owners/OwnerSidebar';
+import Spinner from '../components/Spinner';
 
 export default function OwnerHome() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ export default function OwnerHome() {
     fetchProject();
   }, [id]);
 
-  if (!projectType) return <div>Loading...</div>;
+  if (!projectType) return <Spinner />;
 
   return (
     <div className="flex">

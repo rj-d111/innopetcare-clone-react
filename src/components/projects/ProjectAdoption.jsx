@@ -1,173 +1,122 @@
-import React from 'react';
-import { FaComments, FaEye } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom'; // To extract the slug from the URL
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'; // Import Firestore methods
+import { db } from '../../firebase'; // Import your Firebase Firestore instance
+import Spinner from '../Spinner';
 
 export default function ProjectAdoption() {
-  const threads = [
-    {
-      id: 1,
-      title: 'UK Dog Rescue Directory **CURRENTLY UNDER CONSTRUCTION**',
-      author: 'simplysardonic',
-      date: 'Oct 31, 2017',
-      replies: 27,
-      views: '14K',
-      pinned: true,
-      iconClass: 'bg-green-500',
-      lastReplyDate: 'Jan 8, 2018',
-    },
-    {
-      id: 2,
-      title: 'Unnecessary bumping up of threads',
-      author: 'tashi',
-      date: 'Nov 13, 2012',
-      replies: 11,
-      views: '13K',
-      pinned: true,
-      iconClass: 'bg-yellow-500',
-      lastReplyDate: 'Sep 19, 2016',
-    },
-    {
-      id: 3,
-      title: 'It would be helpful',
-      author: 'newfiesmum',
-      date: 'Dec 31, 2013',
-      replies: 0,
-      views: '9K',
-      pinned: true,
-      iconClass: 'bg-blue-500',
-      lastReplyDate: 'Dec 31, 2013',
-    },
-    {
-      id: 4,
-      title: 'Why so hard to rehome a dog from the RSPCA?',
-      author: 'zidangus',
-      date: 'Feb 21, 2021',
-      replies: 36,
-      views: '8K',
-      pinned: false,
-      iconClass: 'bg-green-500',
-      lastReplyDate: 'Sep 10, 2024',
-    },
-    {
-      id: 5,
-      title: 'Strays in Bulgaria',
-      author: 'Gofarmer',
-      date: 'Jan 22, 2011',
-      replies: 3,
-      views: '875',
-      pinned: false,
-      iconClass: 'bg-yellow-500',
-      lastReplyDate: 'May 25, 2024',
-    },
-    {
-      id: 6,
-      title: 'Frenchie/mix looking for forever home',
-      author: 'H Bartlett-Scott',
-      date: 'May 2, 2024',
-      replies: 8,
-      views: '719',
-      pinned: false,
-      iconClass: 'bg-blue-500',
-      lastReplyDate: 'May 4, 2024',
-    },
-    {
-      id: 7,
-      title: '3 year old akita bitch needing rehoming after owner is taken terminal ill,',
-      author: 'lakesidelass',
-      date: 'Apr 27, 2024',
-      replies: 3,
-      views: '469',
-      pinned: false,
-      iconClass: 'bg-red-500',
-      lastReplyDate: 'Apr 30, 2024',
-    },
-  ];
+  const pathname = window.location.href;
+  const parts = pathname.split("sites/");
+  var slug;
+
+  // Check if there's a part after "sites/"
+  if (parts.length > 1) {
+    slug = parts[1].split("/")[0]; // Get only the first part after "/"
+  }
+  console.log(slug);
+
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [filteredPets, setFilteredPets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProjectIdAndPets = async () => {
+      try {
+        // Step 1: Get the projectId from the global-sections table using the slug
+        const globalSectionsQuery = query(
+          collection(db, 'global-sections'),
+          where('slug', '==', slug)
+        );
+        const globalSectionsSnapshot = await getDocs(globalSectionsQuery);
+
+        if (!globalSectionsSnapshot.empty) {
+          const globalSection = globalSectionsSnapshot.docs[0].data();
+          const projectId = globalSection.projectId;
+
+          // Step 2: Fetch pets from the adoptions table with the matching projectId
+          const adoptionsQuery = query(
+            collection(db, 'adoptions'),
+            where('projectId', '==', projectId)
+          );
+          const adoptionsSnapshot = await getDocs(adoptionsQuery);
+          
+          console.log(adoptionsQuery);
+          // Step 3: Map the adoptions data to the pet objects for display
+          const pets = adoptionsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data() // This includes petName, species, image, etc.
+          }));
+
+          setFilteredPets(pets);
+        }
+      } catch (error) {
+        console.error('Error fetching projectId or pets:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjectIdAndPets();
+  }, [slug]); // This will run when the slug changes
+
+  // Filtering pets based on category (Dogs, Cats, All)
+  const filteredPetsByCategory = activeCategory === 'All'
+    ? filteredPets
+    : filteredPets.filter(pet => pet.species.toLowerCase() === activeCategory.toLowerCase());
+
+  if (loading) {
+    return <Spinner />;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      {/* Page Heading */}
-      <h1 className="text-2xl font-semibold text-gray-800 mb-6">Dog Rescue and Adoption</h1>
-      
-      {/* Filters and Create Thread Button */}
-      <div className="flex justify-between items-center mb-4">
-        <button className="bg-gray-300 text-gray-700 py-1 px-4 rounded">Filters</button>
-        <div>
-          <button className="bg-green-600 text-white py-1 px-4 rounded mr-2">Follow Forum</button>
-          <button className="bg-green-600 text-white py-1 px-4 rounded">Create Thread</button>
+    <section className="bg-cover bg-center" style={{ backgroundImage: "url('your-background-image-url')" }}>
+      <div className="bg-black bg-opacity-50 py-12">
+        <div className="max-w-6xl mx-auto text-center">
+          <h1 className="text-white text-4xl font-bold mb-2">Adopt, don’t shop</h1>
+          <p className="text-white text-lg mb-6">These loving pets need a new home.</p>
+
+          <div className="flex justify-center space-x-4 mb-8">
+            <button
+              className={`px-6 py-2 font-semibold rounded ${activeCategory === 'All' ? 'bg-red-600 text-white' : 'bg-white text-black'}`}
+              onClick={() => setActiveCategory('All')}
+            >
+              ALL
+            </button>
+            <button
+              className={`px-6 py-2 font-semibold rounded ${activeCategory === 'Cats' ? 'bg-red-600 text-white' : 'bg-white text-black'}`}
+              onClick={() => setActiveCategory('Cats')}
+            >
+              CATS
+            </button>
+            <button
+              className={`px-6 py-2 font-semibold rounded ${activeCategory === 'Dogs' ? 'bg-red-600 text-white' : 'bg-white text-black'}`}
+              onClick={() => setActiveCategory('Dogs')}
+            >
+              DOGS
+            </button>
+          </div>
+
+          {/* Display the pets */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {filteredPetsByCategory.map((pet, index) => (
+              <div key={index} className="bg-white p-4 rounded shadow-lg">
+                <img
+                  src={pet.image}
+                  alt={pet.petName}
+                  className="rounded-full w-32 h-32 mx-auto mb-4"
+                />
+                <h2 className="text-xl font-semibold text-center text-red-600 mb-2">{pet.petName}</h2>
+                <button
+                  onClick={() => window.location.href = `/sites/${slug}/adopt-pet/${pet.id}`}
+                  className="w-full py-2 bg-red-600 text-white font-semibold rounded"
+                >
+                  Learn about me
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-
-      <div className="flex gap-4">
-      {/* Thread List */}
-          <div className="w-3/4 bg-white shadow-md rounded-lg">
-            <table className="min-w-full text-left">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="py-2 px-4">Thread</th>
-                  <th className="py-2 px-4">Replies</th>
-                  <th className="py-2 px-4">Views</th>
-                  <th className="py-2 px-4">Last Post</th>
-                </tr>
-              </thead>
-              <tbody>
-                {threads.map((thread) => (
-                  <tr key={thread.id} className="border-b">
-                    <td className="py-4 px-4 flex items-center">
-                      {/* Icon */}
-                      <span className={`inline-block w-4 h-4 rounded-full mr-2 ${thread.iconClass}`} />
-                      <div>
-                        <h3 className={`font-semibold ${thread.pinned ? 'text-green-600' : 'text-gray-800'}`}>
-                          {thread.title}
-                        </h3>
-                        <p className="text-gray-500 text-sm">By {thread.author} on {thread.date}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center">
-                          <FaComments className="mr-2 text-gray-400" />
-                          {thread.replies}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center">
-                          <FaEye className="mr-2 text-gray-400" />
-                          {thread.views}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-gray-500">
-                      {thread.lastReplyDate}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-
-
-          {/* Right Sidebar */}
-          <div className="w-1/4">
-            <div className="bg-white p-4 shadow-lg rounded-lg">
-              <h2 className="font-semibold text-gray-800 mb-4">Dog Rescue and Adoption</h2>
-              <p className="text-gray-600 text-sm">
-                The Dog Rescue and Adoption section is the place for both rescue centers and private individuals to advertise their dogs which are in need of rehoming.
-                If you are looking to adopt a dog or chat about dog rescue issues in general, you can also post here.
-              </p>
-              <button className="bg-green-600 text-white py-2 px-4 mt-4 rounded w-full">Join Community</button>
-            </div>
-            {/* Forum Staff */}
-            <div className="bg-white p-4 shadow-lg rounded-lg mt-6">
-              <h2 className="font-semibold text-gray-800 mb-4">Forum Staff</h2>
-              <ul className="text-sm text-gray-600">
-                <li className="mb-2">
-                  <span className="font-semibold">lymorelynn</span> - Administrator
-                </li>
-                <li className="mb-2">
-                  <span className="font-semibold">westie-ma</span> - Super Moderator
-                </li>
-              </ul>
-            </div>
-          </div>
-      </div>
-    </div>
+    </section>
   );
 }

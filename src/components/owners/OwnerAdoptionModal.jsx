@@ -206,7 +206,7 @@ export default function OwnerAdoptionModal({
           onClick={closeModal}
         />
         <div>
-          <h3 className="font-bold text-lg">Add Pet for {clientName}</h3>
+          <h3 className="font-bold text-lg">Add Pet for Adoption</h3>
 
           <form onSubmit={handleSubmit}>
             <label>Pet Name:</label>
@@ -339,11 +339,11 @@ export default function OwnerAdoptionModal({
               />
             )}
 
-            <label>Notes:</label>
+            <label>Adoption Notes:</label>
             <textarea
               name="notes"
               className="input input-bordered w-full h-24"
-              placeholder="Enter any notes about the pet"
+              placeholder="Enter adoption notes about the pet"
               value={petData.notes}
               onChange={handleInputChange}
             />

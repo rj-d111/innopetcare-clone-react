@@ -1,79 +1,129 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getStorage, ref, uploadBytes } from "firebase/storage";
+import { getFirestore, collection, addDoc, setDoc, doc } from "firebase/firestore";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import platformImage from "../assets/png/platform.png";
-import Register1 from "./Register1";
-import Register2 from "./Register2";
-import Register3 from "./Register3";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
 
-export default function Register() {
-  const [error, setError] = useState("");
-  const [showError, setShowError] = useState(false);
-  const [countdown, setCountdown] = useState(5);
-  const [currentStep, setCurrentStep] = useState(1); // Track current step
-
+const Register = () => {
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
     confirm_password: "",
     phone: "",
+    typeOfAdmin: "",
     firstName: "",
     lastName: "",
     legalName: "",
     businessRegNumber: "",
     city: "",
     postalCode: "",
-    document: "", // if there is a file upload in Register3
-    policyAgreed: false, // for Register3
+    document: [],
   });
-
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
-  
-  useEffect(() => {
-    if (error) {
-      setShowError(true);
-      setCountdown(5);
 
-      const countdownTimer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev === 1) {
-            clearInterval(countdownTimer);
-            setShowError(false);
-            setError(""); // Clear error after fading out
-            return 0;
-          }
-          return prev - 1;
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
+  };
+
+  const handleFileChange = (e) => {
+    setFormData({ ...formData, document: Array.from(e.target.files) });
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const db = getFirestore();
+    const auth = getAuth();
+    const storage = getStorage();
+
+    // Validation
+    if (
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.email ||
+      !formData.password ||
+      !formData.confirm_password ||
+      !formData.phone ||
+      !formData.typeOfAdmin ||
+      !formData.legalName ||
+      !formData.businessRegNumber ||
+      !formData.city ||
+      !formData.postalCode
+    ) {
+      setError("All fields must be filled out.");
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password should be at least 8 characters long.");
+      return;
+    }
+
+    if (formData.password !== formData.confirm_password) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    const phonePattern = /^9\d{9}$/;
+    if (!phonePattern.test(formData.phone)) {
+      setError("Phone number must follow the format 9XXXXXXXXX.");
+      return;
+    }
+
+    if (!formData.document || formData.document.length === 0) {
+      setError("You must upload at least one document.");
+      return;
+    }
+
+    try {
+      // Step 1: Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      const user = userCredential.user;
+
+      // Step 2: Upload documents to Firebase Storage
+      const uploadedFiles = [];
+      for (const file of formData.document) {
+        const fileRef = ref(storage, `documents/${user.uid}/${file.name}`);
+        await uploadBytes(fileRef, file);
+        uploadedFiles.push({
+          name: file.name,
+          url: `documents/${user.uid}/${file.name}`,
         });
-      }, 1000);
+      }
 
-      return () => clearInterval(countdownTimer);
+      // Step 3: Add user data to Firestore 'users' collection with matching UID
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone,
+        typeOfAdmin: formData.typeOfAdmin,
+        legalName: formData.legalName,
+        businessRegNumber: formData.businessRegNumber,
+        city: formData.city,
+        postalCode: formData.postalCode,
+        documentFiles: uploadedFiles,
+        isApproved: false,
+        createdAt: new Date(),
+      });
+
+      // Step 4: Navigate to the 'for-approval' page
+      navigate("/for-approval");
+    } catch (error) {
+      setError(error.message);
     }
-  }, [error]);
-
-  const closeError = () => {
-    setShowError(false);
-    setError(""); // Clear error when closed
-  };
-
-  // Handle going to the next step
-  const nextStep = () => {
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  // Handle going back to the previous step
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleFieldChange = (newFormData) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      ...newFormData,
-    }));
   };
 
   return (
@@ -93,19 +143,6 @@ export default function Register() {
         </section>
         <section>
           <div>
-            <div className="text-sm text-center">
-              <ul className="steps steps-vertical lg:steps-horizontal">
-                <li className={`step ${currentStep >= 1 ? "step-info" : ""}`}>
-                  Register
-                </li>
-                <li className={`step ${currentStep >= 2 ? "step-info" : ""}`}>
-                  Fill in Business Registration
-                </li>
-                <li className={`step ${currentStep === 3 ? "step-info" : ""}`}>
-                  Document and Policy
-                </li>
-              </ul>
-            </div>
             <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 w-3/4 mx-auto">
               <div className="text-center mb-6">
                 <img
@@ -114,56 +151,234 @@ export default function Register() {
                   className="mx-auto mb-4"
                 />
               </div>
-              {showError && (
-                <div className="flex justify-between items-center bg-red-500 text-white p-4 rounded-lg mb-4 transition-opacity duration-500">
-                  <span>
-                    {error} (Will be closed in {countdown} seconds)
-                  </span>
-                  <button onClick={closeError} className="text-white font-bold">
-                    &times;
-                  </button>
+              {error && <p className="text-red-500 mb-4">{error}</p>}
+
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="typeOfAdmin" className="block font-medium">
+                    Type of Admin
+                  </label>
+                  <select
+                    name="typeOfAdmin" // Add name here for controlled component
+                    className="w-full p-2 border border-gray-300 rounded-md mb-4"
+                    value={formData.typeOfAdmin}
+                    onChange={handleChange}
+                  >
+                    {/* <option value="">Select Admin Type</option>{" "} */}
+                    {/* Default option */}
+                    <option value="Veterinary Admin">Veterinary Admin</option>
+                    <option value="Animal Shelter Admin">
+                      Animal Shelter Admin
+                    </option>
+                  </select>
                 </div>
-              )}
-              {(() => {
-                switch (currentStep) {
-                  case 1:
-                    return (
-                      <Register1
-                        formData={formData}
-                        setError={setError}
-                        onChange={handleFieldChange}
-                        nextStep={nextStep} // Pass the nextStep function
-                      />
-                    );
-                  case 2:
-                    return (
-                      <Register2
-                        formData={formData}
-                        setError={setError}
-                        onChange={handleFieldChange}
-                        nextStep={nextStep} // Pass the nextStep function
+                <div>
+                  <label htmlFor="firstName" className="block font-medium">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
 
-                      />
-                    );
-                  case 3:
-                    return (
-                      <Register3
-                        formData={formData}
-                        setError={setError}
-                        onChange={handleFieldChange}
-                      />
-                    );
-                  default:
-                    return null;
-                }
-              })()}
+                <div>
+                  <label htmlFor="lastName" className="block font-medium">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="block font-medium">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
 
-             
-              <p className="text-sm text-center text-gray-600 mt-5">
-                Already Registered?{" "}
-                <span className="text-sm text-yellow-600 hover:underline hover:text-yellow-800 transition duration-200 ease-in-out">
-                  <Link to="/login">Login</Link>
-                </span>
+                <div>
+                  <label htmlFor="password" className="block font-medium">
+                    Password
+                  </label>
+                  <div className="relative mt-1">
+                    <input
+                      type={showPassword ? "text" : "password"} // Toggle between text and password
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      className="block w-full border rounded-md px-3 py-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3"
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}{" "}
+                      {/* Icon based on visibility state */}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="confirm_password"
+                    className="block font-medium"
+                  >
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    name="confirm_password"
+                    value={formData.confirm_password}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div className="mb-5">
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Phone (Format: 9XXXXXXXXX)
+                  </label>
+                  
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="legalName" className="block font-medium">
+                    Legal Name/Company Name
+                  </label>
+                  <input
+                    type="text"
+                    name="legalName"
+                    value={formData.legalName}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="businessRegNumber"
+                    className="block font-medium"
+                  >
+                    Business Registration Number
+                  </label>
+                  <input
+                    type="text"
+                    name="businessRegNumber"
+                    value={formData.businessRegNumber}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="city" className="block font-medium">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="postalCode" className="block font-medium">
+                    Postal Code
+                  </label>
+                  <input
+                    type="text"
+                    name="postalCode"
+                    value={formData.postalCode}
+                    onChange={handleChange}
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <h3 className="text-lg font-semibold mb-4">
+                  Document and Policy
+                </h3>
+                <div className="mb-5">
+                  <label
+                    htmlFor="document"
+                    className="block text-gray-500 mb-2"
+                  >
+                    Upload Document
+                  </label>
+                  <p className="text-sm text-gray-600 mb-2">
+                    You should upload these documents (PDF or image formats,
+                    .jpg, .png are accepted):
+                  </p>
+                  <ul className="list-disc list-inside mb-2">
+                    <li>Business Permit</li>
+                    <li>Veterinary Clinic License (For Veterinary only)</li>
+                    <li>Animal Welfare License (For Animal Shelter only)</li>
+                    <li>DTI Business Name</li>
+                    <li>Sanitary Permit</li>
+                    <li>Environmental Compliance</li>
+                    <li>Tax Identification Number (TIN)</li>
+                    <li>Bureau of Animal Industry Recognition</li>
+                    <li>Valid Identification (Government-Issued)</li>
+                  </ul>
+                  <input
+                    type="file"
+                    name="document"
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    onChange={handleFileChange}
+                    multiple
+                    required
+                    className="mt-1 block w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-yellow-500 text-white rounded-md py-2 mt-4"
+                >
+                  Register
+                </button>
+              </form>
+              <p className="text-center mt-4">
+                Already have an account?{" "}
+                <Link to="/login" className="text-yellow-500 font-semibold">
+                  Login here
+                </Link>
               </p>
             </div>
           </div>
@@ -171,4 +386,6 @@ export default function Register() {
       </div>
     </>
   );
-}
+};
+
+export default Register;

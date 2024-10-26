@@ -87,7 +87,7 @@ export default function ProjectLogin() {
 
       }
     } catch (error) {
-      toast.error("Login failed");
+      toast.error("Invalid credentials. Please try again");
     }
   }
 

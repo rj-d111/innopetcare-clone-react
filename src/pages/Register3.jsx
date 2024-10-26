@@ -1,6 +1,10 @@
 import React, { useState } from "react";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, setDoc } from "firebase/firestore";
+import { db, storage } from "../firebase"; // Import initialized Firestore and Storage from firebase.js
+import { v4 as uuidv4 } from "uuid"; // For generating unique file names
 
-export default function Register3({ adminType, setError }) {
+export default function Register3({ adminType, setError, userId }) {
   const [formData, setFormData] = useState({
     businessPermit: null,
     veterinaryClinicLicense: null,
@@ -13,18 +17,18 @@ export default function Register3({ adminType, setError }) {
     welfareCertificate: null, // For Animal Shelter Admin
   });
 
-  const onFileChange = (e) => {
-    const { id, files } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [id]: files[0],
-    }));
+  // Function to upload files to Firebase Storage
+  const uploadFile = async (file) => {
+    const storageRef = ref(storage, `users/${userId}/docs/${uuidv4()}-${file.name}`);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef); // Return the URL of the uploaded file
   };
 
-  const onSubmit = (e) => {
+  // Handle form submission
+  const onSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation: Ensure all required files are uploaded
+    // Validation to ensure all required files are uploaded
     if (
       !formData.businessPermit ||
       !formData.dtiBusinessName ||
@@ -48,8 +52,41 @@ export default function Register3({ adminType, setError }) {
       return;
     }
 
-    console.log("Form submitted successfully with files:", formData);
-    // Handle file upload and form submission logic
+    try {
+      // Upload all files to Firebase Storage
+      const fileUploads = await Promise.all(
+        Object.keys(formData).map(async (key) => {
+          if (formData[key]) {
+            return { [key]: await uploadFile(formData[key]) }; // Return the file URL for each field
+          }
+          return null;
+        })
+      );
+
+      // Combine all file URLs into a single object
+      const fileData = Object.assign({}, ...fileUploads);
+
+      // Save data to Firestore
+      await setDoc(doc(db, "users", userId), {
+        ...fileData,
+        adminType,
+        userId,
+      });
+
+      console.log("Form submitted successfully with files:", fileData);
+    } catch (error) {
+      console.error("Error uploading files: ", error);
+      setError("Failed to upload files.");
+    }
+  };
+
+  // Handle file input changes
+  const onFileChange = (e) => {
+    const { id, files } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      [id]: files[0],
+    }));
   };
 
   return (
@@ -67,9 +104,7 @@ export default function Register3({ adminType, setError }) {
 
       {adminType === "Veterinary Admin" && (
         <div className="mb-4">
-          <label className="block text-gray-700">
-            Veterinary Clinic License
-          </label>
+          <label className="block text-gray-700">Veterinary Clinic License</label>
           <input
             type="file"
             id="veterinaryClinicLicense"
@@ -82,9 +117,7 @@ export default function Register3({ adminType, setError }) {
 
       {adminType === "Animal Shelter Admin" && (
         <div className="mb-4">
-          <label className="block text-gray-700">
-            Animal Welfare Certificate
-          </label>
+          <label className="block text-gray-700">Animal Welfare Certificate</label>
           <input
             type="file"
             id="welfareCertificate"
@@ -96,9 +129,7 @@ export default function Register3({ adminType, setError }) {
       )}
 
       <div className="mb-4">
-        <label className="block text-gray-700">
-          DTI Business Name Registration
-        </label>
+        <label className="block text-gray-700">DTI Business Name Registration</label>
         <input
           type="file"
           id="dtiBusinessName"
@@ -120,9 +151,7 @@ export default function Register3({ adminType, setError }) {
       </div>
 
       <div className="mb-4">
-        <label className="block text-gray-700">
-          Environmental Compliance Certificate
-        </label>
+        <label className="block text-gray-700">Environmental Compliance Certificate</label>
         <input
           type="file"
           id="environmentalCompliance"
@@ -133,9 +162,7 @@ export default function Register3({ adminType, setError }) {
       </div>
 
       <div className="mb-4">
-        <label className="block text-gray-700">
-          Tax Identification Number (TIN)
-        </label>
+        <label className="block text-gray-700">Tax Identification Number (TIN)</label>
         <input
           type="file"
           id="tin"
@@ -159,9 +186,7 @@ export default function Register3({ adminType, setError }) {
       </div>
 
       <div className="mb-4">
-        <label className="block text-gray-700">
-          Valid Identification (Government-issued)
-        </label>
+        <label className="block text-gray-700">Valid Identification (Government-issued)</label>
         <input
           type="file"
           id="validId"

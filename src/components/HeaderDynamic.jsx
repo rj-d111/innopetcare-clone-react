@@ -150,7 +150,17 @@ export default function HeaderDynamic() {
         <div className="flex items-center space-x-6">
           <ul className="flex items-center space-x-6">
             <Link to={`sites/${slug}/about`}>About Us</Link>
-            <Link to={`sites/${slug}/services`}>Services</Link>
+            {projectType !== "Animal Shelter Site" && (
+              <>
+              <Link to={`sites/${slug}/services`}>Services</Link>
+              </>
+            )}
+            {projectType === "Animal Shelter Site" && (
+              <>
+                <Link to={`sites/${slug}/volunteer`}>Volunteer</Link>
+                <Link to={`sites/${slug}/donate`}>Donate</Link>
+              </>
+            )}
             <Link to={`sites/${slug}/appointments`}>Appointments</Link>
             <Link to={`sites/${slug}/contact`}>Contact Us</Link>
             <Link to={`sites/${slug}/adopt-pet`}>Adopt Pets</Link>
@@ -202,19 +212,22 @@ export default function HeaderDynamic() {
                       </Link>
                     </li>
                     <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
-                    <Link to={`/sites/${slug}/profile`} className="ml-2">
+                      <Link to={`/sites/${slug}/profile`} className="ml-2">
                         User Profile
-                    </Link>
+                      </Link>
                     </li>
                     <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
-                    <Link to={`/sites/${slug}/feedback`} className="ml-2">
+                      <Link to={`/sites/${slug}/feedback`} className="ml-2">
                         User Feedback
-                    </Link>
+                      </Link>
                     </li>
                     <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
-                      <Link to={`/sites/${slug}/notifications`} className="ml-2">
+                      <Link
+                        to={`/sites/${slug}/notifications`}
+                        className="ml-2"
+                      >
                         Notifications
-                    </Link>
+                      </Link>
                     </li>
                     <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
                       <Link to={`/sites/${slug}/help`} className="ml-2">
@@ -222,9 +235,17 @@ export default function HeaderDynamic() {
                       </Link>
                     </li>
                     <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
+                      <Link
+                        to={`/sites/${slug}/privacy-policy`}
+                        className="ml-2"
+                      >
+                        Privacy Policy
+                      </Link>
+                    </li>
+                    <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">
                       <Link to={`/sites/${slug}/profile`} className="ml-2">
                         Settings
-                    </Link>
+                      </Link>
                     </li>
                     <hr className="my-2 border-slate-200" />
                     <li className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100">

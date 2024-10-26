@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase.js";
-import { doc, updateDoc, getDoc, addDoc, collection, getDocs, where, query } from "firebase/firestore"; // Firestore methods
+import { doc, updateDoc, getDoc, addDoc, collection, getDocs, where, query } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import {
   ref,
@@ -10,44 +10,51 @@ import {
 } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
-import Spinner from "../Spinner.jsx"; // Assuming you have a Spinner component
+import Spinner from "../Spinner.jsx";
 import { useParams } from "react-router-dom";
 
 export default function AboutUs() {
-  const { id } = useParams(); // Get project UUID from the URL
+  const { id } = useParams();
   const auth = getAuth();
   const [loading, setLoading] = useState(false);
   const [documentExists, setDocumentExists] = useState(false);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null); // State for image preview URL
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    picture: null,
+  });
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
     const checkDocumentExists = async () => {
       const q = query(
         collection(db, "about-sections"),
         where("projectId", "==", id)
-      ); // Use the project ID here
+      );
       const querySnapshot = await getDocs(q);
-
-      setDocumentExists(!querySnapshot.empty); // Set state based on query result
+      setDocumentExists(!querySnapshot.empty);
     };
 
     checkDocumentExists();
   }, [id]);
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    picture: null,
-  });
-
-  const [image, setImage] = useState(null);
-
   // Handle form changes
   function onChange(e) {
-    const { name, value } = e.target;
+    const { name, value, files } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]); // Set the image file
+    if (files && files[0]) {
+      const uploadedImage = files[0];
+      setImage(uploadedImage);
+      setFormData((prevState) => ({
+        ...prevState,
+        picture: uploadedImage,
+      }));
+
+      // Preview the image
+      const imagePreviewUrl = URL.createObjectURL(uploadedImage);
+      setImagePreviewUrl(imagePreviewUrl); // Set the image preview in the state
     }
   }
 
@@ -83,7 +90,6 @@ export default function AboutUs() {
     e.preventDefault();
     setLoading(true);
 
-    // Validate required fields
     if (!formData.title || !formData.description || !image) {
       setLoading(false);
       toast.error("Please fill all the required fields");
@@ -91,33 +97,26 @@ export default function AboutUs() {
     }
 
     try {
-      // Upload the image and get the URL
       const pictureUrl = await storeImage(image);
 
-      const docRef = doc(db, "about-sections", id); // Document reference for About Us sections
-      const docSnap = await getDoc(docRef);
-
-      const q = query(collection(db, "about-sections"), where("projectId", "==", id)); // Use the project ID here
+      const q = query(collection(db, "about-sections"), where("projectId", "==", id));
       const querySnapshot = await getDocs(q);
   
       if (!querySnapshot.empty) {
-        const docRef = querySnapshot.docs[0].ref; // Get the reference of the first matching document
+        const docRef = querySnapshot.docs[0].ref;
         await updateDoc(docRef, {
           title: formData.title,
           description: formData.description,
-          picture: pictureUrl, // Save the uploaded picture URL
-          projectId: id, // Foreign key linking to the project
+          picture: pictureUrl,
+          projectId: id,
         });
         toast.success("About us section updated successfully!");
-
-      }
-      // If the document exists, update it; otherwise, create a new one
-      else {
+      } else {
         await addDoc(collection(db, "about-sections"), {
           title: formData.title,
           description: formData.description,
-          picture: pictureUrl, // Store the uploaded picture URL
-          projectId: id, // Foreign key linking to the project
+          picture: pictureUrl,
+          projectId: id,
         });
         toast.success("About Us section created successfully!");
       }
@@ -175,9 +174,19 @@ export default function AboutUs() {
             type="file"
             accept="image/*"
             onChange={onChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-yellow-300"
+            className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
             required
           />
+          {imagePreviewUrl && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium">Picture Preview:</h3>
+              <img
+                src={imagePreviewUrl}
+                alt="Picture Preview"
+                className="mt-2 w-32 h-32 object-cover rounded"
+              />
+            </div>
+          )}
         </div>
 
         <button

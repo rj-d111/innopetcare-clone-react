@@ -2,32 +2,13 @@ import React, { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { db } from "../firebase"; // Import your Firebase configuration
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth"; // Modular import for Firebase Auth
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; // Firestore functions
 
-export default function Register1({ setError, nextStep }) {
-  const auth = getAuth();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirm_password: "",
-    phone: "",
-  });
+export default function Register1({ setError, nextStep, formData, onChange }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const { name, phone, email, password, confirm_password } = formData;
 
-  const onChange = (e) => {
-    setFormData((prevState) => ({
-      ...prevState,
-      [e.target.id]: e.target.value,
-    }));
-    setError(""); // Clear error on change
-  };
-
-  const onSubmit = async (e) => {
+  const onSubmit = (e) => {
     e.preventDefault();
 
     // Validation
@@ -43,63 +24,35 @@ export default function Register1({ setError, nextStep }) {
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters long");
-      setFormData((prevState) => ({
-        ...prevState,
-        password: "",
-        confirm_password: "",
-      }));
       return;
     }
 
     if (password !== confirm_password) {
       setError("The password does not match with confirm password");
-      setFormData((prevState) => ({
-        ...prevState,
-        password: "",
-        confirm_password: "",
-      }));
       return;
     }
 
     if (!/^9\d{9}$/.test(phone)) {
-      setError(
-        "The phone number must start with 9 and be followed by 9 digits."
-      );
+      setError("The phone number must start with 9 and be followed by 9 digits.");
       return;
     }
 
-    try {
-      // Create user with Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Upload additional user data to Firestore
-      await addDoc(collection(db, "users"), {
-        uid: user.uid, // Store the user's UID
-        name,
-        email,
-        phone,
-        isVerified: false, // Set isVerified to false initially
-        timestamp: serverTimestamp(), // Use Firestore's serverTimestamp for the current date/time
-      });
-
-      // Trigger success toast
-      toast.success("Successfully Registered!");
-
-      // Move to the next step
-      nextStep();
-    } catch (error) {
-      setError("Error submitting the form: " + error.message);
-    }
+    // Move to the next step, formData is passed to the next component
+    nextStep();
   };
 
   return (
     <>
       <form onSubmit={onSubmit}>
         <label className="block mb-2 text-gray-700">Type of Admin</label>
-        <select className="w-full p-2 border border-gray-300 rounded-md mb-4">
-          <option>Veterinary Admin</option>
-          <option>Animal Shelter Admin</option>
+        <select
+          className="w-full p-2 border border-gray-300 rounded-md mb-4"
+          onChange={(e) => onChange({ typeOfAdmin: e.target.value })}
+          value={formData.typeOfAdmin || ""}
+        >
+          <option value="">Select Admin Type</option>
+          <option value="Veterinary Admin">Veterinary Admin</option>
+          <option value="Animal Shelter Admin">Animal Shelter Admin</option>
         </select>
 
         <div className="mb-5">
@@ -110,7 +63,7 @@ export default function Register1({ setError, nextStep }) {
             type="text"
             id="name"
             value={name}
-            onChange={onChange}
+            onChange={(e) => onChange({ name: e.target.value })}
             placeholder="Enter your name"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
           />
@@ -123,7 +76,7 @@ export default function Register1({ setError, nextStep }) {
             type="email"
             id="email"
             value={email}
-            onChange={onChange}
+            onChange={(e) => onChange({ email: e.target.value })}
             placeholder="Enter your email"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
           />
@@ -140,7 +93,7 @@ export default function Register1({ setError, nextStep }) {
               type="tel"
               id="phone"
               value={phone}
-              onChange={onChange}
+              onChange={(e) => onChange({ phone: e.target.value })}
               placeholder="Enter your Phone No."
               className="w-5/6 px-4 py-2 rounded-r-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
@@ -155,7 +108,7 @@ export default function Register1({ setError, nextStep }) {
               type={showPassword ? "text" : "password"}
               id="password"
               value={password}
-              onChange={onChange}
+              onChange={(e) => onChange({ password: e.target.value })}
               placeholder="Enter your password"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
@@ -180,7 +133,7 @@ export default function Register1({ setError, nextStep }) {
             type="password"
             id="confirm_password"
             value={confirm_password}
-            onChange={onChange}
+            onChange={(e) => onChange({ confirm_password: e.target.value })}
             placeholder="Confirm your password"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
           />

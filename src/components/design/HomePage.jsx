@@ -8,13 +8,12 @@ import { toast } from "react-toastify";
 import Spinner from "../Spinner.jsx"; // Assuming you have a Spinner component
 import { useParams } from "react-router-dom";
 
-export default function HomePage({formData, setFormData}) {
+export default function HomePage({ formData, setFormData }) {
   const { id } = useParams(); // Get project UUID from the URL
   const auth = getAuth();
   const [loading, setLoading] = useState(false);
-
   const [image, setImage] = useState(null);
-
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null); // State for image preview URL
   const [documentExists, setDocumentExists] = useState(false);
 
   useEffect(() => {
@@ -24,15 +23,11 @@ export default function HomePage({formData, setFormData}) {
         where("projectId", "==", id)
       ); // Use the project ID here
       const querySnapshot = await getDocs(q);
-
       setDocumentExists(!querySnapshot.empty); // Set state based on query result
     };
 
     checkDocumentExists();
   }, [id]);
-
-
-
 
   // Handle form changes
   function onChange(e) {
@@ -40,7 +35,16 @@ export default function HomePage({formData, setFormData}) {
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]); // Set the image file
+      const uploadedImage = e.target.files[0];
+      setImage(uploadedImage); // Set the image file
+      setFormData((prevState) => ({
+        ...prevState,
+        logoPicture: uploadedImage, // Update the formData with the image
+      }));
+
+      // Preview the image
+      const imagePreviewUrl = URL.createObjectURL(uploadedImage);
+      setImagePreviewUrl(imagePreviewUrl); // Set the image preview URL
     }
   }
 
@@ -163,9 +167,19 @@ export default function HomePage({formData, setFormData}) {
             type="file"
             accept="image/*"
             onChange={onChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-yellow-300"
+            className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
             required
           />
+          {imagePreviewUrl && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium">Logo Preview:</h3>
+              <img
+                src={imagePreviewUrl}
+                alt="Logo Preview"
+                className="mt-2 w-32 h-32 object-cover rounded"
+              />
+            </div>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -182,16 +196,16 @@ export default function HomePage({formData, setFormData}) {
         </div>
 
         <button
-      type="button"
-      onClick={onSubmit}
-      className={`w-full uppercase py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:shadow-lg ${
-        documentExists 
-          ? "bg-violet-600 hover:bg-violet-700 active:bg-violet-800" 
-          : "bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800"
-      } text-white`}
-    >
-      {documentExists ? "Update Changes" : "Save Changes"}
-    </button>
+          type="button"
+          onClick={onSubmit}
+          className={`w-full uppercase py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:shadow-lg ${
+            documentExists 
+              ? "bg-violet-600 hover:bg-violet-700 active:bg-violet-800" 
+              : "bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800"
+          } text-white`}
+        >
+          {documentExists ? "Update Changes" : "Save Changes"}
+        </button>
       </div>
     </form>
   );

@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 
 export default function ProjectDashboard() {
   const [projectName, setProjectName] = useState(""); // To store projectName
-  const [clientName, setClientName] = useState(""); // To store projectName
+  const [clientName, setClientName] = useState(""); // To store clientName
   const [projectId, setProjectId] = useState(""); // To store projectId
   const [clientId, setClientId] = useState(""); // To store clientId
   const [upcomingAppointment, setUpcomingAppointment] = useState(null); // To store appointment data
@@ -58,12 +58,17 @@ export default function ProjectDashboard() {
     const fetchAppointments = async () => {
       if (clientId && projectId) {
         try {
-          const appointmentsRef = collection(db, "appointments");
+          // Determine which collection to query based on the slug
+          const appointmentsCollection = slug.includes("shelter")
+            ? "appointments-shelter" // Use this collection for animal shelters
+            : "appointments"; // Default to appointments for veterinary clinics
+
+          const appointmentsRef = collection(db, appointmentsCollection);
           const q = query(
             appointmentsRef,
             where("clientId", "==", clientId),
             where("projectId", "==", projectId),
-            where("status", "==", "pending") // Assuming you're looking for pending status
+            // where("status", "==", "pending") // Assuming you're looking for pending status
           );
 
           const querySnapshot = await getDocs(q);
@@ -92,7 +97,7 @@ export default function ProjectDashboard() {
     };
 
     fetchAppointments();
-  }, [clientId, projectId]);
+  }, [clientId, projectId, slug]); // Include slug in dependencies
 
   // Helper to format date in human-readable format
   const formatAppointmentDate = (date) => {

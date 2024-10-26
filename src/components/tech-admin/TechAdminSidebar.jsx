@@ -2,6 +2,7 @@ import React from 'react';
 import { FaRegFolderOpen, FaUserAlt } from 'react-icons/fa';
 import { MdDashboard, MdLogout } from 'react-icons/md';
 import { RiAdminFill } from "react-icons/ri";
+import { VscFeedback } from "react-icons/vsc";
 
 export default function TechAdminSidebar({ activeSection, setActiveSection }) {
   return (
@@ -26,6 +27,12 @@ export default function TechAdminSidebar({ activeSection, setActiveSection }) {
           onClick={() => setActiveSection("projects")}
         >
           <FaRegFolderOpen className="mr-2" /> Projects
+        </li>
+        <li
+          className={`flex items-center cursor-pointer p-2 rounded-lg transition-colors duration-200 ${activeSection === "feedback" ? "bg-yellow-950" : ""}`}
+          onClick={() => setActiveSection("feedback")}
+        >
+          <VscFeedback className="mr-2" /> User Feedback
         </li>
       </ul>
       <li

@@ -62,47 +62,48 @@ export default function ProjectNotifications() {
   }, [user, projectId]);
 
   return (
-    <div className="bg-gray-100 flex items-center justify-center p-5">
-      <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg p-6">
-        <h1 className="text-2xl font-semibold mb-6">Notifications</h1>
+<div className="bg-gray-100 min-h-screen flex items-start justify-center p-5">
+  <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg p-6 mt-10"> {/* Added mt-10 for spacing from top */}
+    <h1 className="text-2xl font-semibold mb-6">Notifications</h1>
 
-        {notifications.length === 0 ? (
-          <p className="text-center text-gray-500">No notifications available.</p>
-        ) : (
-          notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className="flex items-start border-b border-gray-200 py-4"
-            >
-              {/* Close Icon */}
-              <div className="mr-4 mt-2">
-                <FaTimes className="text-gray-400 hover:text-red-500 cursor-pointer" />
-              </div>
+    {notifications.length === 0 ? (
+      <p className="text-center text-gray-500">No notifications available.</p>
+    ) : (
+      notifications.map((notification) => (
+        <div
+          key={notification.id}
+          className="flex items-start border-b border-gray-200 py-4"
+        >
+          {/* Close Icon */}
+          <div className="mr-4 mt-2">
+            <FaTimes className="text-gray-400 hover:text-red-500 cursor-pointer" />
+          </div>
 
-              {/* Notification Content */}
-              <div className="w-full">
-                <div className="flex justify-between">
-                  {/* Notification Type */}
-                  <span className="text-white text-xs font-bold px-2 py-1 rounded bg-blue-500">
-                    {notification.type}
-                  </span>
+          {/* Notification Content */}
+          <div className="w-full">
+            <div className="flex justify-between">
+              {/* Notification Type */}
+              <span className="text-white text-xs font-bold px-2 py-1 rounded bg-blue-500">
+                {notification.type}
+              </span>
 
-                  {/* Notification Time */}
-                  <div className="flex items-center text-gray-400 text-sm">
-                    <FaClock className="mr-2" />
-                    {new Date(notification.timestamp?.seconds * 1000).toLocaleString()}
-                  </div>
-                </div>
-
-                {/* Notification Message */}
-                <p className="text-gray-600 text-sm mt-1">
-                  {notification.message}
-                </p>
+              {/* Notification Time */}
+              <div className="flex items-center text-gray-400 text-sm">
+                <FaClock className="mr-2" />
+                {new Date(notification.timestamp?.seconds * 1000).toLocaleString()}
               </div>
             </div>
-          ))
-        )}
-      </div>
-    </div>
+
+            {/* Notification Message */}
+            <p className="text-gray-600 text-sm mt-1">
+              {notification.message}
+            </p>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</div>
+
   );
 }

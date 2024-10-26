@@ -37,7 +37,7 @@ const HeaderDesign = ({
       toast.error("Project ID is missing.");
       return;
     }
-
+  
     try {
       // Check if data exists in global-sections table
       const globalSectionsQuery = query(
@@ -49,7 +49,7 @@ const HeaderDesign = ({
         toast.error("Please add data to Global Sections.");
         return;
       }
-
+  
       // Check if data exists in home-sections table
       const homeSectionsQuery = query(
         collection(db, "home-sections"),
@@ -60,7 +60,7 @@ const HeaderDesign = ({
         toast.error("Please add data to Home Sections.");
         return;
       }
-
+  
       // Check if data exists in contact-info table
       const contactInfoQuery = query(
         collection(db, "contact-info"),
@@ -71,8 +71,9 @@ const HeaderDesign = ({
         toast.error("Please add contact info.");
         return;
       }
-
-      // Check if at least one service exists in services table
+  
+      // Check if at least one service exists in services table if not animal shelter site
+      if (project && project.type !== "Animal Shelter Site") {
       const servicesQuery = query(
         collection(db, "services"),
         where("projectId", "==", uuid)
@@ -82,20 +83,46 @@ const HeaderDesign = ({
         toast.error("Please add at least one service.");
         return;
       }
-
+    }  
+      // Check if the project type is "Animal Shelter Site"
+      if (project && project.type === "Animal Shelter Site") {
+        // Check if data exists in volunteer table
+        const volunteerQuery = query(
+          collection(db, "volunteer"),
+          where("projectId", "==", uuid)
+        );
+        const volunteerSnapshot = await getDocs(volunteerQuery);
+        if (volunteerSnapshot.empty) {
+          toast.error("Please complete all fields in volunteer section");
+          return;
+        }
+  
+        // Check if data exists in donate table
+        const donateQuery = query(
+          collection(db, "donations"),
+          where("projectId", "==", uuid)
+        );
+        const donateSnapshot = await getDocs(donateQuery);
+        if (donateSnapshot.empty) {
+          toast.error("Please complete all fields in donations sections");
+          return;
+        }
+      }
+  
       // If all validations pass, show success message and redirect
       toast.success("Successfully deployed your website!");
-
+  
       // Update the project status to "active"
       const projectDocRef = doc(db, "projects", uuid);
       await updateDoc(projectDocRef, { status: "active" });
-
+  
       navigate("/sites");
     } catch (error) {
       console.error("Error validating data:", error);
       toast.error("An error occurred during the publishing process.");
     }
   };
+  
 
   // Fetch the project based on the UUID
   useEffect(() => {

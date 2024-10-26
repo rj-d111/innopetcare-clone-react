@@ -3,9 +3,9 @@ import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import OAuth from "../components/OAuth";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import {toast} from "react-toastify";
+import { toast } from "react-toastify";
 import { doc, getDoc } from "firebase/firestore";
-import {db} from "../firebase";
+import { db } from "../firebase";
 import platformImage from "../assets/png/platform.png";
 
 export default function Login() {
@@ -16,36 +16,40 @@ export default function Login() {
   });
   const { email, password } = formData;
   const navigate = useNavigate();
+
   function onChange(e) {
     setFormData((prevState) => ({
       ...prevState,
       [e.target.id]: e.target.value,
     }));
   }
-  async function onSubmit(e){
+
+  async function onSubmit(e) {
     e.preventDefault();
     try {
       const auth = getAuth();
-      const userCredential = await 
-      signInWithEmailAndPassword(auth, email, password)
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
       if (userCredential.user) {
         const user = userCredential.user;
-  
-        // Navigate to email verification if successful
-        navigate("/email-verification");
-  
+
         // Fetch the user document from Firestore using the user's uid
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
-  
+
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          
-          // Access the name field from the fetched document
           const userName = userData.name;
-  
+
           // Display the user's name in a success toast
           toast.success(`Welcome, ${userName}`);
+
+          // Check isApproved field and navigate accordingly
+          if (userData.isApproved) {
+            navigate("/");
+          } else {
+            navigate("/approval");
+          }
         } else {
           console.log("No such document!");
         }
@@ -54,11 +58,11 @@ export default function Login() {
       toast.error("Invalid user credentials");
     }
   }
+
   return (
     <div className="bg-gray-100">
       <section className="min-h-screen flex items-center justify-center mx-3">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-center my-10">
-          {/* Left side with laptop and phone image */}
           <div className="hidden md:block md:w-3/4 lg:w-1/2">
             <div className="p-10">
               <img
@@ -68,7 +72,6 @@ export default function Login() {
               />
             </div>
           </div>
-          {/* Right side login form */}
           <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 lg:w-1/3 w-full">
             <div className="text-center mb-6">
               <img
@@ -82,9 +85,9 @@ export default function Login() {
                 manage their online presence.
               </p>
             </div>
-            <h2 class="font-bold text-yellow-900 flex flex-col sm:flex-row items-center justify-center">
+            <h2 className="font-bold text-yellow-900 flex flex-col sm:flex-row items-center justify-center">
               Welcome!
-              <span class="sm:ml-1">Login to your account.</span>
+              <span className="sm:ml-1">Login to your account.</span>
             </h2>
             <p className="text-gray-600 text-sm mb-6 text-center mt-1">
               Let's work together to care for our furry friends.

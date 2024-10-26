@@ -11,6 +11,8 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
+  addDoc,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "../firebase";
@@ -34,6 +36,11 @@ export default function Home() {
   const [projectToDelete, setProjectToDelete] = useState(null);
 
   const navigate = useNavigate();
+
+  const auth = getAuth();
+  const user = auth.currentUser;
+  console.log(user.uid);
+
 
   const toggleProjectStatus = async (project) => {
     try {
@@ -80,10 +87,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setUserData({ name: user.displayName || "User" });
+        // If displayName exists, use it; otherwise fetch name from Firestore
+        const name = user.displayName || (await fetchUserNameFromFirestore(user.uid));
+        setUserData({ name });
         fetchProjects(user.uid);
       }
       setIsLoading(false);
@@ -91,6 +99,36 @@ export default function Home() {
 
     return () => unsubscribe();
   }, []);
+
+  const fetchUserNameFromFirestore = async (projectId) => {
+    try {
+      // Create a query to find the user document with the given projectId
+      const userQuery = query(
+        collection(db, "users"),
+        where("uid", "==", projectId) // Query users by projectId
+      );
+  
+      // Get the documents matching the query
+      const querySnapshot = await getDocs(userQuery);
+  
+      // Check if any documents exist
+      if (!querySnapshot.empty) {
+        // Get the first user document (assuming projectId is unique)
+        const userDoc = querySnapshot.docs[0];
+        return userDoc.data().name; // Return the user's name
+      } else {
+        console.log("No user document found for the given projectId");
+        return "User"; // Fallback name
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      return "User"; // Fallback name in case of error
+    }
+  };
+  
+  
+  
+
 
   const handleMenuToggle = (projectId, event) => {
     event.stopPropagation(); // Prevent card click from firing
@@ -145,6 +183,8 @@ export default function Home() {
     return null;
   }
 
+
+  console.log(userData);
   return (
     <>
       <section className="m-3 md:m-10">

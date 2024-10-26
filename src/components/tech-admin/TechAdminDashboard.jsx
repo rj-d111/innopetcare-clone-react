@@ -12,6 +12,8 @@ import {
   Title,
 } from 'chart.js';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { FaRegUser } from "react-icons/fa";
+
 
 // Register the necessary components
 ChartJS.register(
@@ -36,24 +38,32 @@ export default function TechAdminDashboard() {
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const projectsSnapshot = await getDocs(collection(db, 'projects'));
 
-      // Process user data
-      const userTimestamps = usersSnapshot.docs.map(doc => doc.data().timestamp.toDate());
+      // Process user data with safety checks for 'timestamp'
+      const userTimestamps = usersSnapshot.docs
+        .map(doc => doc.data().timestamp)
+        .filter(timestamp => timestamp) // Remove undefined values
+        .map(timestamp => timestamp.toDate()); // Convert to Date objects
       const userCountMap = processCounts(userTimestamps);
       setUserCounts(userCountMap);
 
-      // Process project data
-      const projectTimestamps = projectsSnapshot.docs.map(doc => doc.data().createdAt.toDate());
+      // Process project data with safety checks for 'createdAt'
+      const projectTimestamps = projectsSnapshot.docs
+        .map(doc => doc.data().createdAt)
+        .filter(createdAt => createdAt) // Remove undefined values
+        .map(createdAt => createdAt.toDate()); // Convert to Date objects
       const projectCountMap = processCounts(projectTimestamps);
       setProjectCounts(projectCountMap);
     };
 
     fetchData();
-  }, []);
+  }, [timePeriod]);
 
   const processCounts = (timestamps) => {
     const counts = {};
     timestamps.forEach(timestamp => {
-      const date = timePeriod === 'monthly' ? `${timestamp.getFullYear()}-${timestamp.getMonth() + 1}` : `${timestamp.getFullYear()}-${Math.floor(timestamp.getDate() / 7) + 1}`;
+      const date = timePeriod === 'monthly' 
+        ? `${timestamp.getFullYear()}-${timestamp.getMonth() + 1}` 
+        : `${timestamp.getFullYear()}-W${Math.floor(timestamp.getDate() / 7) + 1}`;
       counts[date] = (counts[date] || 0) + 1;
     });
 
@@ -65,7 +75,6 @@ export default function TechAdminDashboard() {
 
   const handlePeriodChange = (e) => {
     setTimePeriod(e.target.value);
-    // Optionally, re-fetch data to adjust counts based on new period
   };
 
   const userData = {
@@ -95,13 +104,47 @@ export default function TechAdminDashboard() {
   };
 
   // Calculate total counts safely
-  const totalUsers = userCounts.data && userCounts.data.length > 0 ? userCounts.data.reduce((a, b) => a + b, 0) : 0;
-  const totalProjects = projectCounts.data && projectCounts.data.length > 0 ? projectCounts.data.reduce((a, b) => a + b, 0) : 0;
+  const totalUsers = userCounts.data && userCounts.data.length > 0 
+    ? userCounts.data.reduce((a, b) => a + b, 0) 
+    : 0;
+  const totalProjects = projectCounts.data && projectCounts.data.length > 0 
+    ? projectCounts.data.reduce((a, b) => a + b, 0) 
+    : 0;
 
   return (
     <div className='p-10'>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-      <div className="flex justify-between mb-4">
+      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <div class="stats shadow">
+
+  <div class="stat">
+    <div class="stat-figure text-secondary">
+     < FaRegUser size={25}/>
+    </div>
+    <div class="stat-title">No. of Users</div>
+    <div class="stat-value">{totalUsers}</div>
+  </div>
+
+  <div class="stat">
+    <div class="stat-figure text-secondary">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        class="inline-block h-8 w-8 stroke-current">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+      </svg>
+    </div>
+    <div class="stat-title">No. of Projects</div>
+    <div class="stat-value">{totalProjects}</div>
+  </div>
+</div>
+
+    {/* Time Period */}
+      <div className="flex justify-between my-4">
         <div className="flex items-center">
           <label htmlFor="time-period" className="mr-2">Time Period:</label>
           <select id="time-period" value={timePeriod} onChange={handlePeriodChange}>
@@ -109,10 +152,7 @@ export default function TechAdminDashboard() {
             <option value="monthly">Monthly</option>
           </select>
         </div>
-        <div className="flex flex-col">
-          <span>No. of users: {totalUsers}</span>
-          <span>No. of projects: {totalProjects}</span>
-        </div>
+
       </div>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
         <div className="card">

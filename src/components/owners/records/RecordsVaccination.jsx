@@ -4,6 +4,7 @@ import { useParams } from "react-router";
 import ModalVaccination from "./ModalVaccination";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import {db} from "../../../firebase"; // Assuming Firebase is initialized in this file
+import Spinner from "../../Spinner";
 
 export default function RecordsVaccination({ petId }) {
   const projectId = useParams().id;
@@ -61,7 +62,7 @@ export default function RecordsVaccination({ petId }) {
 
       {/* Table for Vaccination Records */}
       {loading ? (
-        <p>Loading...</p>
+        <Spinner />
       ) : vaccinationRecords.length > 0 ? (
         <table className="table w-full mt-4">
           <thead>

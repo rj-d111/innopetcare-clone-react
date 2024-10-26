@@ -8,7 +8,14 @@ import {
 import { useNavigate } from "react-router-dom"; // Corrected useNavigate import
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 import Home from "./pages/Home";
@@ -59,6 +66,23 @@ import EmailVerification from "./pages/EmailVerification";
 import About from "./pages/About";
 import ProjectProfile from "./components/projects/ProjectProfile";
 import ProjectFeedback from "./components/projects/ProjectFeedback";
+import ProjectPrivacyPolicy from "./components/projects/ProjectPrivacyPolicy";
+import ProjectVolunteer from "./components/projects/ProjectVolunteer";
+import ProjectDonate from "./components/projects/ProjectDonate";
+import LandingGuest from "./pages/LandingGuest";
+import OwnerAnimalSchedule from "./components/owners/OwnerAnimalSchedule";
+import ProjectAdoptionInfo from "./components/projects/ProjectAdoptionInfo";
+import UserProfile from "./pages/UserProfile";
+import UserFeedback from "./pages/UserFeedback";
+import Help from "./pages/Help";
+import UserApproval from "./pages/UserApproval";
+import TechAdminUsers from "./components/tech-admin/TechAdminUsers";
+import TechAdminProjects from "./components/tech-admin/TechAdminProjects";
+import TechAdminDashboard from "./components/tech-admin/TechAdminDashboard";
+import TechAdminUsersDetails from "./components/tech-admin/TechAdminUsersDetails";
+import TechAdminFeedback from "./components/tech-admin/TechAdminFeedback";
+import UserSettings from "./pages/UserSettings";
+import Notifications from "./pages/Notifications";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -74,34 +98,77 @@ function AppContent() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsAuthenticated(true);
-
-        // Check if email is verified
         setIsVerified(user.emailVerified);
 
         try {
           const userRoles = ["users", "clients", "tech-admin"];
           let foundRole = null;
-          let clientApproved = null;
+          let isApprovedStatus = null;
 
           for (const role of userRoles) {
-            const docRef = doc(db, role, user.uid);
-            const userDoc = await getDoc(docRef);
+            // Query the collection where 'uid' field matches authenticated user's uid
+            const userQuery = query(
+              collection(db, role),
+              where("uid", "==", user.uid)
+            );
 
-            if (userDoc.exists()) {
+            const querySnapshot = await getDocs(userQuery);
+
+            if (!querySnapshot.empty) {
               foundRole = role;
 
-              // Fetch the isApproved field for clients
-              if (role === "clients") {
-                clientApproved = userDoc.data()?.isApproved;
-              }
+              querySnapshot.forEach((doc) => {
+                const userData = doc.data();
 
-              break;
+                // Fetch the isApproved and email fields for users
+                if (role === "users") {
+                  isApprovedStatus = userData.isApproved;
+                  console.log("User Email:", userData.email);
+                  console.log("User UID from users table:", userData.uid);
+                }
+
+                // Fetch the isApproved field for clients
+                if (role === "clients") {
+                  isApprovedStatus = userData.isApproved;
+                }
+              });
+
+              break; // Break the loop once a matching document is found
             }
           }
 
+          // If no documents were found, fetch attributes using UID
+          if (!foundRole) {
+            const userRoles = ["users", "clients", "tech-admin"];
+            
+            // Loop through each role in the userRoles array
+            for (const role of userRoles) {
+              const uidDocRef = doc(db, role, user.uid); // Create a reference to the specific document
+          
+              const uidDocSnapshot = await getDoc(uidDocRef); // Use getDoc to fetch the document
+          
+              if (uidDocSnapshot.exists()) {
+                // Check if the document exists
+                const userData = uidDocSnapshot.data();
+                foundRole = role; // Set foundRole to the current role
+                setUserRole(foundRole);
+                console.log("User attributes fetched by UID:", userData);
+                
+                // Assuming userData contains 'isApproved' and 'email' fields
+                isApprovedStatus = userData.isApproved;
+                console.log("User Email:", userData.email);
+                break; // Exit the loop once the role is found
+              } else {
+                console.log(`No user data found for this UID in ${role}.`);
+              }
+            }
+          }
+          
           setUserRole(foundRole);
-          setIsApproved(clientApproved); // Set isApproved state for clients
-          console.log(foundRole ? foundRole : "User Role: None");
+          setIsApproved(isApprovedStatus); // Set isApproved state based on the role
+          console.log(
+            foundRole ? `User Role: ${foundRole}` : "User Role: None"
+          );
         } catch (error) {
           console.error("Error fetching user role or approval status:", error);
           setUserRole(null);
@@ -114,8 +181,8 @@ function AppContent() {
       }
     });
 
-    return () => unsubscribe();
-  }, [auth]);
+    return () => unsubscribe(); // Clean up the subscription
+  }, []);
 
   useEffect(() => {
     if (location.pathname === "/" && userRole) {
@@ -144,13 +211,13 @@ function AppContent() {
       );
     }
 
-    return isAuthenticated ? <Header /> : <HeaderGuest />;
+    return isApproved ? <Header /> : <HeaderGuest />;
   };
 
   useEffect(() => {
     // Redirect to email verification if email is not verified
-    if (isAuthenticated && !isVerified && userRole === "users") {
-      navigate("/email-verification");
+    if (isAuthenticated && !isApproved && userRole === "users") {
+      navigate("/approval");
     }
   }, [isAuthenticated, isVerified, navigate]);
 
@@ -162,8 +229,13 @@ function AppContent() {
         {/* Other Routes for guests */}
         <Route path="/" element={isAuthenticated ? <Home /> : <HomeGuest />} />
         <Route path="/" element={isVerified ? <Home /> : <HomeGuest />} />
-        <Route path="/approval" element={<ForApproval /> } />
-        <Route path="/about" element={<About /> } />
+        <Route
+          path="/approval"
+          element={!isApproved ? <UserApproval /> : <Navigate to="/" />}
+        />
+        <Route path="/about" element={<About />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/landing-guest" element={<LandingGuest />} />
 
         <Route
           path="/login"
@@ -206,6 +278,11 @@ function AppContent() {
             path="/email-verification"
             element={!isVerified ? <EmailVerification /> : <Navigate to="/" />}
           />
+          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/settings" element={<UserSettings />} />
+          <Route path="/for-approval" element={<UserApproval />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/user-feedback" element={<UserFeedback />} />
           <Route
             path="/design/:id"
             element={
@@ -218,6 +295,7 @@ function AppContent() {
           <Route path="/:id" element={<OwnerHome />}>
             <Route path="dashboard" element={<OwnerDashboard />} />
             <Route path="schedule" element={<OwnerSchedule />} />
+            <Route path="animal-schedule" element={<OwnerAnimalSchedule />} />
             <Route path="pet-records" element={<OwnerPetHealthRecords />} />
             <Route path="pet-owners" element={<OwnerPetOwners />} />
             <Route path="messages" element={<OwnerMessages />} />
@@ -229,7 +307,13 @@ function AppContent() {
 
         {/* Routes for TechAdmin */}
         <Route element={<PrivateRoute allowedRoles={["tech-admin"]} />}>
-          <Route path="/admin" element={<TechAdminHome />} />
+          <Route path="/admin" element={<TechAdminHome />}>
+            <Route path="users" element={<TechAdminUsers />} />
+            <Route path="users/:id" element={<TechAdminUsersDetails />} />
+            <Route path="dashboard" element={<TechAdminDashboard />} />
+            <Route path="projects" element={<TechAdminProjects />} />
+            <Route path="feedback" element={<TechAdminFeedback />} />
+          </Route>
         </Route>
 
         {/* Routes for Clients */}
@@ -271,50 +355,51 @@ function AppContent() {
           />
         </Route>
         <Route
-            path="/sites/:slug/messages"
-            element={
-              userRole === "clients" ? (
-                <ProjectMessages />
-              ) : (
-                <ProjectLogin />
-              )
-            }
-          />
+          path="/sites/:slug/messages"
+          element={
+            userRole === "clients" ? <ProjectMessages /> : <ProjectLogin />
+          }
+        />
         <Route
-            path="/sites/:slug/notifications"
-            element={
-              userRole === "clients" ? (
-                <ProjectNotifications />
-              ) : (
-                <ProjectLogin />
-              )
-            }
-          />
+          path="/sites/:slug/notifications"
+          element={
+            userRole === "clients" ? <ProjectNotifications /> : <ProjectLogin />
+          }
+        />
         <Route
-            path="/sites/:slug/adopt-pet"
-            element={
-              userRole === "clients" ? (
-                <ProjectAdoption />
-              ) : (
-                <ProjectLogin />
-              )
-            }
-          />
+          path="/sites/:slug/adopt-pet"
+          element={
+            userRole === "clients" ? <ProjectAdoption /> : <ProjectLogin />
+          }
+        />
 
         <Route path="sites/:slug/" element={<ProjectHome />} />
+        <Route
+          path="sites/:slug/terms-and-conditions"
+          element={<TermsConditions />}
+        />
         <Route path="sites/:slug/approval" element={<ForApproval />} />
         {/* <Route path="sites/:slug/messages" element={<ProjectMessages />} /> */}
         <Route path="/sites/:slug/about" element={<ProjectAbout />} />
         <Route path="/sites/:slug/services" element={<ProjectServices />} />
+        <Route path="/sites/:slug/volunteer" element={<ProjectVolunteer />} />
+        <Route path="/sites/:slug/donate" element={<ProjectDonate />} />
         <Route path="/sites/:slug/contact" element={<ProjectContact />} />
         <Route path="/sites/:slug/profile" element={<ProjectProfile />} />
+        <Route
+          path="/sites/:slug/privacy-policy"
+          element={<ProjectPrivacyPolicy />}
+        />
         <Route path="/sites/:slug/help" element={<ProjectHelp />} />
         <Route path="/sites/:slug/feedback" element={<ProjectFeedback />} />
         {/* <Route
           path="/sites/:slug/notifications"
           element={<ProjectNotifications />}
         /> */}
-        {/* <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} /> */}
+        <Route
+          path="/sites/:slug/adopt-pet/:id"
+          element={<ProjectAdoptionInfo />}
+        />
       </Routes>
     </>
   );

@@ -1,7 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { IoIosAddCircleOutline } from "react-icons/io";
+import OwnerAdoptionModal from "./OwnerAdoptionModal"; // Import the modal
 
 export default function OwnerAdoption() {
+  const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
+  const [clientName] = useState("John Doe"); // Example client name, replace with dynamic data
+  const [clientId] = useState("123456"); // Example client ID
+  const [projectId] = useState("654321"); // Example project ID
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="p-6">
       <h1 className="font-semibold text-4xl mb-4">Owner Adoption</h1>
@@ -9,15 +23,24 @@ export default function OwnerAdoption() {
       {/* Button to open the modal */}
       <button
         className="btn btn-success btn-sm text-white"
-        // onClick={() => setIsModalOpen(true)}
+        onClick={openModal} // Open modal on button click
       >
         <IoIosAddCircleOutline /> Add Pets
       </button>
 
+      {/* Render the modal */}
+      {isModalOpen && (
+        <OwnerAdoptionModal
+          clientId={clientId}
+          projectId={projectId}
+          clientName={clientName}
+          closeModal={closeModal} // Pass closeModal to allow modal closure
+        />
+      )}
+
       {/* Table data */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto mt-4">
         <table className="table">
-          {/* head */}
           <thead>
             <tr>
               <th>
@@ -32,7 +55,7 @@ export default function OwnerAdoption() {
             </tr>
           </thead>
           <tbody>
-            {/* row 1 */}
+            {/* Example rows - replace with your dynamic data */}
             <tr>
               <th>
                 <label>
@@ -67,111 +90,7 @@ export default function OwnerAdoption() {
                 <button className="btn btn-ghost btn-xs">details</button>
               </th>
             </tr>
-            {/* row 2 */}
-            <tr>
-              <th>
-                <label>
-                  <input type="checkbox" className="checkbox" />
-                </label>
-              </th>
-              <td>
-                <div className="flex items-center gap-3">
-                  <div className="avatar">
-                    <div className="mask mask-squircle h-12 w-12">
-                      <img
-                        src="https://img.daisyui.com/images/profile/demo/3@94.webp"
-                        alt="Avatar Tailwind CSS Component"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-bold">Brice Swyre</div>
-                    <div className="text-sm opacity-50">China</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                Carroll Group
-                <br />
-                <span className="badge badge-ghost badge-sm">
-                  Tax Accountant
-                </span>
-              </td>
-              <td>Red</td>
-              <th>
-                <button className="btn btn-ghost btn-xs">details</button>
-              </th>
-            </tr>
-            {/* row 3 */}
-            <tr>
-              <th>
-                <label>
-                  <input type="checkbox" className="checkbox" />
-                </label>
-              </th>
-              <td>
-                <div className="flex items-center gap-3">
-                  <div className="avatar">
-                    <div className="mask mask-squircle h-12 w-12">
-                      <img
-                        src="https://img.daisyui.com/images/profile/demo/4@94.webp"
-                        alt="Avatar Tailwind CSS Component"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-bold">Marjy Ferencz</div>
-                    <div className="text-sm opacity-50">Russia</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                Rowe-Schoen
-                <br />
-                <span className="badge badge-ghost badge-sm">
-                  Office Assistant I
-                </span>
-              </td>
-              <td>Crimson</td>
-              <th>
-                <button className="btn btn-ghost btn-xs">details</button>
-              </th>
-            </tr>
-            {/* row 4 */}
-            <tr>
-              <th>
-                <label>
-                  <input type="checkbox" className="checkbox" />
-                </label>
-              </th>
-              <td>
-                <div className="flex items-center gap-3">
-                  <div className="avatar">
-                    <div className="mask mask-squircle h-12 w-12">
-                      <img
-                        src="https://img.daisyui.com/images/profile/demo/5@94.webp"
-                        alt="Avatar Tailwind CSS Component"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-bold">Yancy Tear</div>
-                    <div className="text-sm opacity-50">Brazil</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                Wyman-Ledner
-                <br />
-                <span className="badge badge-ghost badge-sm">
-                  Community Outreach Specialist
-                </span>
-              </td>
-              <td>Indigo</td>
-              <th>
-                <button className="btn btn-ghost btn-xs">details</button>
-              </th>
-            </tr>
+            {/* Add more rows dynamically */}
           </tbody>
         </table>
       </div>

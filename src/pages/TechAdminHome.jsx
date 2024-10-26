@@ -1,49 +1,50 @@
 import React, { useState } from "react";
 import TechAdminSidebar from "../components/tech-admin/TechAdminSidebar";
-import TechAdminDashboard from "../components/tech-admin/TechAdminDashboard";
-import TechAdminProjects from "../components/tech-admin/TechAdminProjects";
-import TechAdminUsers from "../components/tech-admin/TechAdminUsers";
+import { Outlet, useNavigate } from "react-router-dom";
 
 export default function TechAdminHome() {
   const [activeSection, setActiveSection] = useState("dashboard"); // Default section
-  const [formData, setFormData] = useState({});
-  const [formDataHome, setFormDataHome] = useState({});
-  const [formStatus, setFormStatus] = useState("");
+  const navigate = useNavigate();
 
-  const renderSection = () => {
-    switch (activeSection) {
+  // This function can be used to handle sidebar clicks and navigate accordingly
+  const handleSectionChange = (section) => {
+    setActiveSection(section);
+    // Use navigate to go to the corresponding route when a sidebar item is clicked
+    switch (section) {
       case "dashboard":
-        return (
-          <TechAdminDashboard formData={formData} setFormData={setFormData} />
-        );
+        navigate("/admin/dashboard");
+        break;
       case "users":
-        return <TechAdminUsers />;
+        navigate("/admin/users");
+        break;
       case "projects":
-        return (
-          <TechAdminProjects
-            formData={formDataHome}
-            setFormData={setFormDataHome}
-          />
-        );
+        navigate("/admin/projects");
+        break;
+      case "feedback":
+        navigate("/admin/feedback");
+        break;
+      case "logout":
+        // Handle logout logic here (e.g., clear session, redirect to login page)
+        navigate("/login");
+        break;
       default:
-        return null;
+        navigate("/admin/dashboard"); // Default to dashboard
     }
   };
 
   return (
-    <>
-      <div className="flex">
-        <TechAdminSidebar
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-          formStatus={formStatus}
-        />
-        <div className="w-full flex-grow">
-          <div className="flex">
-            <div className="w-full">{renderSection()}</div>
-          </div>
-        </div>
+    <div className="flex">
+      {/* Sidebar that passes activeSection and a function to change the section */}
+      <TechAdminSidebar
+        activeSection={activeSection}
+        setActiveSection={handleSectionChange}
+      />
+      
+      {/* Content area where the nested routes (dashboard, users, etc.) will render */}
+      <div className="w-full flex-grow">
+        {/* Outlet renders the nested route content */}
+        <Outlet />
       </div>
-    </>
+    </div>
   );
 }

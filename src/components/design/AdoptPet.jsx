@@ -115,8 +115,7 @@ export default function AdoptPet() {
         <div className="bg-yellow-100 p-4 rounded-md">
           <h2 className="text-lg font-semibold">Adopt Pet Page</h2>
           <p className="text-sm text-gray-700">
-            An adopt pet page is a section of a website dedicated to ____
-          </p>
+          An adopt pet page is a section of a website dedicated to connecting potential pet owners with animals in need of homes.          </p>
         </div>
 
         <div className="flex items-center">
