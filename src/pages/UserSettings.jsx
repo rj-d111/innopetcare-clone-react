@@ -1,54 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { getAuth } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
-import { db } from '../firebase'; // Adjust the path to your firebase config file
-import { LuPencil } from "react-icons/lu";
-
+import React from "react";
+import { Link } from "react-router-dom";
+import { FaCommentAlt, FaQuestionCircle, FaUserShield, FaFileContract } from "react-icons/fa";
 
 export default function UserSettings() {
-  const [userData, setUserData] = useState(null);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        const userUid = user.uid;
-        const userQuery = query(
-          collection(db, "users"),
-          where("uid", "==", userUid)
-        );
-        const querySnapshot = await getDocs(userQuery);
-
-        if (!querySnapshot.empty) {
-          const userDoc = querySnapshot.docs[0];
-          setUserData(userDoc.data());
-        }
-      }
-    };
-    fetchUserData();
-  }, []);
-
-  const auth = getAuth();
-
   return (
-    <div className="flex justify-center items-center h-screen bg-yellow-100">
-      <div className="bg-white shadow-lg rounded-lg p-8 text-center w-full max-w-xs">
-        <div className="avatar placeholder">
-          <div className="bg-yellow-500 text-white rounded-full w-24 h-24 flex items-center justify-center">
-            <span className="text-5xl">👤</span>
-          </div>
-        </div>
-        <h2 className="text-xl font-semibold mt-4">{userData?.name || auth?.currentUser.displayName || 'User Name'}</h2>
-        <Link to="/profile" className="btn btn-sm btn-outline mt-2">
-        <LuPencil />Edit Profile
-        </Link>
-        <div className="mt-4">
-          <p className="text-gray-600 font-semibold">Contact no.:</p>
-          <p>{userData?.phone || 'N/A'}</p>
-          <p className="text-gray-600 font-semibold mt-2">Email:</p>
-          <p>{userData?.email || auth?.currentUser.email  || 'N/A'}</p>
+    <div className="md:h-[80vh] bg-gray-100 flex justify-center">
+      <div className="container mx-auto p-5">
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">Settings</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-4 text-center">
+          <Link to="/user-feedback" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+            <FaCommentAlt className="text-yellow-600 text-3xl mb-2 mx-auto" />
+            <p className="text-gray-700 font-semibold">Send Feedback</p>
+          </Link>
+          <Link to="/help" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+            <FaQuestionCircle className="text-yellow-600 text-3xl mb-2 mx-auto" />
+            <p className="text-gray-700 font-semibold">Help</p>
+          </Link>
+          <Link to="/privacy-policy" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+            <FaUserShield className="text-yellow-600 text-3xl mb-2 mx-auto" />
+            <p className="text-gray-700 font-semibold">Privacy Policy</p>
+          </Link>
+          <Link to="/terms-and-conditions" className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+            <FaFileContract className="text-yellow-600 text-3xl mb-2 mx-auto" />
+            <p className="text-gray-700 font-semibold">Terms and Conditions</p>
+          </Link>
         </div>
       </div>
     </div>

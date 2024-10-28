@@ -98,12 +98,12 @@ export default function Header() {
               <li onClick={() => navigate("/notifications")} className="text-white text-3xl cursor-pointer">
                 <CiBellOn />
               </li>
-              <li onClick={() => navigate("/settings")} className="text-white text-3xl cursor-pointer">
+              {/* <li onClick={() => navigate("/settings")} className="text-white text-3xl cursor-pointer">
                 <CiSettings />
               </li>
               <li onClick={() => navigate("/help")} className="text-white text-3xl cursor-pointer">
                 <IoIosHelpCircleOutline />
-              </li>
+              </li> */}
             </ul>
 
             <div className="relative" onMouseLeave={() => setIsMenuOpen(false)}>
@@ -138,12 +138,12 @@ export default function Header() {
                 <li role="menuitem" className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100" onClick={() => navigate("/profile")}>
                   <p className="text-slate-800 font-medium ml-2">User Profile</p>
                 </li>
-                <li role="menuitem" className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100" onClick={() => navigate("/user-feedback")}>
+                {/* <li role="menuitem" className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100" onClick={() => navigate("/user-feedback")}>
                   <p className="text-slate-800 font-medium ml-2">User Feedback</p>
                 </li>
                 <li role="menuitem" className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100" onClick={() => navigate("/help")}>
                   <p className="text-slate-800 font-medium ml-2">Help</p>
-                </li>
+                </li> */}
                 <li role="menuitem" className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100" onClick={() => navigate("/settings")}>
                   <p className="text-slate-800 font-medium ml-2">Settings</p>
                 </li>

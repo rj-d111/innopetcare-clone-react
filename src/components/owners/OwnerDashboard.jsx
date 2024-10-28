@@ -1,6 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { getFirestore, collection, getDocs, query, where } from 'firebase/firestore';
-import { useParams } from 'react-router-dom'; // To get projectId from the URL
+import React, { useEffect, useState } from "react";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { useParams } from "react-router-dom"; // To get projectId from the URL
+import { FaRegUser } from "react-icons/fa";
+import { FaCircleCheck } from "react-icons/fa6";
+import { IoCloseCircle } from "react-icons/io5";
 
 export default function OwnerDashboard() {
   const [clients, setClients] = useState([]); // State to store client data
@@ -10,16 +19,16 @@ export default function OwnerDashboard() {
   useEffect(() => {
     const fetchClients = async () => {
       const db = getFirestore();
-      const clientsRef = collection(db, 'clients');
-      
+      const clientsRef = collection(db, "clients");
+
       // Query to match clients by projectId
-      const q = query(clientsRef, where('projectId', '==', id));
+      const q = query(clientsRef, where("projectId", "==", id));
       const querySnapshot = await getDocs(q);
-      
+
       // Map through the results and set client data
-      const clientsData = querySnapshot.docs.map(doc => ({
+      const clientsData = querySnapshot.docs.map((doc) => ({
         id: doc.id, // You can include the document ID if needed
-        ...doc.data()
+        ...doc.data(),
       }));
 
       // Update state with the client data
@@ -33,10 +42,17 @@ export default function OwnerDashboard() {
   }, [id]);
 
   return (
-    <div className="p-6">      
+    <div className="p-6">
       <h2 className="font-semibold text-4xl mb-4">Dashboard</h2>
-      <p className="text-xl">Number of Registered Users: {userCount}</p>
-
+      <div class="stats shadow">
+        <div class="stat">
+          <div class="stat-figure text-secondary">
+            <FaRegUser size={25} />
+          </div>
+          <div class="stat-title">No. of Registered Users</div>
+          <div class="stat-value">{userCount}</div>
+        </div>
+      </div>
       {/* Table to display clients */}
       <table className="min-w-full border-collapse border border-gray-200 mt-4">
         <thead>
@@ -49,13 +65,21 @@ export default function OwnerDashboard() {
           </tr>
         </thead>
         <tbody>
-          {clients.map(client => (
+          {clients.map((client) => (
             <tr key={client.id}>
               <td className="border border-gray-300 p-2">{client.name}</td>
               <td className="border border-gray-300 p-2">{client.email}</td>
               <td className="border border-gray-300 p-2">{client.phone}</td>
-              <td className="border border-gray-300 p-2">{client.isApproved ? 'Yes' : 'No'}</td>
-              <td className="border border-gray-300 p-2">{new Date(client.timestamp.seconds * 1000).toLocaleString()}</td>
+              <td className="border border-gray-300 p-2">
+                {client.isApproved ? (
+                  <FaCircleCheck className="text-green-500" size={30} />
+                ) : (
+                  <IoCloseCircle className="text-red-500" size={30} />
+                )}
+              </td>
+              <td className="border border-gray-300 p-2">
+                {new Date(client.timestamp.seconds * 1000).toLocaleString()}
+              </td>
             </tr>
           ))}
         </tbody>

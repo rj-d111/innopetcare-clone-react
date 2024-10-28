@@ -1,14 +1,15 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function Options() {
   return (
 <div className="flex flex-col justify-center m-10">
-  <a
+  <Link
     className="py-2 px-10 rounded-full font-medium select-none border text-yellow-800 dark:text-white bg-white dark:bg-yellow-800 transition-colors hover:border-yellow-900 hover:bg-yellow-900 hover:text-white dark:hover:text-white mb-4 self-start"
-    href="/"
+    to="/"
   >
     ⪻ Back
-  </a>
+  </Link>
   <div className="flex flex-col items-center justify-center">
     <div className="md:w-1/4">
       <img

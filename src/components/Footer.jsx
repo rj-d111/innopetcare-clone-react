@@ -28,8 +28,8 @@ const Footer = () => {
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
           <h3 className="font-semibold mb-4">Company</h3>
           <ul className="space-y-2">
-            <li><Link to="about" className="text-gray-600 hover:underline">About InnoPetCare</Link></li>
-            <li><a href="#" className="text-gray-600 hover:underline">Contact Us</a></li>
+            <li><Link to="/about" className="text-gray-600 hover:underline">About InnoPetCare</Link></li>
+            <li><Link to="/about" className="text-gray-600 hover:underline">Contact Us</Link></li>
           </ul>
         </div>
 
@@ -37,15 +37,15 @@ const Footer = () => {
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
           <h3 className="font-semibold mb-4">Products</h3>
           <ul className="space-y-2">
-            <li><a href="#" className="text-gray-600 hover:underline">For Veterinary Clinic</a></li>
-            <li><a href="#" className="text-gray-600 hover:underline">For Animal Shelter</a></li>
+            <li><Link to="/register" className="text-gray-600 hover:underline">For Veterinary Clinic</Link></li>
+            <li><Link to="/register" className="text-gray-600 hover:underline">For Animal Shelter</Link></li>
           </ul>
 
-          <h3 className="font-semibold mt-6 mb-4">Resources</h3>
+          {/* <h3 className="font-semibold mt-6 mb-4">Resources</h3> */}
           <ul className="space-y-2">
-            <li><a href="#" className="text-gray-600 hover:underline">Templates</a></li>
-            <li><a href="#" className="text-gray-600 hover:underline">Tutorials</a></li>
-            <li><a href="#" className="text-gray-600 hover:underline">Help Center</a></li>
+            {/* <li><a href="#" className="text-gray-600 hover:underline">Templates</a></li> */}
+            {/* <li><a href="#" className="text-gray-600 hover:underline">Tutorials</a></li> */}
+            {/* <li><a href="#" className="text-gray-600 hover:underline">Help Center</a></li> */}
           </ul>
         </div>
       </div>

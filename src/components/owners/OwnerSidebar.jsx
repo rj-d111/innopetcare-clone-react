@@ -77,7 +77,7 @@ const Sidebar = ({ projectType }) => {
                 Animal Schedule
               </Link>
             </li>
-            <li>
+            {/* <li>
               <Link
                 to={`/${id}/pets`}
                 className="block py-2 px-4 rounded hover:bg-blue-700"
@@ -100,7 +100,7 @@ const Sidebar = ({ projectType }) => {
               >
                 Adopt Tracker
               </Link>
-            </li>
+            </li> */}
           </>
         )}
       </ul>

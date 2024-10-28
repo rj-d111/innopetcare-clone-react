@@ -21,6 +21,7 @@ import ModalTrash from "../components/ModalTrash";
 import ModalRename from "../components/ModalRename";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import NewProjectModal from "../components/NewProjectModal";
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -339,7 +340,7 @@ export default function Home() {
         onProjectRename={handleProjectRename}
       />
 
-      <Modal
+      <NewProjectModal
         show={showModal}
         onClose={() => setShowModal(false)}
         onProjectCreate={handleProjectCreate}

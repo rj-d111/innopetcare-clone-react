@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import Footer from "../Footer";
 
 export default function ProjectAbout() {
   const [aboutData, setAboutData] = useState({
@@ -74,6 +75,7 @@ export default function ProjectAbout() {
   }, [slug, db]);
 
   return (
+    <>
     <div className="container mx-auto">
       <div className="flex flex-col md:flex-row items-center p-10">
         <div className="md:w-1/2 p-4">
@@ -98,5 +100,7 @@ export default function ProjectAbout() {
         </p>
       </div>
     </div>
+    <Footer />
+    </>
   );
 }

@@ -83,6 +83,8 @@ import TechAdminUsersDetails from "./components/tech-admin/TechAdminUsersDetails
 import TechAdminFeedback from "./components/tech-admin/TechAdminFeedback";
 import UserSettings from "./pages/UserSettings";
 import Notifications from "./pages/Notifications";
+import ProtectedApprovedUserRoute from "./components/ProtectedApprovedUserRoute";
+import UserProfileSummary from "./pages/UserProfileSummary";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -140,20 +142,20 @@ function AppContent() {
           // If no documents were found, fetch attributes using UID
           if (!foundRole) {
             const userRoles = ["users", "clients", "tech-admin"];
-            
+
             // Loop through each role in the userRoles array
             for (const role of userRoles) {
               const uidDocRef = doc(db, role, user.uid); // Create a reference to the specific document
-          
+
               const uidDocSnapshot = await getDoc(uidDocRef); // Use getDoc to fetch the document
-          
+
               if (uidDocSnapshot.exists()) {
                 // Check if the document exists
                 const userData = uidDocSnapshot.data();
                 foundRole = role; // Set foundRole to the current role
                 setUserRole(foundRole);
                 console.log("User attributes fetched by UID:", userData);
-                
+
                 // Assuming userData contains 'isApproved' and 'email' fields
                 isApprovedStatus = userData.isApproved;
                 console.log("User Email:", userData.email);
@@ -163,7 +165,7 @@ function AppContent() {
               }
             }
           }
-          
+
           setUserRole(foundRole);
           setIsApproved(isApprovedStatus); // Set isApproved state based on the role
           console.log(
@@ -226,16 +228,88 @@ function AppContent() {
       {renderHeader()}
 
       <Routes>
-        {/* Other Routes for guests */}
-        <Route path="/" element={isAuthenticated ? <Home /> : <HomeGuest />} />
-        <Route path="/" element={isVerified ? <Home /> : <HomeGuest />} />
+      
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedApprovedUserRoute
+              isAuthenticated={isAuthenticated}
+              isApproved={isApproved}
+            >
+              <Notifications />
+            </ProtectedApprovedUserRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedApprovedUserRoute
+              isAuthenticated={isAuthenticated}
+              isApproved={isApproved}
+            >
+              <UserSettings />
+            </ProtectedApprovedUserRoute>
+          }
+        />
+        <Route
+          path="/profile/edit"
+          element={
+            <ProtectedApprovedUserRoute
+              isAuthenticated={isAuthenticated}
+              isApproved={isApproved}
+            >
+              <UserProfile />
+            </ProtectedApprovedUserRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedApprovedUserRoute
+              isAuthenticated={isAuthenticated}
+              isApproved={isApproved}
+            >
+              <UserProfileSummary />
+            </ProtectedApprovedUserRoute>
+          }
+        />
+        <Route
+          path="/user-feedback"
+          element={
+            <ProtectedApprovedUserRoute
+              isAuthenticated={isAuthenticated}
+              isApproved={isApproved}
+            >
+              <UserFeedback />
+            </ProtectedApprovedUserRoute>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              isApproved ? (
+                <Home />
+              ) : (
+                <Navigate to="/approval" />
+              )
+            ) : (
+              <HomeGuest />
+            )
+          }
+        />
+
+        {/* Route for the approval page */}
         <Route
           path="/approval"
-          element={!isApproved ? <UserApproval /> : <Navigate to="/" />}
+          element={
+            isAuthenticated && !isApproved ? (
+              <UserApproval />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
         />
-        <Route path="/about" element={<About />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/landing-guest" element={<LandingGuest />} />
 
         <Route
           path="/login"
@@ -261,14 +335,6 @@ function AppContent() {
             </GuestRoute>
           }
         />
-        <Route
-          path="/options"
-          element={
-            <GuestRoute>
-              <Options />
-            </GuestRoute>
-          }
-        />
         <Route path="/sites" element={<ContentListingPage />} />
 
         {/* Other general routes */}
@@ -278,11 +344,10 @@ function AppContent() {
             path="/email-verification"
             element={!isVerified ? <EmailVerification /> : <Navigate to="/" />}
           />
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/settings" element={<UserSettings />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/landing-guest" element={<LandingGuest />} />
           <Route path="/for-approval" element={<UserApproval />} />
           <Route path="/help" element={<Help />} />
-          <Route path="/user-feedback" element={<UserFeedback />} />
           <Route
             path="/design/:id"
             element={

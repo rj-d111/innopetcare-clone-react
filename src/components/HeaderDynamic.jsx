@@ -11,7 +11,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
-import adoptPet from "../assets/png/adopt pet.png";
+import adoptPet from "../assets/png/adopt_pet.png";
 import {
   IoIosHelpCircleOutline,
   IoIosNotificationsOutline,

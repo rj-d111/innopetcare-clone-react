@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
-
+import  Footer  from "../Footer";
 export default function ProjectHome() {
   const [homeData, setHomeData] = useState({
     title: "",
@@ -92,6 +92,7 @@ export default function ProjectHome() {
             <p className="text-center p-4 text-xl">{homeData.content || "Default Content"}</p>
           </div>
       </div>
+      <Footer />
     </>
   );
 }

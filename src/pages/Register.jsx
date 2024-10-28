@@ -363,8 +363,8 @@ const Register = () => {
                     onChange={handleFileChange}
                     multiple
                     required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
+                    className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
+                    />
                 </div>
 
                 <button

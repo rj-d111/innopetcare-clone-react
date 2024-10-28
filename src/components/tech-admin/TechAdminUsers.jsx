@@ -6,7 +6,7 @@ import { FaSearch, FaRegEye } from "react-icons/fa";
 import { IoCloseCircle } from "react-icons/io5";
 import { FaCircleCheck } from "react-icons/fa6";
 import { Link } from "react-router-dom";
-import { doc, getDocs, updateDoc, collection, query, where, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDocs, updateDoc, collection, query, where, addDoc, serverTimestamp, runTransaction  } from "firebase/firestore";
 
 export default function TechAdminUsers() {
   const [users, setUsers] = useState([]);
@@ -86,26 +86,27 @@ export default function TechAdminUsers() {
   const createProject = async (userId, userName) => {
     try {
       const projectsRef = collection(db, "projects");
-
       const projectData = {
         createdAt: serverTimestamp(),
-        name: userName, // Use userName for project name
+        name: userName,
         status: "pending",
         type: userName.includes("Veterinary") ? "Veterinary Site" : "Animal Shelter Site",
-        userId: userId, // Use user ID to associate the project with the user
+        userId: userId,
       };
-
-      const q = query(projectsRef, where("name", "==", projectData.name));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        await addDoc(projectsRef, projectData);
-        toast.success(
-          `Your ${projectData.type} Project "${projectData.name}" created successfully!`
-        );
-      } else {
-        toast.info(`Your project "${projectData.name}" already exists!`);
-      }
+  
+      await runTransaction(db, async (transaction) => {
+        // Query to check if the project with the same name already exists
+        const q = query(projectsRef, where("name", "==", projectData.name));
+        const querySnapshot = await getDocs(q);
+  
+        if (querySnapshot.empty) {
+          // Add new project if it does not exist
+          await transaction.set(doc(projectsRef), projectData);
+          toast.success(`Your ${projectData.type} Project "${projectData.name}" created successfully!`);
+        } else {
+          toast.info(`Your project "${projectData.name}" already exists!`);
+        }
+      });
     } catch (error) {
       console.error("Error creating project:", error);
       toast.error("Error creating project.");

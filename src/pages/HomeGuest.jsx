@@ -23,16 +23,16 @@ export default function HomeGuest() {
           alt="Dog on the right"
           className="absolute right-0 bottom-0 w-1/4 object-cover hidden lg:block" // Retain the previous size for the dog image
         />
-        <div className="container text-center mx-auto py-16 relative z-10">
+        <div className="container text-center mx-auto py-16 relative z-10 px-8 md:px-0">
           {" "}
           {/* Add z-10 for text above the image */}
-          <h1 className="text-4xl md:text-6xl font-bold text-yellow-900">
+          <h1 className="text-xl md:text-6xl font-bold text-yellow-900">
             Welcome to
             <img
               onClick={() => navigate("/")}
               src={InnoPetCareBrownLogo}
               alt="Innopetcare logo"
-              className="h-12 mx-auto mt-4 cursor-pointer"
+              className="w-full sm:w-auto sm:h-12 mx-auto mt-4 cursor-pointer"
             />
           </h1>
           <p className="my-5 font-bold text-lg text-zinc-700">
@@ -50,7 +50,7 @@ export default function HomeGuest() {
       </section>
 
       <div
-        className="bg-cover bg-bottom h-[100vh] flex flex-col justify-center"
+        className="bg-cover bg-bottom py-8 md:py-0 md:h-[100vh] flex flex-col justify-center"
         style={{ backgroundImage: `url(${BackgroundPet})` }}
       >
         <h1 className="text-2xl md:text-6xl font-bold text-white text-center mb-10">
