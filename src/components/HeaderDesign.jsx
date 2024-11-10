@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import innoPetCareSmallLogo from "../assets/png/InnoPetCareSmall.png";
 import { IoDesktop, IoPhonePortrait } from "react-icons/io5";
-import { MdModeEdit, MdPublish } from "react-icons/md";
-import { useParams, useNavigate, Link } from "react-router-dom"; 
+import { MdPublish } from "react-icons/md";
+import { useNavigate, Link } from "react-router-dom"; 
 import {
   doc,
   getDoc,
@@ -29,7 +29,6 @@ const HeaderDesign = ({
   const url = window.location.href;
   const parts = url.split("/");
   const uuid = parts[parts.length - 1];
-
   const navigate = useNavigate();
 
   const handlePublish = async () => {
@@ -39,11 +38,22 @@ const HeaderDesign = ({
     }
   
     try {
+      const checkDocumentExists = async (collectionName, errorMessage) => {
+        const docRef = doc(db, collectionName, uuid);
+        const docSnapshot = await getDoc(docRef);
+        if (!docSnapshot.exists()) {
+          toast.error(errorMessage);
+          return false;
+        }
+        return true;
+      };
+
       // Check if data exists in global-sections table
       const globalSectionsQuery = query(
         collection(db, "global-sections"),
         where("projectId", "==", uuid)
       );
+      
       const globalSectionsSnapshot = await getDocs(globalSectionsQuery);
       if (globalSectionsSnapshot.empty) {
         toast.error("Please add data to Global Sections.");
@@ -51,16 +61,18 @@ const HeaderDesign = ({
       }
   
       // Check if data exists in home-sections table
-      const homeSectionsQuery = query(
-        collection(db, "home-sections"),
-        where("projectId", "==", uuid)
-      );
-      const homeSectionsSnapshot = await getDocs(homeSectionsQuery);
-      if (homeSectionsSnapshot.empty) {
-        toast.error("Please add data to Home Sections.");
-        return;
-      }
+        const homeSectionsQuery = query(
+          collection(db, "home-sections", uuid, "sections")
+        );
+        const querySnapshot = await getDocs(homeSectionsQuery);
+        if (querySnapshot.empty) {
+          toast.error("Please add a section in Home Sections.");
+          return;
+        }
   
+       
+
+    
       // Check if data exists in contact-info table
       const contactInfoQuery = query(
         collection(db, "contact-info"),
@@ -74,55 +86,55 @@ const HeaderDesign = ({
   
       // Check if at least one service exists in services table if not animal shelter site
       if (project && project.type !== "Animal Shelter Site") {
-      const servicesQuery = query(
-        collection(db, "services"),
-        where("projectId", "==", uuid)
-      );
-      const servicesSnapshot = await getDocs(servicesQuery);
-      if (servicesSnapshot.empty) {
-        toast.error("Please add at least one service.");
-        return;
-      }
-    }  
+        const servicesQuery = query(
+          collection(db, "services"),
+          where("projectId", "==", uuid)
+        );
+        const servicesSnapshot = await getDocs(servicesQuery);
+        if (servicesSnapshot.empty) {
+          toast.error("Please add at least one service.");
+          return;
+        }
+      }  
+
       // Check if the project type is "Animal Shelter Site"
       if (project && project.type === "Animal Shelter Site") {
-        // Check if data exists in volunteer table
-        const volunteerQuery = query(
-          collection(db, "volunteer"),
-          where("projectId", "==", uuid)
+        const volunteerExists = await checkDocumentExists(
+          "volunteer",
+          "Please add a section in Volunteer Section."
         );
-        const volunteerSnapshot = await getDocs(volunteerQuery);
-        if (volunteerSnapshot.empty) {
-          toast.error("Please complete all fields in volunteer section");
-          return;
-        }
-  
-        // Check if data exists in donate table
-        const donateQuery = query(
-          collection(db, "donations"),
-          where("projectId", "==", uuid)
+        if (!volunteerExists) return;
+
+        const donationsExists = await checkDocumentExists(
+          "donations",
+          "Please add a donation site in Donations Section."
         );
-        const donateSnapshot = await getDocs(donateQuery);
-        if (donateSnapshot.empty) {
-          toast.error("Please complete all fields in donations sections");
-          return;
-        }
+        if (!donationsExists) return;
       }
-  
+
+      
+      const aboutSectionRef = doc(db, "about-sections", uuid); // using uuid as projectId
+      const aboutSectionSnapshot = await getDoc(aboutSectionRef);
+      if (aboutSectionSnapshot.empty) {
+        toast.error("Please fill all fields in About Section."
+        );
+        return;
+      }
+
+
       // If all validations pass, show success message and redirect
       toast.success("Successfully deployed your website!");
-  
+      
       // Update the project status to "active"
       const projectDocRef = doc(db, "projects", uuid);
       await updateDoc(projectDocRef, { status: "active" });
-  
+      
       navigate("/sites");
     } catch (error) {
       console.error("Error validating data:", error);
       toast.error("An error occurred during the publishing process.");
     }
   };
-  
 
   // Fetch the project based on the UUID
   useEffect(() => {
@@ -195,16 +207,19 @@ const HeaderDesign = ({
         </button>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <button
-          type="submit"
-          onClick={handlePublish}
-          className="bg-white hover:bg-yellow-100 text-yellow-800 px-3 py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:bg-yellow-200 shadow-md hover:shadow-lg active:shadow-lg flex items-center space-x-2"
-        >
-          <MdPublish className="md:text-lg" />
-          <span className="hidden md:block">Publish Website</span>
-        </button>
-      </div>
+      {/* Show publish button only if status is "pending" */}
+      {project?.status === "pending" ? (
+        <div className="flex items-center space-x-4">
+          <button
+            type="submit"
+            onClick={handlePublish}
+            className="bg-white hover:bg-yellow-100 text-yellow-800 px-3 py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:bg-yellow-200 shadow-md hover:shadow-lg active:shadow-lg flex items-center space-x-2"
+          >
+            <MdPublish className="md:text-lg" />
+            <span className="hidden md:block">Publish Website</span>
+          </button>
+        </div>
+      ): <div></div>}
 
       {/* Rename modal */}
       <ModalRename

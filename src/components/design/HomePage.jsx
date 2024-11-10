@@ -1,212 +1,272 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase.js";
-import { doc, updateDoc, getDoc, addDoc, collection, query, where, getDocs } from "firebase/firestore"; // Firestore methods
-import { getAuth } from "firebase/auth";
-import { ref, getStorage, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid";
-import { toast } from "react-toastify";
-import Spinner from "../Spinner.jsx"; // Assuming you have a Spinner component
+import {
+  doc,
+  getDocs,
+  deleteDoc,
+  collection,
+  query,
+  orderBy,
+  setDoc,
+} from "firebase/firestore";
 import { useParams } from "react-router-dom";
+import HomePageModal from "./HomePageModal";
+import ModalDelete from "../ModalDelete";
+import { TbPencil } from "react-icons/tb";
+import { CiTrash } from "react-icons/ci";
+import { FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { toast } from "react-toastify";
+import SectionsModalDelete from "./SectionsModalDelete.jsx";
 
-export default function HomePage({ formData, setFormData }) {
-  const { id } = useParams(); // Get project UUID from the URL
-  const auth = getAuth();
-  const [loading, setLoading] = useState(false);
-  const [image, setImage] = useState(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState(null); // State for image preview URL
-  const [documentExists, setDocumentExists] = useState(false);
+export default function HomePage() {
+  const { id: projectId } = useParams();
+  const [sections, setSections] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState(null);
 
+  // Fetch sections from Firestore
   useEffect(() => {
-    const checkDocumentExists = async () => {
-      const q = query(
-        collection(db, "home-sections"),
-        where("projectId", "==", id)
-      ); // Use the project ID here
-      const querySnapshot = await getDocs(q);
-      setDocumentExists(!querySnapshot.empty); // Set state based on query result
+    const fetchSections = async () => {
+      try {
+        const sectionsCollectionRef = collection(
+          db,
+          "home-sections",
+          projectId,
+          "sections"
+        );
+        const sectionsQuery = query(
+          sectionsCollectionRef,
+          orderBy("sectionCreated", "asc")
+        );
+        const querySnapshot = await getDocs(sectionsQuery);
+
+        const sectionsList = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSections(sectionsList);
+      } catch (error) {
+        console.error("Error fetching sections:", error);
+        toast.error("Error fetching project sections.");
+      }
     };
 
-    checkDocumentExists();
-  }, [id]);
+    fetchSections();
+  }, [projectId]);
 
-  // Handle form changes
-  function onChange(e) {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleSectionAdded = async () => {
+    const sectionsCollectionRef = collection(
+      db,
+      "home-sections",
+      projectId,
+      "sections"
+    );
+    const sectionsQuery = query(
+      sectionsCollectionRef,
+      orderBy("sectionCreated", "asc")
+    );
+    const querySnapshot = await getDocs(sectionsQuery);
 
-    if (e.target.files && e.target.files[0]) {
-      const uploadedImage = e.target.files[0];
-      setImage(uploadedImage); // Set the image file
-      setFormData((prevState) => ({
-        ...prevState,
-        logoPicture: uploadedImage, // Update the formData with the image
-      }));
+    const sectionsList = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setSections(sectionsList);
+  };
 
-      // Preview the image
-      const imagePreviewUrl = URL.createObjectURL(uploadedImage);
-      setImagePreviewUrl(imagePreviewUrl); // Set the image preview URL
-    }
-  }
+  // Check if no sections are available
+  const shouldShowWarning = sections.length === 0;
 
-  // Upload image to Firebase Storage and return the download URL
-  async function storeImage(image) {
-    return new Promise((resolve, reject) => {
-      const storage = getStorage();
-      const filename = `${auth.currentUser.uid}-${image.name}-${uuidv4()}`;
-      const storageRef = ref(storage, filename);
-      const uploadTask = uploadBytesResumable(storageRef, image);
+  // Function to swap sections
+  const swapSections = async (index1, index2) => {
+    if (index1 < 0 || index2 >= sections.length || index2 < 0) return;
 
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log(`Upload is ${progress}% done`);
-        },
-        (error) => {
-          reject(error);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            resolve(downloadURL);
-          });
-        }
-      );
-    });
-  }
-
-  // Handle form submission
-  async function onSubmit(e) {
-    e.preventDefault();
-    setLoading(true);
-
-    // Validate required fields
-    if (!formData.title || !formData.subtext || !formData.content || !image) {
-      setLoading(false);
-      toast.error("Please fill all the required fields");
-      return;
-    }
+    const section1 = sections[index1];
+    const section2 = sections[index2];
 
     try {
-      // Upload the image and get the URL
-      const pictureUrl = await storeImage(image);
-  
-      // Query the home-sections collection to find the document with the matching projectId
-      const q = query(collection(db, "home-sections"), where("projectId", "==", id)); // Use the project ID here
-      const querySnapshot = await getDocs(q);
-  
-      if (!querySnapshot.empty) {
-        // Document exists, update it
-        const docRef = querySnapshot.docs[0].ref; // Get the reference of the first matching document
-        await updateDoc(docRef, {
-          title: formData.title,
-          subtext: formData.subtext,
-          content: formData.content,
-          picture: pictureUrl, // Save the uploaded picture URL
-        });
-        toast.success("Home section updated successfully!");
-      } else {
-        // Document doesn't exist, create a new one
-        await addDoc(collection(db, "home-sections"), {
-          title: formData.title,
-          subtext: formData.subtext,
-          content: formData.content,
-          picture: pictureUrl, // Store the uploaded picture URL
-          projectId: id, // Foreign key linking to the project
-        });
-        toast.success("Home section created successfully!");
-      }
+      const section1Ref = doc(
+        db,
+        "home-sections",
+        projectId,
+        "sections",
+        section1.id
+      );
+      const section2Ref = doc(
+        db,
+        "home-sections",
+        projectId,
+        "sections",
+        section2.id
+      );
+
+      await setDoc(section1Ref, {
+        ...section1,
+        sectionCreated: section2.sectionCreated,
+      });
+      await setDoc(section2Ref, {
+        ...section2,
+        sectionCreated: section1.sectionCreated,
+      });
+
+      const updatedSections = [...sections];
+      [updatedSections[index1], updatedSections[index2]] = [
+        updatedSections[index2],
+        updatedSections[index1],
+      ];
+      setSections(updatedSections);
+      toast.success("Successfully swapped sections");
     } catch (error) {
-      console.error("Error saving document:", error);
-      toast.error("Failed to save changes");
-    } finally {
-      setLoading(false);
+      console.error("Error swapping sections:", error);
+      toast.error("Error swapping sections.");
     }
-  }
+  };
+
+  const handleEditClick = (section) => {
+    setSelectedSection(section);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (section) => {
+    setSectionToDelete(section);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteSection = async (sectionId) => {
+    try {
+      const sectionDocRef = doc(
+        db,
+        "home-sections",
+        projectId,
+        "sections",
+        sectionId
+      );
+      await deleteDoc(sectionDocRef);
+      setSections((prevSections) =>
+        prevSections.filter((section) => section.id !== sectionId)
+      );
+      toast.success("Section deleted successfully");
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      toast.error("Error deleting section.");
+    }
+  };
 
   return (
-    <form onSubmit={onSubmit}>
-      {loading && <Spinner />}
-      <div className="p-6 md:max-w-md mx-auto bg-gray-100 shadow-md rounded-lg space-y-4">
+    <>
+      <div className="p-6 md:max-w-md mx-auto bg-gray-100 shadow-md rounded-lg space-y-4 min-h-full">
         <div className="bg-yellow-100 p-4 rounded-md">
           <h2 className="text-lg font-semibold">Home Page</h2>
           <p className="text-sm text-gray-700">
-            A homepage is a webpage that serves as the starting point of a website.
+            Manage your homepage sections to enhance user experience.
           </p>
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Title</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={onChange}
-            placeholder="Enter your title here"
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition ease-in-out"
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Subtext</label>
-          <textarea
-            id="subtext"
-            name="subtext"
-            value={formData.subtext}
-            onChange={onChange}
-            placeholder="Your subtext here"
-            className="textarea textarea-sm w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition ease-in-out"
-            required
-          ></textarea>
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Picture</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onChange}
-            className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
-            required
-          />
-          {imagePreviewUrl && (
-            <div className="mt-4">
-              <h3 className="text-sm font-medium">Logo Preview:</h3>
-              <img
-                src={imagePreviewUrl}
-                alt="Logo Preview"
-                className="mt-2 w-32 h-32 object-cover rounded"
+        {/* Conditional Messages */}
+        {shouldShowWarning ? (
+          <div role="alert" className="alert alert-warning">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 shrink-0 stroke-current"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
-            </div>
-          )}
-        </div>
+            </svg>
+            <span>No sections added yet. Please add at least one section.</span>
+          </div>
+        ) : (
+          <div role="alert" className="alert alert-success">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 shrink-0 stroke-current"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>"Home Section" page is successfully configured.</span>
+          </div>
+        )}
 
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Content</label>
-          <textarea
-            id="content"
-            name="content"
-            value={formData.content}
-            onChange={onChange}
-            placeholder="Your content here"
-            className="textarea textarea-sm w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition ease-in-out"
-            required
-          ></textarea>
-        </div>
+        {/* Section List */}
+            {/* Section List */}
+        {sections.map((section, index) => (
+          <div key={section.id} className="p-4 bg-white rounded-lg shadow-md">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">{section.sectionTitle}</h3>
+              <div className="flex items-center space-x-2">
+                {/* Move Up Button */}
+                {index > 0 && (
+                  <FaArrowUp
+                    className="text-green-600 cursor-pointer"
+                    onClick={() => swapSections(index, index - 1)}
+                  />
+                )}
+                {/* Move Down Button */}
+                {index < sections.length - 1 && (
+                  <FaArrowDown
+                    className="text-red-600 cursor-pointer"
+                    onClick={() => swapSections(index, index + 1)}
+                  />
+                )}
+                <TbPencil
+                  className="text-blue-600 cursor-pointer ml-2"
+                  onClick={() => handleEditClick(section)}
+                />
+                <CiTrash
+                  className="text-red-600 cursor-pointer ml-2"
+                  onClick={() => handleDeleteClick(section)}
+                />
+              </div>
+            </div>
+            <p className="text-gray-700">{section.sectionSubtext}</p>
+          </div>
+        ))}
 
         <button
           type="button"
-          onClick={onSubmit}
-          className={`w-full uppercase py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:shadow-lg ${
-            documentExists 
-              ? "bg-violet-600 hover:bg-violet-700 active:bg-violet-800" 
-              : "bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800"
-          } text-white`}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-3 rounded-full font-semibold mt-4"
+          onClick={() => {
+            setSelectedSection(null);
+            setIsModalOpen(true);
+          }}
         >
-          {documentExists ? "Update Changes" : "Save Changes"}
+          + Add Home Page Sections
         </button>
       </div>
-    </form>
+
+      {isModalOpen && (
+        <HomePageModal
+          projectId={projectId}
+          closeModal={() => setIsModalOpen(false)}
+          onSectionAdded={handleSectionAdded}
+          selectedSection={selectedSection}
+        />
+      )}
+
+      {isDeleteModalOpen && (
+        <SectionsModalDelete
+          show={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          sectionTitle={sectionToDelete?.sectionTitle}
+          projectId={sectionToDelete?.id}
+          onDelete={handleDeleteSection}
+        />
+      )}
+    </>
   );
 }

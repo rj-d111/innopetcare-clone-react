@@ -3,21 +3,33 @@ import { MdOutlineDomainVerification } from "react-icons/md";
 import { Link, useNavigate } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth'; // Import Firebase auth
 import { toast } from 'react-toastify'; // Import toast for notifications
-
+import {db} from "../firebase"
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 export default function UserApproval() {
   const navigate = useNavigate(); // For navigation after logout
-  const auth = getAuth(); // Get the Firebase auth instance
 
   const handleLogout = async () => {
     try {
-      await signOut(auth); // Sign out the user
-      toast.success("Successfully logged out"); // Show success toast
-      navigate("/"); // Redirect to guest page
+      const auth = getAuth();
+      const user = auth.currentUser;
+  
+      // Update the user's lastActivityTime in Firestore
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        await setDoc(userDocRef, {
+          lastActivityTime: serverTimestamp(),
+        }, { merge: true }); // Merge to avoid overwriting other fields
+      }
+  
+      await signOut(auth);
+      toast.success("Successfully logged out");
+      navigate("/");
     } catch (error) {
-      console.error("Error logging out:", error); // Log any errors
-      toast.error("Error logging out. Please try again."); // Show error toast if needed
+      console.error("Error logging out:", error);
+      toast.error("Error logging out. Please try again.");
     }
   };
+  
 
   return (
     <div className="flex items-center justify-center my-10 mx-3 text-center">

@@ -1,96 +1,228 @@
-import React, { useState } from "react";
-import { IoIosAddCircleOutline } from "react-icons/io";
-import OwnerAdoptionModal from "./OwnerAdoptionModal"; // Import the modal
+import React, { useEffect, useState } from "react";
+import { IoIosAddCircleOutline, IoMdFemale, IoMdMale } from "react-icons/io";
+import OwnerAdoptionModal from "./OwnerAdoptionModal";
+import OwnerAdoptionModalDelete from "./OwnerAdoptionModalDelete";
+import OwnerAdoptionModalEdit from "./OwnerAdoptionModalEdit";
+import { useNavigate, useParams } from "react-router-dom";
+import { FaRegEye, FaSearch } from "react-icons/fa";
+import { db } from "../../firebase";
+import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { toast } from "react-toastify";
 
 export default function OwnerAdoption() {
-  const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
-  const [clientName] = useState("John Doe"); // Example client name, replace with dynamic data
-  const [clientId] = useState("123456"); // Example client ID
-  const [projectId] = useState("654321"); // Example project ID
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [adoptions, setAdoptions] = useState([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editUid, setEditUid] = useState(null);
+  const [deleteData, setDeleteData] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const openModal = () => {
-    setIsModalOpen(true);
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+  const closeDeleteModal = () => setIsDeleteModalOpen(false);
+  const closeEditModal = () => setIsEditModalOpen(false);
+
+  // Fetch adoption data from Firebase
+  useEffect(() => {
+    const fetchAdoptions = async () => {
+      try {
+        const adoptionsRef = collection(db, "adoptions");
+        const q = query(adoptionsRef, where("projectId", "==", id));
+        const querySnapshot = await getDocs(q);
+        const adoptionData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setAdoptions(adoptionData);
+      } catch (error) {
+        console.error("Error fetching adoptions: ", error);
+      }
+    };
+
+    fetchAdoptions();
+  }, [id]);
+
+  // Callback to add new pet after submission
+  const addPetToList = (newPet) => {
+    setAdoptions((prevAdoptions) => [...prevAdoptions, newPet]);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
+  // Handle view details click
+  const handleViewDetails = (uid) => {
+    navigate(`${uid}`);
   };
+
+  // Handle Edit action
+  const handleEdit = (uid) => {
+    setEditUid(uid);
+    setIsEditModalOpen(true);
+  };
+
+  // Handle Archive action
+  const handleArchive = async (uid) => {
+    try {
+      const adoptionDoc = doc(db, "adoptions", uid);
+      await updateDoc(adoptionDoc, { isArchive: true });
+      setAdoptions(adoptions.map((adoption) => (adoption.id === uid ? { ...adoption, isArchive: true } : adoption)));
+      toast.success("Pet successfully archived");
+    } catch (error) {
+      console.error("Error archiving adoption: ", error);
+      toast.error("Error archiving adoption");
+    }
+  };
+
+  // Handle Restore action
+  const handleRestore = async (uid) => {
+    try {
+      const adoptionDoc = doc(db, "adoptions", uid);
+      await updateDoc(adoptionDoc, { isArchive: false });
+      setAdoptions(adoptions.map((adoption) => (adoption.id === uid ? { ...adoption, isArchive: false } : adoption)));
+      toast.success("Pet successfully restored");
+    } catch (error) {
+      console.error("Error restoring adoption: ", error);
+      toast.error("Error restoring adoption");
+    }
+  };
+
+  // Handle Delete action
+  const handleDelete = (uid, petName) => {
+    setDeleteData({ uid, petName });
+    setIsDeleteModalOpen(true);
+  };
+
+  // Filter by archived status and search query
+  const filteredAdoptions = adoptions.filter((adoption) => {
+    const matchesSearch =
+      adoption.petName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      adoption.species.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      adoption.breed.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesArchived = showArchived ? adoption.isArchive === true : adoption.isArchive !== true;
+    return matchesSearch && matchesArchived;
+  });
 
   return (
     <div className="p-6">
-      <h1 className="font-semibold text-4xl mb-4">Owner Adoption</h1>
+      <h1 className="font-semibold text-4xl mb-4">Pet Adoption</h1>
 
-      {/* Button to open the modal */}
-      <button
-        className="btn btn-success btn-sm text-white"
-        onClick={openModal} // Open modal on button click
-      >
+      {/* Checkbox to toggle archived view */}
+      <div className="flex justify-between">
+        <div className="flex items-center my-4">
+          <input
+            type="checkbox"
+            className="toggle toggle-warning"
+            checked={showArchived}
+            onChange={() => setShowArchived(!showArchived)}
+          />
+          <label className="ml-2">Show Archived</label>
+        </div>
+
+        {/* Search Bar */}
+        <div className="join">
+          <input
+            className="input input-bordered join-item w-72"
+            placeholder="Search by name, species, or breed"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button className="btn join-item rounded-r-full">
+            <FaSearch />
+          </button>
+        </div>
+      </div>
+
+      <button className="btn btn-success btn-sm text-white" onClick={openModal}>
         <IoIosAddCircleOutline /> Add Pets
       </button>
 
-      {/* Render the modal */}
+      {/* Add Modal */}
       {isModalOpen && (
-        <OwnerAdoptionModal
-          clientId={clientId}
-          projectId={projectId}
-          clientName={clientName}
-          closeModal={closeModal} // Pass closeModal to allow modal closure
-        />
+        <OwnerAdoptionModal projectId={id} closeModal={closeModal} addPetToList={addPetToList} />
       )}
 
-      {/* Table data */}
+      {/* Delete Modal */}
+      {isDeleteModalOpen && deleteData && (
+        <OwnerAdoptionModalDelete uid={deleteData.uid} petName={deleteData.petName} closeDeleteModal={closeDeleteModal} />
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && editUid && (
+        <OwnerAdoptionModalEdit uid={editUid} closeModal={closeEditModal} />
+      )}
+
       <div className="overflow-x-auto mt-4">
         <table className="table">
           <thead>
             <tr>
-              <th>
-                <label>
-                  <input type="checkbox" className="checkbox" />
-                </label>
-              </th>
               <th>Name</th>
-              <th>Job</th>
-              <th>Favorite Color</th>
-              <th></th>
+              <th>Birth Date</th>
+              <th>Species</th>
+              <th>Breed</th>
+              <th>Details</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {/* Example rows - replace with your dynamic data */}
-            <tr>
-              <th>
-                <label>
-                  <input type="checkbox" className="checkbox" />
-                </label>
-              </th>
-              <td>
-                <div className="flex items-center gap-3">
-                  <div className="avatar">
-                    <div className="mask mask-squircle h-12 w-12">
-                      <img
-                        src="https://img.daisyui.com/images/profile/demo/2@94.webp"
-                        alt="Avatar Tailwind CSS Component"
-                      />
+            {filteredAdoptions.length > 0 ? (
+              filteredAdoptions.map((adoption) => (
+                <tr key={adoption.id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="avatar">
+                        <div className="mask mask-squircle h-12 w-12">
+                          <img src={adoption.image} alt={adoption.petName} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-bold">{adoption.petName}</div>
+                        <div className="text-sm">
+                          {adoption.gender === "male" ? <IoMdMale className="text-blue-700" /> : <IoMdFemale className="text-pink-700" />}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="font-bold">Hart Hagerty</div>
-                    <div className="text-sm opacity-50">United States</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                Zemlak, Daniel and Leannon
-                <br />
-                <span className="badge badge-ghost badge-sm">
-                  Desktop Support Technician
-                </span>
-              </td>
-              <td>Purple</td>
-              <th>
-                <button className="btn btn-ghost btn-xs">details</button>
-              </th>
-            </tr>
-            {/* Add more rows dynamically */}
+                  </td>
+                  <td>{adoption.birthdate}</td>
+                  <td>{adoption.species}</td>
+                  <td>{adoption.breed}</td>
+                  <td>
+                    <button
+                      className="flex items-center space-x-1 text-blue-500 hover:text-blue-700"
+                      onClick={() => handleViewDetails(adoption.id)}
+                    >
+                      <FaRegEye /> <span>View Details</span>
+                    </button>
+                  </td>
+                  <td>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value === "edit") handleEdit(adoption.id);
+                        if (e.target.value === "archive") adoption.isArchive ? handleRestore(adoption.id) : handleArchive(adoption.id);
+                        if (e.target.value === "delete") handleDelete(adoption.id, adoption.petName);
+                        e.target.value = ""; // Reset dropdown value after selection
+                      }}
+                      defaultValue=""
+                      className="select select-sm"
+                    >
+                      <option disabled value="">
+                        Actions
+                      </option>
+                      <option value="edit">Edit</option>
+                      <option value="archive">{adoption.isArchive ? "Restore" : "Archive"}</option>
+                      <option value="delete">Delete</option>
+                    </select>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" className="text-center py-4">
+                  No pets found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

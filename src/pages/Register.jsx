@@ -1,139 +1,165 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { getStorage, ref, uploadBytes } from "firebase/storage";
-import { getFirestore, collection, addDoc, setDoc, doc } from "firebase/firestore";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { useEffect, useState } from "react";
+import Register1 from "./Register1";
+import Register2 from "./Register2";
+import Register3 from "./Register3";
+import { useNavigate } from "react-router-dom";
 import platformImage from "../assets/png/platform.png";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
+import { toast } from "react-toastify";
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
+import { db } from "../firebase";
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 
-const Register = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirm_password: "",
-    phone: "",
-    typeOfAdmin: "",
-    firstName: "",
-    lastName: "",
-    legalName: "",
-    businessRegNumber: "",
-    city: "",
-    postalCode: "",
-    document: [],
-  });
-  const [error, setError] = useState(null);
+function Register() {
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({
+    step1: {
+      typeOfAdmin: "",
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirm_password: "",
+    },
+    step2: {
+      firstName: "",
+      lastName: "",
+      legalName: "",
+      businessRegNumber: "",
+      city: "",
+      postalCode: "",
+    },
+    step3: { document: [] }, // Initialize document as an empty array
+  });
 
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (currentStep >= 2) {
+        const message = "Are you sure you want to quit? Unsaved changes will be lost.";
+        e.returnValue = message; // Standard for beforeunload event
+        return message;
+      }
+    };
+  
+    const handlePopState = () => {
+      if (currentStep >= 2) {
+        const userConfirmed = window.confirm("Are you sure you want to quit? Unsaved changes will be lost.");
+        if (!userConfirmed) {
+          // No navigation if user cancels; we don't call navigate here
+          window.history.pushState(null, document.title, window.location.href);
+        }
+      }
+    };
+  
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+  
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [currentStep]);
+  
+  
+  const handleLinkClick = (e) => {
+    if (currentStep >= 2) {
+      const userConfirmed = window.confirm(
+        "Are you sure you want to quit? Unsaved changes will be lost."
+      );
+      if (!userConfirmed) {
+        e.preventDefault(); // Prevents navigation if the user cancels
+        return;
+      }
+    }
+    navigate("/login"); // Navigates if user confirms
   };
 
-  const handleFileChange = (e) => {
-    setFormData({ ...formData, document: Array.from(e.target.files) });
+  const handleFormDataChange = (step, updatedData) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [step]: { ...prevData[step], ...updatedData },
+    }));
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  const handleFileChange = (newFiles) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      step3: {
+        ...prevData.step3,
+        document: [...newFiles], // Set the new list directly
+      },
+    }));
   };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    const db = getFirestore();
+  const goToNextStep = () => setCurrentStep((prev) => prev + 1);
+  const goToPreviousStep = () => setCurrentStep((prev) => prev - 1);
+
+  const handleSubmit = async () => {
     const auth = getAuth();
-    const storage = getStorage();
-
-    // Validation
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirm_password ||
-      !formData.phone ||
-      !formData.typeOfAdmin ||
-      !formData.legalName ||
-      !formData.businessRegNumber ||
-      !formData.city ||
-      !formData.postalCode
-    ) {
-      setError("All fields must be filled out.");
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      setError("Password should be at least 8 characters long.");
-      return;
-    }
-
-    if (formData.password !== formData.confirm_password) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    const phonePattern = /^9\d{9}$/;
-    if (!phonePattern.test(formData.phone)) {
-      setError("Phone number must follow the format 9XXXXXXXXX.");
-      return;
-    }
-
-    if (!formData.document || formData.document.length === 0) {
-      setError("You must upload at least one document.");
-      return;
-    }
+    const { typeOfAdmin, name, email, phone, password } = formData.step1;
+    const { businessRegNumber, city, postalCode, firstName, lastName } = formData.step2;
+    const documentFiles = formData.step3.document;
 
     try {
-      // Step 1: Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-      const user = userCredential.user;
+      // Step 1: Create the user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userId = userCredential.user.uid;
 
-      // Step 2: Upload documents to Firebase Storage
-      const uploadedFiles = [];
-      for (const file of formData.document) {
-        const fileRef = ref(storage, `documents/${user.uid}/${file.name}`);
-        await uploadBytes(fileRef, file);
-        uploadedFiles.push({
-          name: file.name,
-          url: `documents/${user.uid}/${file.name}`,
-        });
-      }
-
-      // Step 3: Add user data to Firestore 'users' collection with matching UID
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name: `${formData.firstName} ${formData.lastName}`,
-        email: formData.email,
-        phone: formData.phone,
-        typeOfAdmin: formData.typeOfAdmin,
-        legalName: formData.legalName,
-        businessRegNumber: formData.businessRegNumber,
-        city: formData.city,
-        postalCode: formData.postalCode,
-        documentFiles: uploadedFiles,
-        isApproved: false,
-        createdAt: new Date(),
+      // Step 2: Save user information to the users collection
+      const userDocRef = doc(db, "users", userId);
+      await setDoc(userDocRef, {
+        name,
+        email,
+        phone,
+        profileImage: "https://innopetcare.com/_services/unknown_user.jpg",
+        status: "pending",
+        accountCreated: serverTimestamp(),
+        lastActivityTime: serverTimestamp(),
       });
 
-      // Step 4: Navigate to the 'for-approval' page
-      navigate("/for-approval");
+      // Step 3: Save business information to the projects collection
+      const projectDocRef = doc(collection(db, "projects"));
+      await setDoc(projectDocRef, {
+        businessRegNumber,
+        city,
+        createdAt: serverTimestamp(),
+        documentFiles,
+        name: formData.step2.legalName, // Legal business name
+        postalCode,
+        status: "pending",
+        type: typeOfAdmin === "Veterinary Admin" ? "Veterinary Site" : "Animal Shelter Site",
+        userId,
+        firstName,
+        lastName,
+      });
+
+      toast.success("Successfully registered to InnoPetCare");
+      // Step 4: Navigate to the pending page
+      navigate("/pending");
     } catch (error) {
-      setError(error.message);
+      console.error("Error registering user:", error);
+      // Add error handling here (e.g., display error message)
     }
   };
 
   return (
-    <>
-      <div className="grid grid-cols-2 gap-4 p-10">
-        <section>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-10">
+      <section className="hidden md:block">
+        {/* Left section content */}
+        <section className="hidden md:block">
           <div className="p-4">
             <h2 className="font-bold text-yellow-900 text-2xl md:text-3xl text-center">
               Register your account as Veterinary and Animal Shelter Admin
             </h2>
+            <p className="text-center mt-4">
+              Already have an account?{" "}
+              <button
+                onClick={handleLinkClick}
+                className="text-yellow-500 font-semibold"
+              >
+                Login here
+              </button>
+            </p>
             <img
               src={platformImage}
               alt="Laptop and phone with InnoPetCare"
@@ -141,251 +167,68 @@ const Register = () => {
             />
           </div>
         </section>
-        <section>
-          <div>
-            <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 w-3/4 mx-auto">
-              <div className="text-center mb-6">
-                <img
-                  src="/images/innopetcare-black.png"
-                  alt="InnoPetCare Logo"
-                  className="mx-auto mb-4"
-                />
-              </div>
-              {error && <p className="text-red-500 mb-4">{error}</p>}
-
-              <form onSubmit={onSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="typeOfAdmin" className="block font-medium">
-                    Type of Admin
-                  </label>
-                  <select
-                    name="typeOfAdmin" // Add name here for controlled component
-                    className="w-full p-2 border border-gray-300 rounded-md mb-4"
-                    value={formData.typeOfAdmin}
-                    onChange={handleChange}
-                  >
-                    {/* <option value="">Select Admin Type</option>{" "} */}
-                    {/* Default option */}
-                    <option value="Veterinary Admin">Veterinary Admin</option>
-                    <option value="Animal Shelter Admin">
-                      Animal Shelter Admin
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="firstName" className="block font-medium">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="lastName" className="block font-medium">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block font-medium">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block font-medium">
-                    Password
-                  </label>
-                  <div className="relative mt-1">
-                    <input
-                      type={showPassword ? "text" : "password"} // Toggle between text and password
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                      className="block w-full border rounded-md px-3 py-2"
-                    />
-                    <button
-                      type="button"
-                      onClick={togglePasswordVisibility}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    >
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}{" "}
-                      {/* Icon based on visibility state */}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="confirm_password"
-                    className="block font-medium"
-                  >
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    name="confirm_password"
-                    value={formData.confirm_password}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div className="mb-5">
-                  <label
-                    htmlFor="phone"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Phone (Format: 9XXXXXXXXX)
-                  </label>
-                  
-                  <input
-                    type="text"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="legalName" className="block font-medium">
-                    Legal Name/Company Name
-                  </label>
-                  <input
-                    type="text"
-                    name="legalName"
-                    value={formData.legalName}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="businessRegNumber"
-                    className="block font-medium"
-                  >
-                    Business Registration Number
-                  </label>
-                  <input
-                    type="text"
-                    name="businessRegNumber"
-                    value={formData.businessRegNumber}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="city" className="block font-medium">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="postalCode" className="block font-medium">
-                    Postal Code
-                  </label>
-                  <input
-                    type="text"
-                    name="postalCode"
-                    value={formData.postalCode}
-                    onChange={handleChange}
-                    required
-                    className="mt-1 block w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <h3 className="text-lg font-semibold mb-4">
-                  Document and Policy
-                </h3>
-                <div className="mb-5">
-                  <label
-                    htmlFor="document"
-                    className="block text-gray-500 mb-2"
-                  >
-                    Upload Document
-                  </label>
-                  <p className="text-sm text-gray-600 mb-2">
-                    You should upload these documents (PDF or image formats,
-                    .jpg, .png are accepted):
-                  </p>
-                  <ul className="list-disc list-inside mb-2">
-                    <li>Business Permit</li>
-                    <li>Veterinary Clinic License (For Veterinary only)</li>
-                    <li>Animal Welfare License (For Animal Shelter only)</li>
-                    <li>DTI Business Name</li>
-                    <li>Sanitary Permit</li>
-                    <li>Environmental Compliance</li>
-                    <li>Tax Identification Number (TIN)</li>
-                    <li>Bureau of Animal Industry Recognition</li>
-                    <li>Valid Identification (Government-Issued)</li>
-                  </ul>
-                  <input
-                    type="file"
-                    name="document"
-                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                    onChange={handleFileChange}
-                    multiple
-                    required
-                    className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200"
-                    />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-yellow-500 text-white rounded-md py-2 mt-4"
-                >
-                  Register
-                </button>
-              </form>
-              <p className="text-center mt-4">
-                Already have an account?{" "}
-                <Link to="/login" className="text-yellow-500 font-semibold">
-                  Login here
-                </Link>
-              </p>
-            </div>
+        {/* End of Left section content */}
+      </section>
+      <section>
+        <div className="bg-white rounded-xl shadow-lg p-8 md:p-12 md:w-3/4 mx-auto">
+          <img
+            src="/images/innopetcare-black.png"
+            alt="InnoPetCare Logo"
+            className="mx-auto mb-4 select-none"
+          />
+          {/* Steps */}
+          <div className="my-5">
+            <ul className="steps steps-vertical lg:steps-horizontal w-full">
+              <li className="step step-primary">Registration</li>
+              <li className={`step ${currentStep >= 2 && "step-primary"}`}>
+                Business Infomration
+              </li>
+              <li className={`step ${currentStep >= 3 && "step-primary"}`}>
+                Document and Policy
+              </li>
+            </ul>
           </div>
-        </section>
-      </div>
-    </>
+
+          {currentStep === 1 && (
+            <Register1
+              formData={formData.step1}
+              onChange={(updatedData) =>
+                handleFormDataChange("step1", updatedData)
+              }
+              onNext={goToNextStep}
+            />
+          )}
+          {currentStep === 2 && (
+            <Register2
+              formData={formData.step2}
+              onChange={(updatedData) =>
+                handleFormDataChange("step2", updatedData)
+              }
+              onPrevious={goToPreviousStep}
+              onNext={goToNextStep}
+            />
+          )}
+          {currentStep === 3 && (
+            <Register3
+              formData={formData.step3}
+              onChange={handleFileChange} // Pass handleFileChange to manage multiple files
+              onPrevious={goToPreviousStep}
+              onSubmit={handleSubmit}
+            />
+          )}
+          <p className="text-center mt-4">
+            Already have an account?{" "}
+            <button
+              onClick={handleLinkClick}
+              className="text-yellow-500 font-semibold"
+            >
+              Login here
+            </button>
+          </p>
+        </div>
+      </section>
+    </div>
   );
-};
+}
 
 export default Register;

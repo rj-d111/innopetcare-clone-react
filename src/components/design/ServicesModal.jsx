@@ -6,6 +6,7 @@ import { IoClose } from "react-icons/io5";
 import { toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
+
 export default function ServicesModal({ projectId, closeModal, onServiceAdded, selectedService }) {
   const auth = getAuth();
   const [title, setTitle] = useState("");

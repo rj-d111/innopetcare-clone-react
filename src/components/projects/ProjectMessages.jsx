@@ -1,19 +1,53 @@
 import React, { useEffect, useState } from "react";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot, orderBy } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { db } from "../../firebase";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  addDoc, 
+  serverTimestamp, 
+  doc, 
+  setDoc, 
+  orderBy 
+} from "firebase/firestore";
+import { db, storage } from "../../firebase";
+import { getAuth } from "firebase/auth"; 
 import { IoMdSend } from "react-icons/io";
+import { FaFileAlt, FaUserCircle } from "react-icons/fa";
+import { AiFillPicture } from "react-icons/ai";
+import Spinner from "../../components/Spinner";
+import { Timestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
+const getLastActiveStatus = (lastActivityTime) => {
+  if (!lastActivityTime) return "";
+
+  const now = Timestamp.now().toDate();
+  const lastActivityDate = lastActivityTime.toDate();
+  const diffMillis = now - lastActivityDate;
+  const diffMinutes = Math.floor(diffMillis / (60 * 1000));
+
+  if (diffMinutes < 10) return { status: "Active now", color: "bg-green-500" };
+  if (diffMinutes < 60) return { status: `Active ${diffMinutes} min ago`, color: "bg-yellow-500" };
+  if (diffMinutes < 1440) {
+    const hours = Math.floor(diffMinutes / 60);
+    return { status: `Active ${hours} hr${hours > 1 ? "s" : ""} ago`, color: "bg-orange-500" };
+  }
+  const days = Math.floor(diffMinutes / 1440);
+  return { status: `Active ${days} day${days > 1 ? "s" : ""} ago`, color: "bg-red-500" };
+};
 
 export default function ProjectMessages() {
   const [userData, setUserData] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [projectId, setProjectId] = useState(null); // Store projectId
+  const [messageText, setMessageText] = useState("");
+  const [projectId, setProjectId] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+  const [chatId, setChatId] = useState(null);
   const auth = getAuth();
   const user = auth.currentUser;
   const [slug, setSlug] = useState("");
 
-  // Extract slug from URL
   useEffect(() => {
     const pathname = window.location.href;
     const parts = pathname.split("sites/");
@@ -23,7 +57,34 @@ export default function ProjectMessages() {
     }
   }, []);
 
-  // Fetch project data and set projectId
+  useEffect(() => {
+    if (!projectId) return;
+  
+    const fetchOrCreateChat = async () => {
+      const chatDocId = [user.uid, projectId].join("_");
+      setChatId(chatDocId); // Set chatId to use in message references
+
+      const chatDocRef = doc(db, "chats", chatDocId);
+      console.log(chatDocRef);
+      const messagesCollectionRef = collection(chatDocRef, "messages");
+      const messagesQuery = query(messagesCollectionRef, orderBy("timestamp"));
+
+      try {
+        const messagesSnapshot = await getDocs(messagesQuery);
+        const messagesData = messagesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setMessages(messagesData);
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    };
+
+    fetchOrCreateChat();
+  }, [projectId, user.uid]);
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -38,89 +99,118 @@ export default function ProjectMessages() {
           setUserData({
             image: data.image,
             name: data.name,
+            lastActivityTime: data.lastActivityTime,
           });
-          setProjectId(data.projectId); // Set projectId from global-sections
+          setProjectId(data.projectId); // Set projectId for chat
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
     };
 
-    if (slug) {
-      fetchUserData();
-    }
+    if (slug) fetchUserData();
   }, [slug]);
 
-  // Fetch messages in real-time based on projectId and user ID
-  useEffect(() => {
-    if (user && projectId) {
-      const q = query(
-        collection(db, "messages"),
-        where("projectId", "==", projectId), // Use projectId to get messages for the project
-        orderBy("timestamp")
-      );
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const messagesArray = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setMessages(messagesArray);
-        console.log("Messages fetched:", messagesArray); // Debugging line to check if messages are fetched
-      });
-
-      return () => unsubscribe();
-    }
-  }, [db, user, projectId]);
-
-  // Handle sending a message
   const sendMessage = async () => {
-    if (newMessage.trim() === "") return;
+    if (!messageText.trim() || !chatId) return;
+
+    setIsSending(true);
+    const messageData = {
+      text: messageText,
+      senderId: user.uid,
+      receiverId: projectId,
+      timestamp: serverTimestamp(),
+      type: "text",
+    };
+
+    const chatDocRef = doc(db, "chats", chatId);
+    const messagesCollectionRef = collection(chatDocRef, "messages");
 
     try {
-      await addDoc(collection(db, "messages"), {
-        text: newMessage,
-        senderId: user.uid,
-        projectId: projectId, // Save projectId with the message
-        timestamp: serverTimestamp(),
-      });
-      setNewMessage(""); // Clear input after sending
+      await addDoc(messagesCollectionRef, messageData);
+      await setDoc(
+        chatDocRef,
+        {
+          participants: [user.uid, projectId],
+          lastMessage: messageText,
+          lastTimestamp: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setMessages((prev) => [...prev, { ...messageData, timestamp: new Date() }]);
+      setMessageText("");
     } catch (error) {
-      console.error("Error sending message: ", error);
+      console.error("Error sending message:", error);
+    } finally {
+      setIsSending(false);
     }
   };
 
+  const handleFileUpload = async (file, type) => {
+    if (!file || !projectId) return;
+
+    setIsSending(true);
+    const fileRef = ref(storage, `messages/${user.uid}_${projectId}/${file.name}`);
+    await uploadBytes(fileRef, file);
+    const fileUrl = await getDownloadURL(fileRef);
+
+    const messageData = {
+      fileUrl,
+      fileName: file.name,
+      senderId: user.uid,
+      receiverId: projectId,
+      timestamp: serverTimestamp(),
+      type,
+    };
+
+    const chatDocRef = doc(db, "chats", chatId);
+    const messagesCollectionRef = collection(chatDocRef, "messages");
+
+    try {
+      await addDoc(messagesCollectionRef, messageData);
+      await setDoc(
+        chatDocRef,
+        {
+          participants: [user.uid, projectId],
+          lastMessage: type === "image" ? "Image" : file.name,
+          lastTimestamp: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setMessages((prev) => [...prev, { ...messageData, timestamp: new Date() }]);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const lastActive = getLastActiveStatus(userData?.lastActivityTime);
+
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
+    <div className="flex h-[calc(100vh-64px)]">
       <div className="w-1/4 bg-gray-300 p-4 border-r border-gray-200">
         <h2 className="font-semibold text-lg mb-4">Chats</h2>
         <div className="flex items-center mb-4">
-          {/* Profile Image */}
           <img
-            src={userData?.image || "/default-profile.png"} // fallback in case image isn't fetched
+            src={userData?.image || "/default-profile.png"}
             alt="Profile"
             className="w-12 h-12 rounded-full object-cover mr-3"
           />
           <div>
             <p className="font-medium">{userData?.name || "User Name"} (Admin)</p>
-            <p className="text-gray-500 text-sm">You: It's really difficult...</p>
+            {lastActive.status && (
+              <span className={`px-2 py-1 rounded-full text-white text-sm font-medium ${lastActive.color}`}>
+                {lastActive.status}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Chat Section */}
       <div className="w-3/4 p-4 flex flex-col">
-        <div className="flex items-center mb-4">
-          {/* Chat header with profile image and name */}
-          <img
-            src={userData?.image || "/default-profile.png"}
-            alt="Profile"
-            className="w-10 h-10 rounded-full object-cover mr-3"
-          />
-          <p className="font-medium text-lg">{userData?.name || "Chat Name"} (Admin)</p>
-        </div>
-
-        {/* Message Thread */}
         <div className="flex-grow overflow-y-auto flex flex-col space-y-4">
           {messages.length === 0 ? (
             <p className="text-center text-gray-500">No messages yet</p>
@@ -130,26 +220,67 @@ export default function ProjectMessages() {
                 key={message.id}
                 className={`flex ${message.senderId === user.uid ? "justify-end" : "justify-start"}`}
               >
-                <div className={`p-3 rounded-xl max-w-md ${message.senderId === user.uid ? "bg-blue-500 text-white" : "bg-gray-200 text-black"}`}>
-                  {message.text}
+                <div
+                  className={`p-3 rounded-xl max-w-md ${
+                    message.senderId === user.uid ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
+                  }`}
+                >
+                  {message.type === "text" ? (
+                    <p>{message.text || ""}</p>
+                  ) : message.type === "image" ? (
+                    <img src={message.fileUrl} alt="Attachment" className="max-w-full rounded" />
+                  ) : (
+                    <a
+                      href={message.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline text-blue-600"
+                    >
+                      {message.fileName || "File"}
+                    </a>
+                  )}
                 </div>
               </div>
             ))
           )}
         </div>
 
-        {/* Message Input */}
-        <div className="mt-6 flex items-center">
-          <input
-            type="text"
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="border border-gray-300 rounded-lg p-2 flex-grow"
-          />
-          <button onClick={sendMessage} className="ml-2 bg-blue-500 text-white p-2 rounded-lg">
-            <IoMdSend />
-          </button>
+        <div className="p-4 border-t border-gray-300">
+          <div className="flex items-center space-x-3">
+            {isSending && <Spinner />}
+            <label>
+              <FaFileAlt className="text-gray-600 cursor-pointer" />
+              <input
+                type="file"
+                accept="application/*"
+                className="hidden"
+                onChange={(e) => handleFileUpload(e.target.files[0], "file")}
+              />
+            </label>
+            <label>
+              <AiFillPicture className="text-gray-600 cursor-pointer" />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileUpload(e.target.files[0], "image")}
+              />
+            </label>
+            <textarea
+              placeholder="Type a message..."
+              className="border border-gray-300 rounded-lg p-2 flex-grow resize-none"
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              rows={messageText.split("\n").length}
+            />
+            <button
+              className="ml-2 bg-blue-500 text-white p-2 rounded-lg"
+              onClick={sendMessage}
+              disabled={isSending}
+            >
+              <IoMdSend />
+            </button>
+          </div>
         </div>
       </div>
     </div>

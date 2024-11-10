@@ -1,53 +1,118 @@
-import React, { useState } from "react";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import { useState } from 'react';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import { db } from '../firebase'; // Ensure this is the correct path to your Firebase configuration
+import {
+  createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
+  fetchSignInMethodsForEmail,
+  reauthenticateWithCredential
+} from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import Spinner from "../components/Spinner"
 
-export default function Register1({ setError, nextStep, formData, onChange }) {
+function Register1({ formData, onChange, onNext }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false); // State for loading spinner
 
-  const { name, phone, email, password, confirm_password } = formData;
-
-  const onSubmit = (e) => {
-    e.preventDefault();
-
-    // Validation
-    if (!name || !email || !password || !confirm_password || !phone) {
-      setError("Please fill all the required fields");
-      return;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError("Need to provide a valid email");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return;
-    }
-
-    if (password !== confirm_password) {
-      setError("The password does not match with confirm password");
-      return;
-    }
-
-    if (!/^9\d{9}$/.test(phone)) {
-      setError("The phone number must start with 9 and be followed by 9 digits.");
-      return;
-    }
-
-    // Move to the next step, formData is passed to the next component
-    nextStep();
+  const handleInputChange = (field, value) => {
+    onChange({ [field]: value });
   };
+
+  const validateFields = async () => {
+    setLoading(true); // Start loading spinner
+    const { typeOfAdmin, name, email, phone, password, confirm_password } = formData;
+  
+    try {
+      // Check for required fields
+      if (!typeOfAdmin) {
+        toast.error("Please select the type of admin.");
+        return;
+      }
+      if (!name) {
+        toast.error("Name is required.");
+        return;
+      }
+      if (!email) {
+        toast.error("Email is required.");
+        return;
+      }
+      if (!phone) {
+        toast.error("Phone number is required.");
+        return;
+      }
+      if (!password) {
+        toast.error("Password is required.");
+        return;
+      }
+      if (!confirm_password) {
+        toast.error("Please confirm your password.");
+        return;
+      }
+  
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        toast.error("Please enter a valid email.");
+        return;
+      }
+  
+      // Check if email already exists in Firestore across collections
+      const collections = ["tech-admin", "clients", "users"];
+      for (const collectionName of collections) {
+        const collectionRef = collection(db, collectionName);
+        const q = query(collectionRef, where("email", "==", email));
+  
+        try {
+          const querySnapshot = await getDocs(q);
+          const validDocs = querySnapshot.docs.filter(doc => doc.data().status !== "deleted");
+          if (validDocs.length > 0) {
+            toast.error("This email is already in use. Please try another one.");
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking email in Firestore", error);
+          toast.error("An error occurred while checking the email.");
+          return;
+        }
+      }
+  
+      // Validate phone format (9XXXXXXXXX)
+      const phoneRegex = /^9\d{9}$/;
+      if (!phoneRegex.test(phone)) {
+        toast.error("Phone number must be in the format 9XXXXXXXXX.");
+        return;
+      }
+  
+      // Validate password length
+      if (password.length < 8) {
+        toast.error("Password must be at least 8 characters long.");
+        return;
+      }
+  
+      // Validate password confirmation
+      if (password !== confirm_password) {
+        toast.error("Passwords do not match.");
+        return;
+      }
+  
+      // If all validations pass
+      toast.success("Step 1 completed successfully!");
+      onNext();
+    } finally {
+      setLoading(false); // Ensure loading is stopped after validation
+    }
+  };
+  
 
   return (
     <>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={(e) => { e.preventDefault(); validateFields(); }}>
         <label className="block mb-2 text-gray-700">Type of Admin</label>
         <select
           className="w-full p-2 border border-gray-300 rounded-md mb-4"
-          onChange={(e) => onChange({ typeOfAdmin: e.target.value })}
+          onChange={(e) => handleInputChange('typeOfAdmin', e.target.value)}
           value={formData.typeOfAdmin || ""}
         >
           <option value="">Select Admin Type</option>
@@ -62,12 +127,13 @@ export default function Register1({ setError, nextStep, formData, onChange }) {
           <input
             type="text"
             id="name"
-            value={name}
-            onChange={(e) => onChange({ name: e.target.value })}
+            value={formData.name || ""}
+            onChange={(e) => handleInputChange('name', e.target.value)}
             placeholder="Enter your name"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
           />
         </div>
+
         <div className="mb-5">
           <label htmlFor="email" className="block text-gray-500 mb-2">
             Email
@@ -75,12 +141,13 @@ export default function Register1({ setError, nextStep, formData, onChange }) {
           <input
             type="email"
             id="email"
-            value={email}
-            onChange={(e) => onChange({ email: e.target.value })}
+            value={formData.email || ""}
+            onChange={(e) => handleInputChange('email', e.target.value)}
             placeholder="Enter your email"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
           />
         </div>
+
         <div className="mb-5">
           <label htmlFor="phone" className="block text-gray-500 mb-2">
             Phone No. (Format: 9XXXXXXXXX)
@@ -92,13 +159,14 @@ export default function Register1({ setError, nextStep, formData, onChange }) {
             <input
               type="tel"
               id="phone"
-              value={phone}
-              onChange={(e) => onChange({ phone: e.target.value })}
+              value={formData.phone || ""}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder="Enter your Phone No."
               className="w-5/6 px-4 py-2 rounded-r-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
           </div>
         </div>
+
         <div className="mb-5">
           <label htmlFor="password" className="block text-gray-500 mb-2">
             Password
@@ -107,8 +175,8 @@ export default function Register1({ setError, nextStep, formData, onChange }) {
             <input
               type={showPassword ? "text" : "password"}
               id="password"
-              value={password}
-              onChange={(e) => onChange({ password: e.target.value })}
+              value={formData.password || ""}
+              onChange={(e) => handleInputChange('password', e.target.value)}
               placeholder="Enter your password"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
@@ -125,6 +193,7 @@ export default function Register1({ setError, nextStep, formData, onChange }) {
             )}
           </div>
         </div>
+
         <div className="mb-5">
           <label htmlFor="confirm_password" className="block text-gray-500 mb-2">
             Confirm Password
@@ -132,20 +201,33 @@ export default function Register1({ setError, nextStep, formData, onChange }) {
           <input
             type="password"
             id="confirm_password"
-            value={confirm_password}
-            onChange={(e) => onChange({ confirm_password: e.target.value })}
+            value={formData.confirm_password || ""}
+            onChange={(e) => handleInputChange('confirm_password', e.target.value)}
             placeholder="Confirm your password"
             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
           />
         </div>
+
         <button
-          type="submit"
-          className="w-full uppercase bg-yellow-600 text-white px-4 py-2 rounded-lg"
-        >
-          Next
-        </button>
+  type="submit"
+  className={`w-full uppercase text-white px-4 py-2 rounded-lg flex items-center justify-center ${
+    loading ? "bg-gray-400" : "bg-yellow-600"
+  }`}
+  disabled={loading} // Correct way to conditionally disable the button
+>
+  {loading ? (
+    <>
+      <Spinner /> {/* Assuming Spinner is an icon or loading component */}
+      <span>Please wait...</span>
+    </>
+  ) : (
+    "Next"
+  )}
+</button>
+
       </form>
-      <ToastContainer />
     </>
   );
 }
+
+export default Register1;

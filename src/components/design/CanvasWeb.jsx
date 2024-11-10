@@ -6,7 +6,7 @@ const CanvasWeb = ({ formData, imagePreview }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   return (
     <>
-      <div className="grow mockup-browser border-base-300 border h-[80vh]">
+      <div className="grow mockup-browser border-base-300 border">
         <div className="mockup-browser-toolbar">
           <div className="input border-base-300 border">
             https://innopetcare.com/sites/{formData.slug || ""}
@@ -29,9 +29,9 @@ const CanvasWeb = ({ formData, imagePreview }) => {
 
           <div className="flex items-center space-x-6">
             {/* <img src={InnoPetCareSmall} alt="Logo" className="h-8" /> */}
-            {imagePreview && (
+            {(imagePreview || formData.logoPicture) && (
               <img
-                src={imagePreview}
+                src={imagePreview || formData.logoPicture}
                 alt="Uploaded Logo"
                 className="h-8"
               />

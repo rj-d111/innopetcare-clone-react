@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import { db } from "../../firebase"; // Ensure your Firebase config is imported
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaSortUp, FaSortDown } from "react-icons/fa";
 import {
   doc,
   getDocs,
@@ -12,25 +12,41 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { IoCloseCircle, IoTimeOutline } from "react-icons/io5";
+import { FaCircleCheck } from "react-icons/fa6";
 
 export default function OwnerPending() {
   const { id } = useParams(); // Get projectId from route params
   const [clients, setClients] = useState([]); // Store all client data
   const [filteredClients, setFilteredClients] = useState([]); // Filtered data based on filters and search
-  const [filterStatus, setFilterStatus] = useState("all"); // Store filter selection (all, accepted, pending/rejected)
+  const [filterStatus, setFilterStatus] = useState("pending"); // Set "Pending" as the default filter
   const [searchQuery, setSearchQuery] = useState(""); // Store search input value
+  const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 100;
 
   useEffect(() => {
-    // Fetch clients matching the projectId
     const fetchClients = async () => {
       const clientsCollection = collection(db, "clients");
       const q = query(clientsCollection, where("projectId", "==", id));
       const querySnapshot = await getDocs(q);
 
-      const clientsData = querySnapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
+      const now = new Date();
+      const clientsData = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const lastActivityTime = data.lastActivityTime?.toDate();
+        const isRejected =
+          data.isApproved === false &&
+          lastActivityTime &&
+          now - lastActivityTime > 7 * 24 * 60 * 60 * 1000;
+
+        return {
+          ...data,
+          id: doc.id,
+          isRejected,
+        };
+      });
+
       setClients(clientsData);
       setFilteredClients(clientsData); // Set initial filter
     };
@@ -38,60 +54,93 @@ export default function OwnerPending() {
     fetchClients();
   }, [id]);
 
-  // Function to filter clients based on selected status and search query
   useEffect(() => {
     const applyFilters = () => {
       let filtered = clients;
 
       // Apply search filter
       if (searchQuery.trim() !== "") {
-        filtered = filtered.filter((client) =>
-          client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          client.email.toLowerCase().includes(searchQuery.toLowerCase())
+        filtered = filtered.filter(
+          (client) =>
+            client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            client.email.toLowerCase().includes(searchQuery.toLowerCase())
         );
       }
 
       // Apply status filter
-      if (filterStatus === "accepted") {
-        filtered = filtered.filter((client) => client.isApproved === true);
-      } else if (filterStatus === "pending/rejected") {
-        filtered = filtered.filter((client) => client.isApproved !== true);
+      if (filterStatus === "approved") {
+        filtered = filtered.filter((client) => client.status === "approved");
+      } else if (filterStatus === "pending") {
+        filtered = filtered.filter((client) => client.status === "pending");
+      } else if (filterStatus === "rejected") {
+        filtered = filtered.filter((client) => client.status === "rejected");
+      }
+
+      // Apply sorting
+      if (sortConfig.key) {
+        filtered = [...filtered].sort((a, b) => {
+          const aValue = a[sortConfig.key] || "";
+          const bValue = b[sortConfig.key] || "";
+
+          if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+          if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+          return 0;
+        });
       }
 
       setFilteredClients(filtered);
     };
 
     applyFilters();
-  }, [searchQuery, filterStatus, clients]);
+  }, [searchQuery, filterStatus, clients, sortConfig]);
 
   // Handle Accept or Reject actions
-  const handleAction = async (clientId, action, clientName) => {
-    const clientDocRef = doc(db, "clients", clientId);
-    const isApproved = action === "accept";
+ // Handle Accept or Reject actions
+const handleAction = async (clientId, action, clientName) => {
+  const clientDocRef = doc(db, "clients", clientId);
+  const status = action === "accept" ? "approved" : "rejected";
 
-    try {
-      // Update Firestore with the new isApproved status
-      await updateDoc(clientDocRef, {
-        isApproved: isApproved,
-      });
+  try {
+    // Update the status in Firestore
+    await updateDoc(clientDocRef, {
+      status,
+    });
 
-      if (isApproved) {
-        toast.success(`${clientName} was successfully approved`);
-      } else {
-        toast.success(`${clientName} was successfully rejected`);
-      }
+    toast.success(
+      `${clientName} was successfully ${status === "approved" ? "approved" : "rejected"}`
+    );
 
-      // Update local state after change
-      setClients((prevClients) =>
-        prevClients.map((client) =>
-          client.id === clientId ? { ...client, isApproved } : client
-        )
-      );
-    } catch (error) {
-      toast.error("An error occurred while updating client status.");
-      console.error("Error updating client status: ", error);
-    }
+    // Update the local state to reflect the changes
+    setClients((prevClients) =>
+      prevClients.map((client) =>
+        client.id === clientId ? { ...client, status } : client
+      )
+    );
+  } catch (error) {
+    toast.error("An error occurred while updating client status.");
+    console.error("Error updating client status: ", error);
+  }
+};
+
+
+  // Sort handler
+  const handleSort = (key) => {
+    setSortConfig((prevConfig) => ({
+      key,
+      direction:
+        prevConfig.key === key && prevConfig.direction === "asc"
+          ? "desc"
+          : "asc",
+    }));
   };
+
+  // Pagination
+  const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
 
   return (
     <div className="p-6">
@@ -100,14 +149,37 @@ export default function OwnerPending() {
       <div className="flex justify-between">
         {/* Filter buttons */}
         <div className="join join-vertical lg:join-horizontal mb-5">
-          <button className={`btn join-item${filterStatus === "all" && "btn-active"}`} onClick={() => setFilterStatus("all")}>
+          <button
+            className={`btn join-item ${
+              filterStatus === "all" && "btn-active"
+            }`}
+            onClick={() => setFilterStatus("all")}
+          >
             All
           </button>
-          <button className={`btn join-item ${filterStatus === "accepted" && "btn-active"}`} onClick={() => setFilterStatus("accepted")}>
+          <button
+            className={`btn join-item ${
+              filterStatus === "accepted" && "btn-active"
+            }`}
+            onClick={() => setFilterStatus("accepted")}
+          >
             Accepted
           </button>
-          <button className={`btn join-item ${filterStatus === "pending/rejected" && "btn-active"}`} onClick={() => setFilterStatus("pending/rejected")}>
-            Pending/Rejected
+          <button
+            className={`btn join-item ${
+              filterStatus === "pending" && "btn-active"
+            }`}
+            onClick={() => setFilterStatus("pending")}
+          >
+            Pending
+          </button>
+          <button
+            className={`btn join-item ${
+              filterStatus === "rejected" && "btn-active"
+            }`}
+            onClick={() => setFilterStatus("rejected")}
+          >
+            Rejected
           </button>
         </div>
 
@@ -131,37 +203,76 @@ export default function OwnerPending() {
           <thead>
             <tr>
               <th>#</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Account Created</th>
+              {[
+                "name",
+                "email",
+                "phone",
+                "Account Created",
+                "Last Login Time",
+              ].map((field) => (
+                <th key={field} onClick={() => handleSort(field)}>
+                  <div className="cursor-pointer flex items-center gap-1">
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                    {sortConfig.key === field ? (
+                      sortConfig.direction === "asc" ? (
+                        <FaSortUp />
+                      ) : (
+                        <FaSortDown />
+                      )
+                    ) : (
+                      <FaSortUp />
+                    )}
+                  </div>
+                </th>
+              ))}
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredClients.length > 0 ? (
-              filteredClients.map((client, index) => (
+            {paginatedClients.length > 0 ? (
+              paginatedClients.map((client, index) => (
                 <tr key={client.id}>
-                  <th>{index + 1}</th>
+                  <th>{index + 1 + (currentPage - 1) * itemsPerPage}</th>
                   <td>{client.name}</td>
                   <td>{client.email}</td>
                   <td>{client.phone}</td>
-                  <td>{client.timestamp?.toDate().toLocaleString()}</td>
+                  <td>{client.accountCreated?.toDate().toLocaleString()}</td>
                   <td>
-                    {client.isApproved ? (
-                      <span className="text-green-500">Approved</span>
-                    ) : (
-                      <span className="text-yellow-500">Pending</span>
-                    )}
+                    {client.lastActivityTime
+                      ? client.lastActivityTime.toDate().toLocaleString()
+                      : "N/A"}
+                  </td>
+                  <td>
+                    <div className="flex flex-col items-center">
+                      {client.status === "approved" ? (
+                        <>
+                          <FaCircleCheck className="text-green-500" size={20} />
+                          <div className="text-green-500">Approved</div>
+                        </>
+                      ) : client.status === "pending" ? (
+                        <>
+                          <IoTimeOutline
+                            className="text-yellow-500"
+                            size={20}
+                          />
+                          <div className="text-yellow-500">Pending</div>
+                        </>
+                      ) : (
+                        <>
+                          <IoCloseCircle className="text-red-500" size={20} />
+                          <div className="text-red-500">Rejected</div>
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <button
-                      className="btn btn-success btn-sm mr-2  text-white"
+                      className="btn btn-success btn-sm mr-2 text-white"
                       onClick={() =>
                         handleAction(client.id, "accept", client.name)
                       }
-                      disabled={client.isApproved}
+                      disabled={client.status === "approved"}
                     >
                       Accept
                     </button>
@@ -170,7 +281,10 @@ export default function OwnerPending() {
                       onClick={() =>
                         handleAction(client.id, "reject", client.name)
                       }
-                      disabled={client.isApproved === false}
+                      disabled={
+                        client.status === "approved" ||
+                        client.status === "rejected"
+                      }
                     >
                       Reject
                     </button>
@@ -179,13 +293,28 @@ export default function OwnerPending() {
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="text-center">
+                <td colSpan="8" className="text-center">
                   No clients found
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center mt-4">
+        {Array.from({ length: totalPages }, (_, index) => (
+          <button
+            key={index}
+            onClick={() => handlePageChange(index + 1)}
+            className={`btn btn-sm ${
+              currentPage === index + 1 ? "btn-active" : ""
+            }`}
+          >
+            {index + 1}
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ import {
 import { useParams } from "react-router-dom"; // To get projectId from the URL
 import { FaRegUser } from "react-icons/fa";
 import { FaCircleCheck } from "react-icons/fa6";
-import { IoCloseCircle } from "react-icons/io5";
+import { IoCloseCircle, IoTimeOutline } from "react-icons/io5";
 
 export default function OwnerDashboard() {
   const [clients, setClients] = useState([]); // State to store client data
@@ -44,13 +44,13 @@ export default function OwnerDashboard() {
   return (
     <div className="p-6">
       <h2 className="font-semibold text-4xl mb-4">Dashboard</h2>
-      <div class="stats shadow">
-        <div class="stat">
-          <div class="stat-figure text-secondary">
+      <div className="stats shadow">
+        <div className="stat">
+          <div className="stat-figure text-secondary">
             <FaRegUser size={25} />
           </div>
-          <div class="stat-title">No. of Registered Users</div>
-          <div class="stat-value">{userCount}</div>
+          <div className="stat-title">No. of Registered Users</div>
+          <div className="stat-value">{userCount}</div>
         </div>
       </div>
       {/* Table to display clients */}
@@ -60,8 +60,8 @@ export default function OwnerDashboard() {
             <th className="border border-gray-300 p-2">Name</th>
             <th className="border border-gray-300 p-2">Email</th>
             <th className="border border-gray-300 p-2">Phone</th>
-            <th className="border border-gray-300 p-2">Is Approved</th>
-            <th className="border border-gray-300 p-2">Timestamp</th>
+            <th className="border border-gray-300 p-2">Status</th>
+            <th className="border border-gray-300 p-2">Account Created</th>
           </tr>
         </thead>
         <tbody>
@@ -71,14 +71,29 @@ export default function OwnerDashboard() {
               <td className="border border-gray-300 p-2">{client.email}</td>
               <td className="border border-gray-300 p-2">{client.phone}</td>
               <td className="border border-gray-300 p-2">
-                {client.isApproved ? (
-                  <FaCircleCheck className="text-green-500" size={30} />
-                ) : (
-                  <IoCloseCircle className="text-red-500" size={30} />
-                )}
+                <div className="flex flex-col items-center">
+                  {client.status === "approved" ? (
+                    <>
+                      <FaCircleCheck className="text-green-500" size={20} />
+                      <div className="text-green-500">Approved</div>
+                    </>
+                  ) : client.status === "pending" ? (
+                    <>
+                      <IoTimeOutline className="text-yellow-500" size={20} />
+                      <div className="text-yellow-500">Pending</div>
+                    </>
+                  ) : (
+                    <>
+                      <IoCloseCircle className="text-red-500" size={20} />
+                      <div className="text-red-500">Rejected</div>
+                    </>
+                  )}
+                </div>
               </td>
               <td className="border border-gray-300 p-2">
-                {new Date(client.timestamp.seconds * 1000).toLocaleString()}
+                {new Date(
+                  client.accountCreated.seconds * 1000
+                ).toLocaleString()}
               </td>
             </tr>
           ))}

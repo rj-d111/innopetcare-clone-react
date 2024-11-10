@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaSortUp, FaSortDown } from "react-icons/fa";
 
 export default function TechAdminProjects() {
   const [projects, setProjects] = useState([]);
@@ -9,6 +9,7 @@ export default function TechAdminProjects() {
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,55 +54,94 @@ export default function TechAdminProjects() {
   useEffect(() => {
     // Filter projects based on search query, filterType, and filterStatus
     const filtered = projects.filter((project) => {
-      // Apply type filter
-      const matchesType =
-        filterType === "all" || project.type === filterType;
-
-      // Apply status filter
+      const matchesType = filterType === "all" || project.type === filterType;
       const matchesStatus =
         filterStatus === "all" || project.status === filterStatus;
-
-      // Apply search filter
       const matchesSearch =
         project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (project.userName && project.userName.toLowerCase().includes(searchQuery.toLowerCase()));
-
+        (project.userName &&
+          project.userName.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesType && matchesStatus && matchesSearch;
     });
 
     setFilteredProjects(filtered);
   }, [filterType, filterStatus, searchQuery, projects]);
 
+  const handleSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+
+    setSortConfig({ key, direction });
+    const sortedProjects = [...filteredProjects].sort((a, b) => {
+      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
+      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
+      return 0;
+    });
+    setFilteredProjects(sortedProjects);
+  };
+
   return (
-    <div className="p-10">
+    <div className="p-10 bg-white max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-4">Projects</h1>
       <div className="flex justify-between items-center mb-5">
-
         {/* Filter buttons for Project Type */}
         <div className="join join-vertical lg:join-horizontal">
-          <button className={`btn join-item ${filterType === "all" ? "btn-active" : ""}`} onClick={() => setFilterType("all")}>
+          <button
+            className={`btn join-item ${
+              filterType === "all" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterType("all")}
+          >
             All
           </button>
-          <button className={`btn join-item ${filterType === "Veterinary Site" ? "btn-active" : ""}`} onClick={() => setFilterType("Veterinary Site")}>
+          <button
+            className={`btn join-item ${
+              filterType === "Veterinary Site" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterType("Veterinary Site")}
+          >
             Veterinary Site
           </button>
-          <button className={`btn join-item ${filterType === "Animal Shelter Site" ? "btn-active" : ""}`} onClick={() => setFilterType("Animal Shelter Site")}>
+          <button
+            className={`btn join-item ${
+              filterType === "Animal Shelter Site" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterType("Animal Shelter Site")}
+          >
             Animal Shelter Site
           </button>
         </div>
 
         {/* Tab list for Project Status */}
         <div role="tablist" className="tabs tabs-boxed">
-          <button role="tab" className={`tab ${filterStatus === "all" ? "tab-active" : ""}`} onClick={() => setFilterStatus("all")}>
+          <button
+            role="tab"
+            className={`tab ${filterStatus === "all" ? "tab-active" : ""}`}
+            onClick={() => setFilterStatus("all")}
+          >
             All
           </button>
-          <button role="tab" className={`tab ${filterStatus === "pending" ? "tab-active" : ""}`} onClick={() => setFilterStatus("pending")}>
+          <button
+            role="tab"
+            className={`tab ${filterStatus === "pending" ? "tab-active" : ""}`}
+            onClick={() => setFilterStatus("pending")}
+          >
             Pending
           </button>
-          <button role="tab" className={`tab ${filterStatus === "active" ? "tab-active" : ""}`} onClick={() => setFilterStatus("active")}>
+          <button
+            role="tab"
+            className={`tab ${filterStatus === "active" ? "tab-active" : ""}`}
+            onClick={() => setFilterStatus("active")}
+          >
             Active
           </button>
-          <button role="tab" className={`tab ${filterStatus === "disabled" ? "tab-active" : ""}`} onClick={() => setFilterStatus("disabled")}>
+          <button
+            role="tab"
+            className={`tab ${filterStatus === "disabled" ? "tab-active" : ""}`}
+            onClick={() => setFilterStatus("disabled")}
+          >
             Disabled
           </button>
         </div>
@@ -121,45 +161,67 @@ export default function TechAdminProjects() {
       </div>
 
       {/* Projects Table */}
-      <table className="min-w-full mt-4 border-collapse border border-gray-300">
-        <thead>
-          <tr>
-            <th className="border border-gray-300 p-2">Project Name</th>
-            <th className="border border-gray-300 p-2">Created At</th>
-            <th className="border border-gray-300 p-2">Status</th>
-            <th className="border border-gray-300 p-2">Type</th>
-            <th className="border border-gray-300 p-2">User</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredProjects.length > 0 ? (
-            filteredProjects.map((project) => (
-              <tr key={project.id}>
-                <td className="border border-gray-300 p-2">{project.name}</td>
-                <td className="border border-gray-300 p-2">
-                  {project.createdAt?.toDate().toLocaleString()}
-                </td>
-                <td className="border border-gray-300 p-2">
-                  {project.status}
-                </td>
-                <td className="border border-gray-300 p-2">{project.type}</td>
-                <td className="border border-gray-300 p-2">
-                  {project.userName}
+      <div className="overflow-x-auto">
+        <table className="table w-full">
+          <thead>
+            <tr>
+              {["name", "createdAt", "status", "type", "userName"].map(
+                (field, index) => (
+                  <th
+                    key={index}
+                    onClick={() => handleSort(field)}
+                    className={` p-2 cursor-pointer ${
+                      sortConfig.key === field ? "font-bold text-black" : ""
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      {field.charAt(0).toUpperCase() +
+                        field.slice(1).replace(/([A-Z])/g, " $1")}
+                      {sortConfig.key === field ? (
+                        sortConfig.direction === "asc" ? (
+                          <FaSortUp className="ml-1" />
+                        ) : (
+                          <FaSortDown className="ml-1" />
+                        )
+                      ) : (
+                        <FaSortUp className="ml-1 opacity-50" />
+                      )}
+                    </div>
+                  </th>
+                )
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map((project) => (
+                <tr key={project.id} className="hover:bg-gray-100">
+                  <td>{project.name}</td>
+                  <td>
+                    {project.createdAt?.toDate().toLocaleString()}
+                  </td>
+                  <td>
+                    {project.status}
+                  </td>
+                  <td>{project.type}</td>
+                  <td>
+                    {project.userName}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="5"
+                  className="text-center"
+                >
+                  No projects found
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td
-                colSpan="5"
-                className="border border-gray-300 p-2 text-center"
-              >
-                No projects found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

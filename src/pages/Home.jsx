@@ -11,17 +11,18 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  getDoc,
   addDoc,
+  getDoc,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "../firebase";
-import Modal from "../components/Modal";
-import ModalTrash from "../components/ModalTrash";
 import ModalRename from "../components/ModalRename";
+import ModalTrash from "../components/ModalTrash";
+import NewProjectModal from "../components/NewProjectModal";
+import Footer from "../components/Footer";
+import { IoFolderOpen } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import NewProjectModal from "../components/NewProjectModal";
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -29,19 +30,106 @@ export default function Home() {
   const [userData, setUserData] = useState({ name: "" });
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState("grid");
-  const [selectedProjects, setSelectedProjects] = useState([]);
-  const [showTrashModal, setShowTrashModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(null);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [projectToRename, setProjectToRename] = useState(null);
+  const [showTrashModal, setShowTrashModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
 
   const navigate = useNavigate();
-
   const auth = getAuth();
-  const user = auth.currentUser;
-  console.log(user.uid);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Fetch user data from Firestore using doc and user.uid
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnapshot = await getDoc(userDocRef);
+
+        if (userDocSnapshot.exists()) {
+          const userDocData = userDocSnapshot.data();
+          const name = userDocData.name || user.displayName || "User";
+          setUserData({ name });
+        } else {
+          // Handle case where user document is not found
+          setUserData({ name: "User" });
+        }
+
+        fetchProjects(user.uid);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  const fetchProjects = async (userId) => {
+    const projectsQuery = query(
+      collection(db, "projects"),
+      where("userId", "==", userId)
+    );
+    const projectsCollection = await getDocs(projectsQuery);
+    const projectList = projectsCollection.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setProjects(projectList);
+  };
+  const handleMenuToggle = (projectId, event) => {
+    event.stopPropagation();
+    setMenuOpen((prev) => (prev === projectId ? null : projectId));
+  };
+
+  const handleFileManager = (projectId) => {
+    navigate(`/${projectId}/file-manager`);
+  };
+
+  const handleProjectCreate = async (newProjectData) => {
+    try {
+      const newProjectRef = await addDoc(
+        collection(db, "projects"),
+        newProjectData
+      );
+      const newProject = { id: newProjectRef.id, ...newProjectData };
+      setProjects((prevProjects) => [...prevProjects, newProject]);
+      toast.success("Successfully created a new project");
+    } catch (error) {
+      toast.error("Failed to create project");
+      console.error("Error creating project:", error);
+    }
+  };
+
+  const handleProjectRename = async (projectId, newName) => {
+    try {
+      const projectRef = doc(db, "projects", projectId);
+      await updateDoc(projectRef, { name: newName });
+      setProjects((prevProjects) =>
+        prevProjects.map((project) =>
+          project.id === projectId ? { ...project, name: newName } : project
+        )
+      );
+      toast.success("Project name updated successfully");
+    } catch (error) {
+      toast.error("Failed to update project name");
+      console.error("Error updating project name:", error);
+    }
+  };
+
+  const handleProjectDelete = async (projectId) => {
+    if (!projectId) return;
+    try {
+      const projectRef = doc(db, "projects", projectId);
+      await deleteDoc(projectRef);
+      setProjects((prevProjects) =>
+        prevProjects.filter((project) => project.id !== projectId)
+      );
+      toast.success("Project deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete the project. Please try again.");
+      console.error("Error deleting project:", error);
+    }
+    setShowTrashModal(false);
+  };
 
   const toggleProjectStatus = async (project) => {
     try {
@@ -49,7 +137,6 @@ export default function Home() {
       const projectRef = doc(db, "projects", project.id);
       await updateDoc(projectRef, { status: newStatus });
 
-      // Update local state to reflect the change immediately
       setProjects((prevProjects) =>
         prevProjects.map((p) =>
           p.id === project.id ? { ...p, status: newStatus } : p
@@ -64,119 +151,9 @@ export default function Home() {
     }
   };
 
-  const fetchProjects = async (userId) => {
-    const projectsQuery = query(
-      collection(db, "projects"),
-      where("userId", "==", userId)
-    );
-    const projectsCollection = await getDocs(projectsQuery);
-    const projectList = projectsCollection.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setProjects(projectList);
-  };
-
-  const handleProjectClick = (project) => {
-    navigate(`/design/${project.id}`);
-  };
-
   const showOwnerDashboard = (project) => {
     if (project.status === "active") {
       navigate(`/${project.id}/dashboard`);
-    }
-  };
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        // If displayName exists, use it; otherwise fetch name from Firestore
-        const name = user.displayName || (await fetchUserNameFromFirestore(user.uid));
-        setUserData({ name });
-        fetchProjects(user.uid);
-      }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const fetchUserNameFromFirestore = async (projectId) => {
-    try {
-      // Create a query to find the user document with the given projectId
-      const userQuery = query(
-        collection(db, "users"),
-        where("uid", "==", projectId) // Query users by projectId
-      );
-  
-      // Get the documents matching the query
-      const querySnapshot = await getDocs(userQuery);
-  
-      // Check if any documents exist
-      if (!querySnapshot.empty) {
-        // Get the first user document (assuming projectId is unique)
-        const userDoc = querySnapshot.docs[0];
-        return userDoc.data().name; // Return the user's name
-      } else {
-        console.log("No user document found for the given projectId");
-        return "User"; // Fallback name
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      return "User"; // Fallback name in case of error
-    }
-  };
-  
-  
-  
-
-
-  const handleMenuToggle = (projectId, event) => {
-    event.stopPropagation(); // Prevent card click from firing
-    setMenuOpen((prev) => (prev === projectId ? null : projectId)); // Toggle the clicked menu
-  };
-
-  const handleProjectCreate = (newProject) => {
-    toast.success("Successfully created a new project");
-    setProjects((prevProjects) => [...prevProjects, newProject]);
-  };
-
-  const handleRenameClick = (project) => {
-    setProjectToRename(project);
-    setShowRenameModal(true);
-  };
-
-  const handleProjectRename = async (projectId, newName) => {
-    const projectRef = doc(db, "projects", projectId);
-    await updateDoc(projectRef, { name: newName });
-    setProjects((prevProjects) =>
-      prevProjects.map((project) =>
-        project.id === projectId ? { ...project, name: newName } : project
-      )
-    );
-    toast.success("Project name updated");
-  };
-
-  const handleProjectDelete = async (projectId) => {
-    if (!projectId) return; // Make sure projectId is not null
-    try {
-        const projectRef = doc(db, "projects", projectId);
-        await deleteDoc(projectRef);
-        setProjects((prevProjects) => prevProjects.filter((project) => project.id !== projectId));
-    } catch (error) {
-        console.error("Error deleting project: ", error);
-        toast.error("Failed to delete the project. Please try again.");
-    }
-    setShowTrashModal(false);
-};
-
-  const handleMouseEnter = (projectId) => {
-    setMenuOpen(projectId);
-  };
-
-  const handleMouseLeave = (projectId) => {
-    if (menuOpen === projectId) {
-      setMenuOpen(null);
     }
   };
 
@@ -184,24 +161,21 @@ export default function Home() {
     return null;
   }
 
-
-  console.log(userData);
   return (
     <>
-      <section className="m-3 md:m-10">
-        <h1 className="text-lg md:text-3xl font-bold my-8 text-yellow-800">
+      <section className="m-3 md:m-10 md:min-h-[calc(100vh-64px)]">
+        <h1 className="text-2xl md:text-3xl font-bold my-8 text-yellow-800">
           Hello, {userData.name}
         </h1>
 
-        <div className="flex sm:flex-row justify-between items-center sm:items-start flex-col-reverse">
-          <h2 className="text-lg md:text-3xl font-bold text-slate-900 mt-4 md:mt-0">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center items-start">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 sm:mt-0 mb-4 sm:mb-0">
             My Sites
           </h2>
-
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-end space-x-4 w-full sm:w-auto">
             <button
               onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-              className="bg-gray-200 p-2 rounded"
+              className="bg-gray-200 p-2 rounded sm:w-auto"
             >
               {viewMode === "grid" ? (
                 <MdViewModule size={24} />
@@ -209,11 +183,10 @@ export default function Home() {
                 <MdViewList size={24} />
               )}
             </button>
-
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-6 rounded-lg font-semibold transition duration-200 ease-in-out flex items-center justify-center"
+              className="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-6 rounded-lg font-semibold transition duration-200 ease-in-out sm:w-auto flex items-center justify-center"
             >
               <FaPlus className="mr-2" />
               Create New Site
@@ -232,25 +205,29 @@ export default function Home() {
             <div
               key={project.id}
               className="bg-white p-4 rounded-lg shadow-md cursor-pointer relative"
-              onClick={() => handleProjectClick(project)} // Card click handler
-              onMouseEnter={() => handleMouseEnter(project.id)}
-              onMouseLeave={() => handleMouseLeave(project.id)}
+              onClick={() => navigate(`/design/${project.id}`)} // Updated route to "/design"
             >
               <div className="flex justify-between">
                 <h3 className="text-lg font-bold">{project.name}</h3>
                 <BsThreeDots
-                  className="text-gray-600 cursor-pointer"
-                  onClick={(e) => handleMenuToggle(project.id, e)} // Toggle menu on click
+                  className={`relative ${
+                    menuOpen === project.id
+                      ? "ring-2 ring-slate-700 rounded-full"
+                      : ""
+                  } m-1`}
+                  onClick={(e) => handleMenuToggle(project.id, e)}
                 />
               </div>
 
               {menuOpen === project.id && (
-                <div className="absolute bg-white shadow-lg rounded-lg right-0 z-10">
+                <div className="absolute bg-white shadow-lg rounded-lg right-0 z-10 transition-all transform origin-top scale-y-100">
                   <button
                     className="block w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleRenameClick(project);
+                      setProjectToRename(project);
+                      setShowRenameModal(true);
+                      setMenuOpen(null); // Close the menu when Edit is clicked
                     }}
                   >
                     <div className="flex items-center justify-start p-2">
@@ -263,12 +240,25 @@ export default function Home() {
                       e.stopPropagation();
                       setProjectToDelete(project.id);
                       setShowTrashModal(true);
+                      setMenuOpen(null);
                     }}
                   >
                     <div className="flex items-center justify-start p-2">
                       <FaTrashAlt className="mr-2" /> Delete
                     </div>
                   </button>
+                  <button
+                    className="block w-full px-4 py-2 text-violet-600 hover:bg-blue-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFileManager(project.id);
+                    }}
+                  >
+                    <div className="flex items-center justify-start p-2">
+                      <IoFolderOpen className="mr-2" /> File Manager
+                    </div>
+                  </button>
+
                   <button
                     className={`block w-full px-4 py-2 text-blue-600 hover:bg-blue-100 ${
                       project.status !== "active"
@@ -332,6 +322,7 @@ export default function Home() {
           ))}
         </div>
       </section>
+      <Footer />
 
       <ModalRename
         show={showRenameModal}
@@ -349,7 +340,7 @@ export default function Home() {
       <ModalTrash
         show={showTrashModal}
         onClose={() => setShowTrashModal(false)}
-        projectId={projectToDelete} // Pass the project ID here
+        projectId={projectToDelete}
         onDelete={handleProjectDelete}
       />
     </>

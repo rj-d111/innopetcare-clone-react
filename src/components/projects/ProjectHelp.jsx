@@ -2,7 +2,7 @@ import React from "react";
 
 export default function ProjectHelp() {
   return (
-    <div className="p-6 bg-white rounded-lg shadow-lg max-w-4xl mx-auto my-8">
+    <div className="p-6 bg-white max-w-4xl mx-auto my-8">
       <h1 className="text-3xl font-bold text-center mb-6">Help Information</h1>
 
       <div className="mb-8">
@@ -54,7 +54,7 @@ export default function ProjectHelp() {
         <h2 className="text-xl font-semibold mb-2">Contacting Support</h2>
         <p className="text-gray-700">
           <strong>Support Channels:</strong> Reach out to our support team via
-          email at <a href="mailto:support@innopetcare.com" className="text-blue-500">support@innopetcare.com</a> or call us at 887-2651.
+          email at <a href="mailto:innopetcare@gmail.com" className="text-blue-500">innopetcare@gmail.com</a> or call us at 887-2651.
         </p>
       </div>
 

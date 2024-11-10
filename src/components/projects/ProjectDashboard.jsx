@@ -1,22 +1,36 @@
 import { FaCalendarAlt, FaUserCircle } from "react-icons/fa";
 import React, { useState, useEffect } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore"; // Firestore functions
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  doc,
+} from "firebase/firestore"; // Firestore functions
 import { db } from "../../firebase"; // Import Firebase auth
 import { format } from "date-fns"; // Optional for better date formatting
 import { getAuth } from "firebase/auth";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import messengerLogo from "../../assets/svg/facebook-messenger-brands-solid.svg";
+import PetsList from "../owners/PetsList";
 
 export default function ProjectDashboard() {
   const [projectName, setProjectName] = useState(""); // To store projectName
   const [clientName, setClientName] = useState(""); // To store clientName
   const [projectId, setProjectId] = useState(""); // To store projectId
   const [clientId, setClientId] = useState(""); // To store clientId
+  const [headerColor, setHeaderColor] = useState(""); // To store headerColorHexCode
   const [upcomingAppointment, setUpcomingAppointment] = useState(null); // To store appointment data
+  const [isAnimalShelter, setIsAnimalShelter] = useState(false); // To check project type
 
+  const navigate = useNavigate();
   const auth = getAuth();
   const pathname = window.location.href;
   const parts = pathname.split("sites/");
   let slug = "";
+  const user = auth.currentUser;
+  const userId = user.uid;
 
   if (parts.length > 1) {
     slug = parts[1].split("/")[0]; // Get the first part after "/"
@@ -45,6 +59,18 @@ export default function ProjectDashboard() {
           const docData = querySnapshot.docs[0].data();
           setProjectId(docData.projectId);
           setProjectName(docData.name);
+          setHeaderColor(docData.headerColor);
+
+          const projectRef = doc(db, "projects", projectId); // Use `doc` with `projectId` directly
+          const projectSnapshot = await getDoc(projectRef);
+
+          if (projectSnapshot.exists()) {
+            const projectData = projectSnapshot.data();
+            console.log(projectData.type);
+            setIsAnimalShelter(projectData.type === "Animal Shelter Site");
+          } else {
+            console.log("Project not found");
+          }
         }
       } catch (error) {
         console.error("Error fetching projectId: ", error);
@@ -58,17 +84,22 @@ export default function ProjectDashboard() {
     const fetchAppointments = async () => {
       if (clientId && projectId) {
         try {
-          // Determine which collection to query based on the slug
-          const appointmentsCollection = slug.includes("shelter")
-            ? "appointments-shelter" // Use this collection for animal shelters
-            : "appointments"; // Default to appointments for veterinary clinics
+          // Choose collection based on project type
+          const appointmentsCollection = isAnimalShelter
+            ? "appointments-shelter"
+            : "appointments-vet";
 
-          const appointmentsRef = collection(db, appointmentsCollection);
+          // Reference to the client's specific appointment subcollection
+          const clientAppointmentsRef = collection(
+            db,
+            appointmentsCollection,
+            projectId,
+            clientId
+          );
+
           const q = query(
-            appointmentsRef,
-            where("clientId", "==", clientId),
-            where("projectId", "==", projectId),
-            // where("status", "==", "pending") // Assuming you're looking for pending status
+            clientAppointmentsRef,
+            where("status", "==", "pending") // Assuming you're looking for pending status
           );
 
           const querySnapshot = await getDocs(q);
@@ -97,7 +128,7 @@ export default function ProjectDashboard() {
     };
 
     fetchAppointments();
-  }, [clientId, projectId, slug]); // Include slug in dependencies
+  }, [clientId, projectId, isAnimalShelter]); // Include isAnimalShelter in dependencies
 
   // Helper to format date in human-readable format
   const formatAppointmentDate = (date) => {
@@ -108,7 +139,9 @@ export default function ProjectDashboard() {
     <div className="bg-gray-200">
       <div className="lg:px-10">
         <div className="container mx-auto">
-          <h1 className="text-3xl font-bold text-blue-600 py-6">Dashboard</h1>
+          <h1 className="text-4xl font-bold p-6" style={{ color: headerColor }}>
+            Dashboard
+          </h1>
 
           <div className="container mx-auto p-6">
             {/* Welcome Section */}
@@ -120,39 +153,52 @@ export default function ProjectDashboard() {
                 We're happy to see you here at {projectName ?? ""}
               </p>
             </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Connected Care Corner */}
               <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg">
                 <h2 className="text-2xl font-semibold">
-                  Connected Care Corner
+                  Connected Care Center
                 </h2>
-                <p className="text-gray-700">Latest Update:</p>
+                <p className="text-gray-700">
+                  Stay connected with your care provider:
+                </p>
+
                 <div className="mt-4 bg-gray-100 p-4 rounded-lg">
                   <div className="flex items-center">
                     <FaUserCircle size={44} className="mr-3" />
                     <div>
                       <h3 className="text-lg font-semibold">
-                        Precious Confinement - Current Status
+                        {projectName} - Your Care Team
                       </h3>
                       <p className="text-sm text-gray-500">
-                        by Fort Deo Animal Clinic - Staff
+                        by {projectName} Admin
                       </p>
                     </div>
                   </div>
+
                   <p className="mt-4 text-gray-700">
-                    Hi Sir. I wanted to give you an update on Precious's
-                    condition. Unfortunately, he's still not eating as expected.
-                    We're closely monitoring his condition and providing
-                    supportive care to help him recover from parvovirus. We'll
-                    keep you updated on any changes. Please don't hesitate to
-                    contact us if you have any concerns.
+                    Have questions or need updates about your pet's care? Our
+                    team is here to provide support. Use the messaging feature
+                    to communicate directly with the{" "}
+                    {isAnimalShelter ? "Animal Shelter" : "Veterinary"} Admin,
+                    ask questions, and receive updates on your pet’s well-being.
                   </p>
 
                   <Link
-                    to={`/sites/${slug}/messages`} // Dynamically insert the slug into the URL
-                    className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg"
+                    to={`/sites/${slug}/messages`}
+                    className="mt-4 inline-flex items-center text-white px-4 py-2 rounded-lg transition"
+                    style={{
+                      backgroundColor: headerColor,
+                      hover: { backgroundColor: `${headerColor}cc` }, // Darken on hover
+                    }}
                   >
-                    Chat with Veterinary Now
+                    <img
+                      src={messengerLogo}
+                      alt="Messenger Logo"
+                      className="h-5 w-5 mr-2 invert"
+                    />
+                    Start a Conversation
                   </Link>
                 </div>
               </div>
@@ -184,6 +230,29 @@ export default function ProjectDashboard() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-10 rounded-lg shadow-md mb-6">
+              <h2 className="text-4xl font-bold mb-4">My Pets</h2>
+
+              {/* Display limited number of pets */}
+              <PetsList
+                clientId={userId}
+                showFilters={false}
+                limit={4}
+                isClient={true}
+                slug={slug}
+              />
+
+              {/* View All Pets Button */}
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => navigate("pets")}
+                  className="btn btn-primary"
+                >
+                  View All Pets
+                </button>
               </div>
             </div>
           </div>

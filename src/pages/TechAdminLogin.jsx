@@ -2,58 +2,64 @@ import React, { useState } from "react";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import OAuth from "../components/OAuth";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import {toast} from "react-toastify";
+import Spinner from "../components/Spinner";
+import { getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { toast } from "react-toastify";
 import { doc, getDoc } from "firebase/firestore";
-import {db} from "../firebase";
+import { db } from "../firebase";
 import platformImage from "../assets/png/platform.png";
 
 export default function TechAdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
   const { email, password } = formData;
   const navigate = useNavigate();
+
   function onChange(e) {
     setFormData((prevState) => ({
       ...prevState,
       [e.target.id]: e.target.value,
     }));
   }
-  async function onSubmit(e){
+
+  async function onSubmit(e) {
     e.preventDefault();
+    setLoading(true); // Start the loading spinner
     try {
       const auth = getAuth();
-      const userCredential = await 
-      signInWithEmailAndPassword(auth, email, password)
+
+      // Sign out all current users first
+      await signOut(auth);
+
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       if (userCredential.user) {
         const user = userCredential.user;
-  
-        // Navigate to another page if successful
-        navigate("/");
-  
+
         // Fetch the user document from Firestore using the user's uid
         const docRef = doc(db, "tech-admin", user.uid);
         const docSnap = await getDoc(docRef);
-  
+
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          
-          // Access the name field from the fetched document
           const userName = userData.name;
-  
-          // Display the user's name in a success toast
           toast.success(`Welcome, ${userName}`);
+          
+          // Navigate to the TechAdminHome page
+          navigate("/admin/dashboard");
         } else {
           console.log("No such document!");
+          toast.error("Admin access required. Please log in with an admin account.");
+          await signOut(auth);
         }
       }
     } catch (error) {
       toast.error("Invalid user credentials");
+    } finally {
+      setLoading(false); // Stop the loading spinner after completion
     }
   }
+  
   return (
     <div className="bg-gray-100">
       <section className="min-h-screen flex items-center justify-center mx-3">
@@ -82,7 +88,7 @@ export default function TechAdminLogin() {
                 manage their online presence.
               </p>
             </div>
-            <h2 class="font-bold text-yellow-900 text-center">
+            <h2 className="font-bold text-yellow-900 text-center">
               Welcome! Login to your account as a tech admin
             </h2>
             <p className="text-gray-600 text-sm mb-6 text-center mt-1">
@@ -133,8 +139,9 @@ export default function TechAdminLogin() {
               <button
                 type="submit"
                 className="w-full uppercase bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:bg-yellow-800 shadow-md hover:shadow-lg active:shadow-lg"
+                disabled={loading} // Disable button while loading
               >
-                Log In
+                {loading ? <Spinner /> : "Log In"} {/* Display Spinner when loading */}
               </button>
             </form>
             <div className="text-center mt-6">
@@ -142,7 +149,7 @@ export default function TechAdminLogin() {
                 <Link to="/forgot-password">Forgot password?</Link>
               </p>
             </div>
-            <div className="text-center mt-4">
+            {/* <div className="text-center mt-4">
               <p className="text-sm text-gray-600">
                 Don't have an account?
                 <Link
@@ -163,7 +170,7 @@ export default function TechAdminLogin() {
                 OR
               </p>
             </div>
-            <OAuth />
+            <OAuth /> */}
           </div>
         </div>
       </section>

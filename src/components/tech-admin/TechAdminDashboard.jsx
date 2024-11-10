@@ -40,9 +40,9 @@ export default function TechAdminDashboard() {
 
       // Process user data with safety checks for 'timestamp'
       const userTimestamps = usersSnapshot.docs
-        .map(doc => doc.data().timestamp)
-        .filter(timestamp => timestamp) // Remove undefined values
-        .map(timestamp => timestamp.toDate()); // Convert to Date objects
+        .map(doc => doc.data().accountCreated)
+        .filter(accountCreated => accountCreated) // Remove undefined values
+        .map(accountCreated => accountCreated.toDate()); // Convert to Date objects
       const userCountMap = processCounts(userTimestamps);
       setUserCounts(userCountMap);
 

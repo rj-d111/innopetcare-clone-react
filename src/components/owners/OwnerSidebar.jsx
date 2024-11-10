@@ -5,7 +5,7 @@ const Sidebar = ({ projectType }) => {
   const { id } = useParams(); // useParams must be inside the component
 
   return (
-    <aside className="w-1/4 h-screen bg-blue-800 text-white p-4">
+    <aside className="w-1/4 h-[calc(100vh-64px)] bg-blue-800 text-white p-4">
       <h2 className="text-lg font-semibold mb-4">Navigation</h2>
       <ul>
         <li>
@@ -14,14 +14,6 @@ const Sidebar = ({ projectType }) => {
             className="block py-2 px-4 rounded hover:bg-blue-700"
           >
             Dashboard
-          </Link>
-        </li>
-        <li>
-          <Link
-            to={`/${id}/pending`}
-            className="block py-2 px-4 rounded hover:bg-blue-700"
-          >
-            Pending Requests
           </Link>
         </li>
         <li>
@@ -42,6 +34,14 @@ const Sidebar = ({ projectType }) => {
         </li>
         {projectType === "Veterinary Site" ? (
           <>
+            <li>
+              <Link
+                to={`/${id}/pending`}
+                className="block py-2 px-4 rounded hover:bg-blue-700"
+              >
+                Pending Requests
+              </Link>
+            </li>
             <li>
               <Link
                 to={`/${id}/schedule`}
@@ -77,6 +77,14 @@ const Sidebar = ({ projectType }) => {
                 Animal Schedule
               </Link>
             </li>
+            <li>
+              <Link
+                to={`/${id}/users`}
+                className="block py-2 px-4 rounded hover:bg-blue-700"
+              >
+                Users
+              </Link>
+            </li>
             {/* <li>
               <Link
                 to={`/${id}/pets`}
@@ -86,13 +94,6 @@ const Sidebar = ({ projectType }) => {
               </Link>
             </li>
             <li>
-              <Link
-                to={`/${id}/users`}
-                className="block py-2 px-4 rounded hover:bg-blue-700"
-              >
-                Users
-              </Link>
-            </li>
             <li>
               <Link
                 to={`/${id}/adopt-tracker`}

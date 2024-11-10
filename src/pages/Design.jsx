@@ -15,11 +15,14 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import Volunteer from "../components/design/Volunteer";
 import Donate from "../components/design/Donate";
+import UserFeedbackSection from "../components/design/UserFeedbackSection";
+import SendReportSection from "../components/design/SendReportSection";
+import PetHealthRecordsSection from "../components/design/PetHealthRecordsSection";
+import DonateSection from "../components/design/DonateSection";
 
 function Design({ isWebVersion, setWebVersion }) {
   const { id } = useParams();
   const [projectType, setProjectType] = useState("");
-
 
   const [formData, setFormData] = useState({
     name: "",
@@ -49,7 +52,6 @@ function Design({ isWebVersion, setWebVersion }) {
     volunteer: "pending",
   });
 
-
   useEffect(() => {
     const fetchProjectById = async (projectId) => {
       try {
@@ -76,25 +78,40 @@ function Design({ isWebVersion, setWebVersion }) {
     fetchProjectData();
   }, [id]);
 
-
   const renderSection = () => {
     switch (activeSection) {
       case "globalSections":
-        return <GlobalSections formData={formData} setFormData={setFormData} setImagePreview={setImagePreview} />;
+        return (
+          <GlobalSections
+            formData={formData}
+            setFormData={setFormData}
+            setImagePreview={setImagePreview}
+          />
+        );
       case "homePage":
-        return <HomePage formData={formDataHome} setFormData={setFormDataHome} />;
+        return (
+          <HomePage formData={formDataHome} setFormData={setFormDataHome} />
+        );
       case "aboutUs":
         return <AboutUs />;
       case "services":
         return <Services />;
+      case "petHealthRecords":
+        return <PetHealthRecordsSection />;
       case "contactUs":
         return <ContactUs />;
       case "adoptPets":
         return <AdoptPet />;
       case "donate":
-        return <Donate/>;
+        return <Donate />;
+      case "donate-section":
+        return <DonateSection />;
       case "volunteer":
         return <Volunteer />;
+      case "userFeedback":
+        return <UserFeedbackSection />;
+      case "sendReport":
+        return <SendReportSection />;
       default:
         return null;
     }
@@ -110,8 +127,10 @@ function Design({ isWebVersion, setWebVersion }) {
       />
       <div className="w-full">
         <div className="flex">
-          <div className="md:w-1/2 md:shadow-right-md">{renderSection()}</div>
-          <div className="hidden md:flex md:flex-grow md:justify-center md:w-full mx-10 mt-10 overflow-hidden">
+          <div className="md:w-1/3 md:shadow-right-md h-[calc(100vh-80px)] overflow-auto">
+            {renderSection()}
+          </div>
+          <div className="hidden md:flex md:flex-grow md:justify-center md:2/3 mx-10 py-10 h-[calc(100vh-80px)] overflow-auto">
             {isWebVersion ? (
               <CanvasWeb formData={formData} imagePreview={imagePreview} />
             ) : (

@@ -9,11 +9,11 @@ import {
 } from "firebase/storage";
 import { toast } from "react-toastify";
 import { IoClose } from "react-icons/io5";
+import { useParams } from "react-router";
+import Spinner from "../Spinner";
 
 export default function OwnerAdoptionModal({
-  clientId,
   projectId,
-  clientName,
   closeModal,
 }) {
   const [petData, setPetData] = useState({
@@ -31,6 +31,7 @@ export default function OwnerAdoptionModal({
     notes: "", // New notes field
   });
   const [breeds, setBreeds] = useState([]);
+  const [loading, setLoading] = useState(false); // Add loading state
 
   // Fetch breeds based on species selection
   useEffect(() => {
@@ -161,6 +162,7 @@ export default function OwnerAdoptionModal({
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Start loading
     try {
       let imageUrl = "";
 
@@ -175,7 +177,6 @@ export default function OwnerAdoptionModal({
 
       // Prepare data for submission, replacing species and breed if 'other' is selected
       const finalData = {
-        clientId: clientId,
         projectId: projectId,
         petName: petData.petName,
         birthdate: petData.birthdate,
@@ -195,6 +196,8 @@ export default function OwnerAdoptionModal({
       closeModal(); // Close modal after successful submission
     } catch (error) {
       toast.error("Error adding pet. Please try again.");
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -349,7 +352,7 @@ export default function OwnerAdoptionModal({
             />
 
             <button type="submit" className="btn btn-primary mt-4">
-              Submit
+            {loading ? <Spinner /> : "Submit"}            
             </button>
           </form>
         </div>

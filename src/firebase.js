@@ -1,7 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { initializeAuth } from "firebase/auth";
+import { getAuth, initializeAuth } from "firebase/auth";
 import {getFirestore} from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
 // TODO: Add SDKs for Firebase products that you want to use
@@ -20,8 +21,18 @@ const firebaseConfig = {
   measurementId: "G-SCXNZK8VMZ"
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore();
+// const firebaseConfig = {
+//   apiKey: "AIzaSyCUUnn8RNKS-32CclPHhTGEcvSTysG1pSo",
+//   authDomain: "innopetcare-final.firebaseapp.com",
+//   projectId: "innopetcare-final",
+//   storageBucket: "innopetcare-final.firebasestorage.app",
+//   messagingSenderId: "1068691259140",
+//   appId: "1:1068691259140:web:984b715a76116ab66e5a51",
+//   measurementId: "G-3BCXS46RY8"
+// };
 
-// Initialize Firebase Storage
-export const storage = getStorage(app); // Export Firebase Storage instance
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app);

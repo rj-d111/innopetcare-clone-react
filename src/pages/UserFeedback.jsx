@@ -44,13 +44,13 @@ export default function UserFeedback() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-6">User Feedback</h1>
-      <p className="mb-4">We want your opinion!</p>
-      <p className="mb-4">How likely would you recommend our service to a friend or colleague?</p>
+    <div className="container max-w-2xl mx-auto p-6">
+      <h1 className="text-3xl font-semibold mb-6 ps-6">User Feedback</h1>
+      <p className="mb-4 ps-6">We want your opinion!</p>
+      <p className="mb-4 ps-6">How likely would you recommend our service to a friend or colleague?</p>
 
       {/* Star Rating System */}
-      <div className="flex mb-4">
+      <div className="flex mb-4 justify-center">
         {[1, 2, 3, 4, 5].map((star) => (
           <svg
             key={star}
@@ -88,7 +88,7 @@ export default function UserFeedback() {
 
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          className="bg-yellow-500 w-full text-white px-4 py-2 rounded-lg hover:bg-yellow-600"
         >
           Submit
         </button>

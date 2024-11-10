@@ -3,10 +3,11 @@ import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { toast } from "react-toastify";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"; // Add updateDoc and serverTimestamp
 import { db } from "../firebase";
 import platformImage from "../assets/png/platform.png";
-import Spinner from "../components/Spinner"; // Assuming you have a Spinner component
+import Spinner from "../components/Spinner";
+import OAuth from "../components/OAuth";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +17,7 @@ export default function Login() {
   });
   const { email, password } = formData;
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false); // Loading state
+  const [loading, setLoading] = useState(false);
 
   function onChange(e) {
     setFormData((prevState) => ({
@@ -27,20 +28,27 @@ export default function Login() {
 
   async function onSubmit(e) {
     e.preventDefault();
-    setLoading(true); // Set loading to true when submitting
+    setLoading(true);
     try {
       const auth = getAuth();
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       if (userCredential.user) {
         const user = userCredential.user;
+        
         // Fetch the user document from Firestore using the user's uid
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
+
         if (docSnap.exists()) {
           const userData = docSnap.data();
           const userName = userData.name;
+
+          // Update the lastActivityTime to the current timestamp
+          await updateDoc(docRef, { lastActivityTime: serverTimestamp() });
+
           // Display the user's name in a success toast
           toast.success(`Welcome, ${userName}`);
+
           // Check isApproved field and navigate accordingly
           if (userData.isApproved) {
             navigate("/");
@@ -54,7 +62,7 @@ export default function Login() {
     } catch (error) {
       toast.error("Invalid user credentials");
     } finally {
-      setLoading(false); // Set loading to false after navigation decision
+      setLoading(false);
     }
   }
 

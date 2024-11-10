@@ -1,207 +1,198 @@
 import React, { useState } from "react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, setDoc } from "firebase/firestore";
-import { db, storage } from "../firebase"; // Import initialized Firestore and Storage from firebase.js
-import { v4 as uuidv4 } from "uuid"; // For generating unique file names
+import { FaFilePdf, FaFileWord, FaFile } from "react-icons/fa";
+import { FaFileCirclePlus } from "react-icons/fa6";
+import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import Spinner from "../components/Spinner.jsx";
 
-export default function Register3({ adminType, setError, userId }) {
-  const [formData, setFormData] = useState({
-    businessPermit: null,
-    veterinaryClinicLicense: null,
-    dtiBusinessName: null,
-    sanitaryPermit: null,
-    environmentalCompliance: null,
-    tin: null,
-    animalIndustryRegistration: null,
-    validId: null,
-    welfareCertificate: null, // For Animal Shelter Admin
-  });
+function Register3({ formData, onChange, onPrevious, onSubmit }) {
+  const [fileCount, setFileCount] = useState(formData.document.length);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Function to upload files to Firebase Storage
-  const uploadFile = async (file) => {
-    const storageRef = ref(storage, `users/${userId}/docs/${uuidv4()}-${file.name}`);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef); // Return the URL of the uploaded file
+  const handleFileChange = (e) => {
+    const newFiles = Array.from(e.target.files);
+    const updatedFiles = [...formData.document, ...newFiles];
+
+    setFileCount(updatedFiles.length);
+    onChange(updatedFiles); // Pass the updated file array directly
   };
 
-  // Handle form submission
-  const onSubmit = async (e) => {
+  const handleRemoveFile = (index) => {
+    const fileName = formData.document[index].name; // Get the file name to display in the toast
+    const updatedFiles = formData.document.filter((_, i) => i !== index);
+    setFileCount(updatedFiles.length);
+    onChange(updatedFiles); // Update with the remaining files directly
+
+    // Show success message with file name
+    toast.success(`${fileName} removed successfully`);
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validation to ensure all required files are uploaded
-    if (
-      !formData.businessPermit ||
-      !formData.dtiBusinessName ||
-      !formData.sanitaryPermit ||
-      !formData.environmentalCompliance ||
-      !formData.tin ||
-      !formData.animalIndustryRegistration ||
-      !formData.validId
-    ) {
-      setError("Please upload all required files.");
+    if (fileCount === 0) {
+      toast.error("Please upload documents.");
       return;
     }
 
-    if (adminType === "Veterinary Admin" && !formData.veterinaryClinicLicense) {
-      setError("Please upload your Veterinary Clinic License.");
+    if (!agreeTerms) {
+      toast.error("Please agree to the Terms and Conditions.");
       return;
     }
 
-    if (adminType === "Animal Shelter Admin" && !formData.welfareCertificate) {
-      setError("Please upload your Animal Welfare Certificate.");
-      return;
-    }
-
-    try {
-      // Upload all files to Firebase Storage
-      const fileUploads = await Promise.all(
-        Object.keys(formData).map(async (key) => {
-          if (formData[key]) {
-            return { [key]: await uploadFile(formData[key]) }; // Return the file URL for each field
-          }
-          return null;
-        })
-      );
-
-      // Combine all file URLs into a single object
-      const fileData = Object.assign({}, ...fileUploads);
-
-      // Save data to Firestore
-      await setDoc(doc(db, "users", userId), {
-        ...fileData,
-        adminType,
-        userId,
-      });
-
-      console.log("Form submitted successfully with files:", fileData);
-    } catch (error) {
-      console.error("Error uploading files: ", error);
-      setError("Failed to upload files.");
-    }
-  };
-
-  // Handle file input changes
-  const onFileChange = (e) => {
-    const { id, files } = e.target;
-    setFormData((prevState) => ({
-      ...prevState,
-      [id]: files[0],
-    }));
+    setLoading(true);
+    setTimeout(() => {
+      onSubmit();
+      setLoading(false);
+    }, 1500); // Simulate loading delay for demonstration
   };
 
   return (
-    <form onSubmit={onSubmit} encType="multipart/form-data">
-      <div className="mb-4">
-        <label className="block text-gray-700">Business Permit</label>
-        <input
-          type="file"
-          id="businessPermit"
-          accept=".pdf, image/*"
-          onChange={onFileChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </div>
+    <>
+      <form onSubmit={handleSubmit} encType="multipart/form-data">
+        <h3 className="text-lg font-semibold mb-4">Document and Policy</h3>
+        <div className="mb-5">
+          <label htmlFor="document" className="block text-gray-500 mb-2">
+            Upload Document
+          </label>
+          <p className="text-sm text-gray-600 mb-2">
+            You should upload these documents (PDF or image formats, .jpg, .png
+            are accepted):
+          </p>
+          <ul className="list-disc list-inside mb-2">
+            <li>Business Permit</li>
+            <li>Veterinary Clinic License (For Veterinary only)</li>
+            <li>Animal Welfare License (For Animal Shelter only)</li>
+            <li>DTI Business Name</li>
+            <li>Sanitary Permit</li>
+            <li>Environmental Compliance</li>
+            <li>Tax Identification Number (TIN)</li>
+            <li>Bureau of Animal Industry Recognition</li>
+            <li>Valid Identification (Government-Issued)</li>
+          </ul>
+          <div className="mt-3">
+            <label
+              htmlFor="file-upload"
+              className="flex items-center justify-center cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200"
+            >
+              <FaFileCirclePlus className="mr-2 text-lg" />
+              Choose Files
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              name="document"
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+              onChange={handleFileChange}
+              multiple
+              className="hidden"
+            />
+          </div>
+          <p className="text-sm text-gray-700 mt-2">
+            {fileCount > 0
+              ? `${fileCount} file(s) selected`
+              : "No files selected"}
+          </p>
 
-      {adminType === "Veterinary Admin" && (
-        <div className="mb-4">
-          <label className="block text-gray-700">Veterinary Clinic License</label>
-          <input
-            type="file"
-            id="veterinaryClinicLicense"
-            accept=".pdf, image/*"
-            onChange={onFileChange}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
+          <div className="mt-3 space-y-2">
+            {formData.document &&
+              formData.document.map((file, index) => {
+                const extension = file.name.split(".").pop().toLowerCase();
+
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center p-2 border border-gray-300 rounded-lg shadow-sm"
+                  >
+                    <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center mr-4">
+                      {file.type.includes("image") ? (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt="file preview"
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                      ) : extension === "pdf" ? (
+                        <FaFilePdf className="text-red-500 text-3xl" />
+                      ) : extension === "docx" || extension === "doc" ? (
+                        <FaFileWord className="text-blue-500 text-3xl" />
+                      ) : (
+                        <FaFile className="text-gray-500 text-3xl" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-gray-700">{file.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(index)}
+                      className="text-red-500 hover:text-red-700 ml-4"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
         </div>
-      )}
 
-      {adminType === "Animal Shelter Admin" && (
-        <div className="mb-4">
-          <label className="block text-gray-700">Animal Welfare Certificate</label>
-          <input
-            type="file"
-            id="welfareCertificate"
-            accept=".pdf, image/*"
-            onChange={onFileChange}
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
+        {/* Back button */}
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg"
+          >
+            Back
+          </button>
         </div>
-      )}
 
-      <div className="mb-4">
-        <label className="block text-gray-700">DTI Business Name Registration</label>
-        <input
-          type="file"
-          id="dtiBusinessName"
-          accept=".pdf, image/*"
-          onChange={onFileChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </div>
+        {/* Terms and Conditions checkbox */}
+        <div className="mt-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={agreeTerms}
+              onChange={() => setAgreeTerms(!agreeTerms)}
+              required
+              className="form-checkbox h-5 w-5 text-yellow-600"
+            />
+            <span className="ml-2 text-gray-700 text-sm">
+              I agree to the{" "}
+              <Link
+                to="/terms-and-conditions"
+                target="_blank"
+                className="text-yellow-500 hover:underline"
+              >
+                Terms and Conditions
+              </Link>
+            </span>
+          </label>
+        </div>
 
-      <div className="mb-4">
-        <label className="block text-gray-700">Sanitary Permit</label>
-        <input
-          type="file"
-          id="sanitaryPermit"
-          accept=".pdf, image/*"
-          onChange={onFileChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700">Environmental Compliance Certificate</label>
-        <input
-          type="file"
-          id="environmentalCompliance"
-          accept=".pdf, image/*"
-          onChange={onFileChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700">Tax Identification Number (TIN)</label>
-        <input
-          type="file"
-          id="tin"
-          accept=".pdf, image/*"
-          onChange={onFileChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700">
-          Bureau of Animal Industry Registration
-        </label>
-        <input
-          type="file"
-          id="animalIndustryRegistration"
-          accept=".pdf, image/*"
-          onChange={onFileChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700">Valid Identification (Government-issued)</label>
-        <input
-          type="file"
-          id="validId"
-          accept=".pdf, image/*"
-          onChange={onFileChange}
-          className="w-full p-2 border border-gray-300 rounded-md"
-        />
-      </div>
-
-      <button
-        type="submit"
-        className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg"
-      >
-        Submit
-      </button>
-    </form>
+        {/* Submit button */}
+        <div className="mt-4">
+          <button
+            type="submit"
+            className={`w-full uppercase text-white px-4 py-2 rounded-lg flex items-center justify-center ${
+              loading ? "bg-gray-400" : "bg-yellow-600"
+            }`}
+            disabled={loading} // Correct way to conditionally disable the button
+          >
+            {loading ? (
+              <>
+                <Spinner />{" "}
+                {/* Assuming Spinner is an icon or loading component */}
+                <span>Uploading Files Please wait...</span>
+              </>
+            ) : (
+              "Next"
+            )}
+          </button>
+        </div>
+      </form>
+    </>
   );
 }
+
+export default Register3;

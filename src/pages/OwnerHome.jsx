@@ -33,9 +33,9 @@ export default function OwnerHome() {
   if (!projectType) return <Spinner />;
 
   return (
-    <div className="flex">
+    <div className="flex h-[calc(100vh-64px)]">
       <OwnerSidebar projectType={projectType} />
-      <div className="flex-grow">
+      <div className="flex-grow overflow-auto">
         {/* Outlet will render the matched route component */}
         <Outlet /> 
       </div>

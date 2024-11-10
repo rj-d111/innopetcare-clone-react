@@ -1,36 +1,43 @@
-import React, { useState, useEffect } from "react";
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
+import React, { useEffect, useState } from 'react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { FaPhone, FaEnvelope, FaFacebook, FaFacebookMessenger, FaYoutube, FaTwitter, FaInstagram, FaReddit, FaTiktok, FaLinkedin, FaWhatsapp, FaTelegramPlane, FaViber, FaMapMarkerAlt, FaGlobe, FaQuestionCircle } from 'react-icons/fa';
+import { useParams } from 'react-router';
+import { TbDeviceLandlinePhone } from "react-icons/tb";
+import SkeletonLoader from './SkeletonLoader';
+import ProjectFooter from './ProjectFooter';
 
-export default function ProjectContact() {
-  const [contactInfo, setContactInfo] = useState({
-    phone: "",
-    email: "",
-    address: "",
-    facebook: "",
-  });
+const iconMap = {
+  phone: <FaPhone />,
+  landline: <TbDeviceLandlinePhone />,
+  email: <FaEnvelope />,
+  address: <FaMapMarkerAlt />,
+  facebook: <FaFacebook />,
+  messenger: <FaFacebookMessenger />,
+  youtube: <FaYoutube />,
+  x: <FaTwitter />,
+  instagram: <FaInstagram />,
+  reddit: <FaReddit />,
+  tiktok: <FaTiktok />,
+  linkedin: <FaLinkedin />,
+  whatsapp: <FaWhatsapp />,
+  viber: <FaViber />,
+  telegram: <FaTelegramPlane />,
+  others: <FaQuestionCircle />
+};
 
-  const pathname = window.location.href;
-  const parts = pathname.split("sites/");
-  let slug;
+const ProjectContact = () => {
+  const [contacts, setContacts] = useState([]);
+  const { slug } = useParams();
+  const [projectId, setProjectId] = useState("");
+  const [headerColor, setHeaderColor] = useState("");
+  const [loading, setLoading] = useState(true); // Loading state
 
-  // Check if there's a part after "sites/"
-  if (parts.length > 1) {
-    slug = parts[1].split("/")[0]; // Get only the first part after "/"
-  }
-  console.log(slug);
-
-  const db = getFirestore();
-
+  // Fetch project ID based on slug
   useEffect(() => {
-    const fetchContactInfo = async () => {
+    const fetchProjectData = async () => {
+      setLoading(true); // Start loading
       try {
-        // Step 1: Get projectId from global-sections using the slug
         const globalSectionsQuery = query(
           collection(db, "global-sections"),
           where("slug", "==", slug)
@@ -38,82 +45,101 @@ export default function ProjectContact() {
         const globalSectionsSnapshot = await getDocs(globalSectionsQuery);
 
         if (!globalSectionsSnapshot.empty) {
-          globalSectionsSnapshot.forEach(async (doc) => {
-            const projectId = doc.data().projectId;
+          const globalSectionDoc = globalSectionsSnapshot.docs[0];
+          const projectId = globalSectionDoc.id;
+          setProjectId(projectId);
 
-            // Step 2: Fetch contact info from contact-info using projectId
-            const contactInfoQuery = query(
-              collection(db, "contact-info"),
-              where("projectId", "==", projectId)
-            );
-            const contactInfoSnapshot = await getDocs(contactInfoQuery);
-
-            if (!contactInfoSnapshot.empty) {
-              contactInfoSnapshot.forEach((contactDoc) => {
-                // Update the state with the fetched contact information
-                setContactInfo({
-                  phone: contactDoc.data().phone || "",
-                  email: contactDoc.data().email || "",
-                  address: contactDoc.data().address || "",
-                  facebook: contactDoc.data().facebook || "",
-                });
-              });
-            } else {
-              console.log(
-                "No matching contact-info document found for projectId:",
-                projectId
-              );
-            }
-          });
+                    // Extract data from the document
+                    const globalSectionData = globalSectionDoc.data();
+                    const headerColor = globalSectionData.headerColor;
+          
+                    // Set the projectId and headerColor in state
+                    setProjectId(projectId);
+                    if (headerColor) {
+                      setHeaderColor(headerColor);
+                    }
         } else {
-          console.log(
-            "No matching global-sections document found for slug:",
-            slug
-          );
+          console.log("No matching global-sections document found for slug:", slug);
         }
       } catch (error) {
-        console.error("Error fetching contact information:", error);
+        console.error("Error fetching project data:", error);
+      }finally{
+        setLoading(false); // Start loading
+
       }
     };
 
     if (slug) {
-      fetchContactInfo();
+      fetchProjectData();
     }
-  }, [slug, db]);
+  }, [slug]);
+
+  // Fetch contacts from Firestore
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const contactsRef = collection(db, `contact-sections/${projectId}/sections`);
+        const snapshot = await getDocs(contactsRef);
+        const fetchedContacts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setContacts(fetchedContacts);
+      } catch (error) {
+        console.error('Error fetching contacts:', error);
+      }
+    };
+
+    if (projectId) {
+      fetchContacts();
+    }
+  }, [projectId]);
+
+  // Group contacts by type
+  const groupedContacts = contacts.reduce((acc, contact) => {
+    if (!acc[contact.type]) {
+      acc[contact.type] = [];
+    }
+    acc[contact.type].push(contact);
+    return acc;
+  }, {});
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <div className="p-10">
-        <div className="p-6 rounded-lg shadow-md max-w-2xl mx-auto bg-white">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold mt-6">Contact Details</h2>
-          </div>
-          <div className="p-10">
-            <p>
-              <span className="font-bold">Phone Number:</span>{" "}
-              {contactInfo.phone || "N/A"}
-            </p>
-            <p>
-              <span className="font-bold">Email:</span>{" "}
-              {contactInfo.email || "N/A"}
-            </p>
-            <p>
-              <span className="font-bold">Address:</span>{" "}
-              {contactInfo.address || "N/A"}
-            </p>
-            <p>
-              <span className="font-bold">Facebook Page Link:</span>{" "}
-              <a
-                href={contactInfo.facebook || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
+      <div>
+        <div className='max-w-4xl mx-auto px-4'>
+          <h1 className='font-bold text-center text-4xl my-8'>Contact Us</h1>
+          {loading && <SkeletonLoader />}
+          {loading && <SkeletonLoader />}
+          <div className="space-y-6">
+            {Object.keys(groupedContacts).map((type) => (
+              <div
+                key={type}
+                className="bg-gray-100 p-5 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
               >
-                {contactInfo.facebook || "N/A"}
-              </a>
-            </p>
+                {/* Container for the icon, type, and content */}
+                <div className="flex items-center">
+                  {/* Render the icon based on the contact type */}
+                  <div className="text-2xl mr-4" style={{ color: headerColor }}>
+                    {iconMap[type] || <FaGlobe />}
+                  </div>
+                  {/* Render the type and content on the right side */}
+                  <div className="flex flex-col flex-grow">
+                    <h4 className="font-semibold text-base capitalize">{type}</h4>
+                    {groupedContacts[type].map(contact => (
+                      <p key={contact.id} className="text-sm text-gray-700">
+                        {contact.content}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+        <div className="mb-6"></div>
+        <ProjectFooter />
       </div>
-    </div>
-  );
-}
+    );
+  };
+  
+  export default ProjectContact;

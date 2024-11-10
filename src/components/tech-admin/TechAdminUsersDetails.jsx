@@ -23,23 +23,18 @@ export default function TechAdminUsersDetails() {
   const [userData, setUserData] = useState(null);
   const [documentUrls, setDocumentUrls] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [disableButtons, setDisableButtons] = useState({ approve: false, reject: false });
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Step 1: Get the user document based on the provided ID
         const userRef = doc(db, "users", id);
         const userSnapshot = await getDoc(userRef);
-        
+
         if (userSnapshot.exists()) {
           const userData = userSnapshot.data();
           setUserData(userData);
 
-          // Step 2: Get the UID from the user data
-          const uid = userData.uid; // assuming the uid field is in the user data
-          console.log("Retrieved UID:", uid);
-
-          // Step 3: Load document files
           const storage = getStorage();
           const documentPromises = (userData.documentFiles || []).map(
             async (docFile) => {
@@ -66,14 +61,22 @@ export default function TechAdminUsersDetails() {
   const handleApproval = async (status) => {
     try {
       const userRef = doc(db, "users", id);
-      await updateDoc(userRef, { isApproved: status });
-      setUserData((prevState) => ({ ...prevState, isApproved: status }));
-      toast.success("Approval status updated successfully");
+
       if (status) {
+        await updateDoc(userRef, { isApproved: true, isRejected: null });
+        setUserData((prevState) => ({ ...prevState, isApproved: true, isRejected: undefined }));
+        setDisableButtons({ approve: true, reject: true });
+        toast.success("User approved successfully");
         await createProject();
+      } else {
+        await updateDoc(userRef, { isApproved: false, isRejected: true });
+        setUserData((prevState) => ({ ...prevState, isApproved: false, isRejected: true }));
+        setDisableButtons((prev) => ({ ...prev, reject: true }));
+        toast.success("User rejected successfully");
       }
     } catch (error) {
       console.error("Error updating approval status:", error);
+      toast.error("Error updating approval status");
     }
   };
 
@@ -91,7 +94,7 @@ export default function TechAdminUsersDetails() {
           userData.typeOfAdmin === "Veterinary Admin"
             ? "Veterinary Site"
             : "Animal Shelter Site",
-        userId: id, // Use the ID to associate the project with the user
+        userId: id,
       };
 
       const q = query(projectsRef, where("name", "==", projectData.name));
@@ -117,7 +120,7 @@ export default function TechAdminUsersDetails() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-white rounded-lg shadow-lg max-w-4xl mx-auto">
       <h2 className="text-2xl font-semibold mb-4">User Details</h2>
 
       <div className="mb-4 flex items-center space-x-2">
@@ -190,40 +193,25 @@ export default function TechAdminUsersDetails() {
         )}
       </div>
 
-      <div className="mt-6">
-        {userData.isApproved ? (
-          <button
-            disabled
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
-          >
-            Approved
-          </button>
-        ) : (
-          <button
-            onClick={() => handleApproval(true)}
-            className="bg-green-500 text-white px-4 py-2 rounded"
-            disabled={loading}
-          >
-            Approve
-          </button>
-        )}
-
-        {!userData.isApproved ? (
-          <button
-            disabled
-            className="bg-gray-300 text-gray-700 px-4 py-2 ml-2 rounded"
-          >
-            Denied
-          </button>
-        ) : (
-          <button
-            onClick={() => handleApproval(false)}
-            className="bg-red-500 text-white px-4 py-2 ml-2 rounded"
-            disabled={loading}
-          >
-            Deny
-          </button>
-        )}
+      <div className="mt-6 flex space-x-4">
+        <button
+          onClick={() => handleApproval(true)}
+          className={`px-4 py-2 rounded text-white ${
+            disableButtons.approve ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
+          }`}
+          disabled={disableButtons.approve || loading}
+        >
+          Approve
+        </button>
+        <button
+          onClick={() => handleApproval(false)}
+          className={`px-4 py-2 rounded text-white ${
+            disableButtons.reject ? "bg-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"
+          }`}
+          disabled={disableButtons.reject || loading}
+        >
+          Reject
+        </button>
       </div>
     </div>
   );

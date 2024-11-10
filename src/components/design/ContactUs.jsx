@@ -1,204 +1,262 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../../firebase";
-import { doc, setDoc, getDoc, updateDoc, getDocs, query, collection, where, addDoc } from "firebase/firestore"; // Firestore functions
-import { useParams } from "react-router"; // To get project ID
+import { db } from "../../firebase.js";
+import {
+  doc,
+  getDocs,
+  deleteDoc,
+  collection,
+  query,
+  orderBy,
+  setDoc,
+} from "firebase/firestore";
+import { useParams } from "react-router-dom";
+import ContactUsPageModal from "./ContactUsPageModal";
+import SectionsModalDelete from "./SectionsModalDelete";
+import { TbPencil } from "react-icons/tb";
+import { CiTrash } from "react-icons/ci";
+import { FaArrowUp, FaArrowDown } from "react-icons/fa";
 import { toast } from "react-toastify";
-import Spinner from "../Spinner";
 
 export default function ContactUs() {
-  const { id } = useParams(); // Get project UUID from the URL
-  const [contactInfo, setContactInfo] = useState({
-    phone: "",
-    email: "",
-    address: "",
-    facebook: "",
-  });
-  const [isUpdateMode, setIsUpdateMode] = useState(false); // Track if the form is in update mode
-  const [loading, setLoading] = useState(true); // Track loading state
+  const { id: projectId } = useParams();
+  const [sections, setSections] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState(null);
 
-  // Fetch existing contact info if it exists
+  // Fetch sections from Firestore
   useEffect(() => {
-    const fetchContactInfo = async () => {
+    const fetchSections = async () => {
       try {
-        const q = query(
-          collection(db, "contact-info"),
-          where("projectId", "==", id)
+        const sectionsCollectionRef = collection(
+          db,
+          "contact-sections",
+          projectId,
+          "sections"
         );
-        const querySnapshot = await getDocs(q);
+        const sectionsQuery = query(
+          sectionsCollectionRef,
+          orderBy("sectionCreated", "asc")
+        );
+        const querySnapshot = await getDocs(sectionsQuery);
 
-        if (!querySnapshot.empty) {
-          const docSnap = querySnapshot.docs[0]; // Get the first matching document
-          setContactInfo(docSnap.data()); // Populate form with existing data
-          setIsUpdateMode(true); // Set update mode if document exists
-        } else {
-          setIsUpdateMode(false); // If no document, set to create mode
-        }
-        setLoading(false); // Data has been fetched, disable loading
+        const sectionsList = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSections(sectionsList);
       } catch (error) {
-        console.error("Error fetching contact info:", error);
-        setLoading(false);
+        console.error("Error fetching sections:", error);
+        toast.error("Error fetching Contact Us sections.");
       }
     };
 
-    fetchContactInfo();
-  }, [id]);
+    fetchSections();
+  }, [projectId]);
 
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setContactInfo({ ...contactInfo, [name]: value });
+  // Handle section addition or update
+  const handleSectionAdded = async () => {
+    const sectionsCollectionRef = collection(
+      db,
+      "contact-sections",
+      projectId,
+      "sections"
+    );
+    const sectionsQuery = query(
+      sectionsCollectionRef,
+      orderBy("sectionCreated", "asc")
+    );
+    const querySnapshot = await getDocs(sectionsQuery);
+
+    const sectionsList = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setSections(sectionsList);
   };
 
-  // Validate Philippine phone number format
-  const isValidPhoneNumber = (phone) => {
-    const phoneRegex = /^(09|\+639)\d{9}$/; // Matches formats like 09123456789 or +639123456789
-    return phoneRegex.test(phone);
-  };
+  // Function to swap sections
+  const swapSections = async (index1, index2) => {
+    if (index1 < 0 || index2 >= sections.length || index2 < 0) return;
 
-  // Validate email format
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email validation
-    return emailRegex.test(email);
-  };
+    const section1 = sections[index1];
+    const section2 = sections[index2];
 
-  // Validate Facebook link
-  const isValidFacebookLink = (link) => {
-    const facebookRegex = /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.me)\/.+$/; // Basic Facebook link validation
-    return facebookRegex.test(link);
-  };
-
-  // Save or update contact info in Firestore
-  const handleSave = async (e) => {
     try {
-      // Validate required fields
-      if (
-        !contactInfo.phone ||
-        !contactInfo.email ||
-        !contactInfo.address ||
-        !contactInfo.facebook
-      ) {
-        toast.error("Please fill all the required fields");
-        return;
-      }
+      const section1Ref = doc(
+        db,
+        "contact-sections",
+        projectId,
+        "sections",
+        section1.id
+      );
+      const section2Ref = doc(
+        db,
+        "contact-sections",
+        projectId,
+        "sections",
+        section2.id
+      );
 
-      // Validate specific fields
-      if (!isValidPhoneNumber(contactInfo.phone)) {
-        toast.error("Please enter a valid Philippine phone number (e.g., 09123456789)");
-        return;
-      }
+      await setDoc(section1Ref, { ...section1, sectionCreated: section2.sectionCreated });
+      await setDoc(section2Ref, { ...section2, sectionCreated: section1.sectionCreated });
 
-      if (!isValidEmail(contactInfo.email)) {
-        toast.error("Please enter a valid email address");
-        return;
-      }
-
-      if (!isValidFacebookLink(contactInfo.facebook)) {
-        toast.error("Please enter a valid Facebook link (e.g., https://facebook.com/yourpage)");
-        return;
-      }
-
-      if (isUpdateMode) {
-        // If in update mode, update the existing document
-        const q = query(
-          collection(db, "contact-info"),
-          where("projectId", "==", id)
-        );
-        const querySnapshot = await getDocs(q);
-        const docRef = querySnapshot.docs[0].ref; // Get the reference of the first matching document
-
-        await updateDoc(docRef, contactInfo); // Update existing data
-        toast.success("Contact section updated successfully!");
-      } else {
-        // If not in update mode, create a new document
-        await addDoc(collection(db, "contact-info"), {
-          ...contactInfo,
-          projectId: id, // Foreign key linking to the project
-        });
-        toast.success("Contact section created successfully!");
-        setIsUpdateMode(true); // Switch to update mode after saving
-      }
+      const updatedSections = [...sections];
+      [updatedSections[index1], updatedSections[index2]] = [
+        updatedSections[index2],
+        updatedSections[index1],
+      ];
+      setSections(updatedSections);
+      toast.success("Successfully swapped sections");
     } catch (error) {
-      toast.error("Failed to save changes: " + error.message);
+      console.error("Error swapping sections:", error);
+      toast.error("Error swapping sections.");
     }
   };
 
-  // If loading, show a loading message or spinner
-  if (loading) {
-    return <Spinner />;
-  }
+  const handleEditClick = (section) => {
+    setSelectedSection(section);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (section) => {
+    setSectionToDelete(section);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteSection = async (sectionId) => {
+    try {
+      const sectionDocRef = doc(
+        db,
+        "contact-sections",
+        projectId,
+        "sections",
+        sectionId
+      );
+      await deleteDoc(sectionDocRef);
+      setSections((prevSections) =>
+        prevSections.filter((section) => section.id !== sectionId)
+      );
+      toast.success("Section deleted successfully");
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      toast.error("Error deleting section.");
+    }
+  };
+
+  const shouldShowWarning = sections.length === 0;
 
   return (
-    <div className="p-6 md:max-w-md mx-auto bg-gray-100 shadow-md rounded-lg space-y-4">
-      <div className="bg-yellow-100 p-4 rounded-md">
-        <h2 className="text-lg font-semibold">Contact Us Page</h2>
-        <p className="text-sm text-gray-700">
-          This page provides contact information such as phone number, email,
-          and Facebook.
-        </p>
+    <>
+      <div className="p-6 md:max-w-md mx-auto bg-gray-100 shadow-md rounded-lg space-y-4 min-h-full">
+        <div className="bg-yellow-100 p-4 rounded-md">
+          <h2 className="text-lg font-semibold">Contact Us Page</h2>
+          <p className="text-sm text-gray-700">
+            Manage your contact sections to provide information on how users can reach you.
+          </p>
+        </div>
+
+        {/* Conditional Messages */}
+        {shouldShowWarning ? (
+          <div role="alert" className="alert alert-warning p-4">
+             <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 shrink-0 stroke-current"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <span>No contact information added yet. Please add at least one.</span>
+          </div>
+        ) : (
+          <div role="alert" className="alert alert-success p-4">
+             <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 shrink-0 stroke-current"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>"Contact Us" page is successfully configured.</span>
+          </div>
+        )}
+
+        {/* Section List */}
+        {sections.map((section, index) => (
+          <div key={section.id} className="p-4 bg-white rounded-lg shadow-md">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">{section.name}</h3>
+              <div className="flex items-center space-x-2">
+                {index > 0 && (
+                  <FaArrowUp
+                    className="text-green-600 cursor-pointer"
+                    onClick={() => swapSections(index, index - 1)}
+                  />
+                )}
+                {index < sections.length - 1 && (
+                  <FaArrowDown
+                    className="text-red-600 cursor-pointer"
+                    onClick={() => swapSections(index, index + 1)}
+                  />
+                )}
+                <TbPencil
+                  className="text-blue-600 cursor-pointer ml-2"
+                  onClick={() => handleEditClick(section)}
+                />
+                <CiTrash
+                  className="text-red-600 cursor-pointer ml-2"
+                  onClick={() => handleDeleteClick(section)}
+                />
+              </div>
+            </div>
+            <p className="text-gray-700">{section.content}</p>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-3 rounded-full font-semibold mt-4"
+          onClick={() => {
+            setSelectedSection(null); // Reset selectedSection to create new
+            setIsModalOpen(true);
+          }}
+        >
+          + Add Contact Us Information
+        </button>
       </div>
 
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Phone No.</label>
-        <input
-          type="text"
-          name="phone"
-          required
-          value={contactInfo.phone}
-          onChange={handleChange}
-          placeholder="Enter your phone no. here"
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+      {isModalOpen && (
+        <ContactUsPageModal
+          projectId={projectId}
+          closeModal={() => setIsModalOpen(false)}
+          onSectionAdded={handleSectionAdded}
+          selectedSection={selectedSection}
         />
-      </div>
+      )}
 
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Email</label>
-        <input
-          type="email"
-          name="email"
-          required
-          value={contactInfo.email}
-          onChange={handleChange}
-          placeholder="Enter your email address here"
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+      {isDeleteModalOpen && (
+        <SectionsModalDelete
+          show={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          sectionTitle={sectionToDelete?.sectionTitle}
+          projectId={sectionToDelete?.id}
+          onDelete={handleDeleteSection}
         />
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Address</label>
-        <input
-          type="text"
-          name="address"
-          required
-          value={contactInfo.address}
-          onChange={handleChange}
-          placeholder="Enter your address here"
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Facebook Page Link</label>
-        <input
-          type="text"
-          name="facebook"
-          value={contactInfo.facebook}
-          onChange={handleChange}
-          placeholder="Paste your Facebook link here"
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={handleSave}
-        className={`w-full uppercase ${
-          isUpdateMode
-            ? "bg-violet-600 hover:bg-violet-700 active:bg-violet-800"
-            : "bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800"
-        } text-white py-3 rounded-lg font-semibold transition duration-200 ease-in-out`}
-      >
-        {isUpdateMode ? "Update Changes" : "Save Changes"}
-      </button>
-    </div>
+      )}
+    </>
   );
 }

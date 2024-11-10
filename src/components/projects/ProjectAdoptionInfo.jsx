@@ -4,11 +4,16 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase"; // Make sure this is your Firebase configuration
 import { FaFileDownload } from "react-icons/fa";
 import { AiFillMessage } from "react-icons/ai";
+import Spinner from "../Spinner";
 
 export default function ProjectAdoptionInfo() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [pet, setPet] = useState(null);
+
+  const handleAdoptionInquiry = () => {
+    navigate(`/sites/${id}/messages`);
+  };
 
   useEffect(() => {
     const fetchPetDetails = async () => {
@@ -30,7 +35,7 @@ export default function ProjectAdoptionInfo() {
   }, [id]);
 
   if (!pet) {
-    return <div>Loading...</div>;
+    return <Spinner />;
   }
 
   // Format birthdate to show age
@@ -84,20 +89,31 @@ export default function ProjectAdoptionInfo() {
             <span className="font-bold">Weight: </span>
             {pet.weight} kg
           </p>
+          <p className="text-gray-700">
+            <span className="font-bold">Description: </span>
+            <p className="text-justify leading-relaxed">{pet.description}</p>
+          </p>
           <p className="text-gray-700 mt-4">{pet.notes}</p>
 
           {/* Buttons Section with Spacing */}
-          <div className="flex space-x-4 mt-6">
-            {/* Adoption Inquiry Button */}
-            <button className="btn btn-primary">
-              <AiFillMessage className="mr-2" /> ADOPTION INQUIRY
-            </button>
+          {/* Adoption Inquiry Button */}
+          <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0 mt-6 items-center">
+  {/* Adoption Inquiry Button */}
+  <button 
+    onClick={handleAdoptionInquiry} 
+    className="btn btn-primary flex items-center justify-center w-full sm:w-auto"
+  >
+    <AiFillMessage className="mr-2" /> ADOPTION INQUIRY
+  </button>
 
-            {/* Download Adoption Form Button */}
-            <button className="btn btn-primary">
-              <FaFileDownload className="mr-2" /> DOWNLOAD ADOPTION FORM
-            </button>
-          </div>
+  {/* Download Adoption Form Button */}
+  <button 
+    className="btn btn-primary flex items-center justify-center w-full sm:w-auto"
+  >
+    <FaFileDownload className="mr-2" /> DOWNLOAD ADOPTION FORM
+  </button>
+</div>
+
         </div>
       </div>
     </div>

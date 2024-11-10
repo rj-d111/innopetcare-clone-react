@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { db, auth } from "../../firebase";
 import { toast } from "react-toastify";
 import {
@@ -11,8 +11,10 @@ import {
   getDocs,
   serverTimestamp,
   addDoc,
+  collectionGroup,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import Spinner from "../../components/Spinner";
 
 export default function ProjectAppointments() {
   const [pets, setPets] = useState([]); // State for storing pets
@@ -26,7 +28,8 @@ export default function ProjectAppointments() {
     additional: "",
     numberOfVisitors: "",
     comments: "",
-    agree: false,
+    agreeTerms: false,
+    agreePrivacy: false,
   });
 
   const [projectId, setProjectId] = useState("");
@@ -34,47 +37,68 @@ export default function ProjectAppointments() {
   const [userEmail, setUserEmail] = useState("");
   const [services, setServices] = useState([]);
   const [isAnimalShelter, setIsAnimalShelter] = useState(false);
+  const [headerColor, setHeaderColor] = useState("#3B82F6");
+  const [loading, setLoading] = useState(false); // Loading state for the spinner
+  const [isHovered, setIsHovered] = useState(false);
+  const [bookedTimes, setBookedTimes] = useState([]);
 
   const navigate = useNavigate();
   const auth = getAuth();
 
-  const pathname = window.location.href;
-  const parts = pathname.split("sites/");
-  let slug;
-  if (parts.length > 1) {
-    slug = parts[1].split("/")[0];
-  }
+  const { slug } = useParams();
 
   // Fetch projectId and project type (Animal Shelter or Veterinary)
   useEffect(() => {
     const fetchProjectId = async () => {
       try {
+        // Step 1: Query the `global-sections` collection using the slug
         const q = query(
           collection(db, "global-sections"),
           where("slug", "==", slug)
         );
         const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const docData = querySnapshot.docs[0].data();
-          setProjectId(docData.projectId);
 
-          const projectRef = doc(db, "projects", docData.projectId);
+        // Check if we found any documents
+        if (!querySnapshot.empty) {
+          // Get the first document from the query result
+          const document = querySnapshot.docs[0]; // Renamed variable
+          const projectId = document.id;
+
+          const data = document.data(); // Get the data of the document
+          setHeaderColor(data.headerColor); // Access the headerColor attribute
+          setProjectId(projectId);
+
+          // Step 2: Fetch project details from the `projects` collection using the `projectId`
+          const projectRef = doc(db, "projects", projectId);
           const projectSnapshot = await getDoc(projectRef);
+
+          // Check if the project document exists
           if (projectSnapshot.exists()) {
             const projectData = projectSnapshot.data();
+
+            // Set the type-specific state if it's an "Animal Shelter Site"
             if (projectData.type === "Animal Shelter Site") {
               setIsAnimalShelter(true);
             }
+          } else {
+            console.log("No project found with the provided projectId.");
           }
         } else {
-          console.log("No matching documents.");
+          console.log("No matching documents in global-sections.");
         }
       } catch (error) {
-        console.error("Error fetching header data: ", error);
+        console.error("Error fetching project data:", error);
       }
     };
+
     fetchProjectId();
   }, [slug]);
+
+  const getMinDate = () => {
+    const today = new Date();
+    today.setDate(today.getDate() + 1); // Set to tomorrow
+    return today.toISOString().split("T")[0]; // Format as YYYY-MM-DD
+  };
 
   // Fetch services based on projectId
   useEffect(() => {
@@ -128,6 +152,26 @@ export default function ProjectAppointments() {
     return () => unsubscribe();
   }, []);
 
+  const darkenColor = (color, amount) => {
+    let usePound = false;
+
+    if (color[0] === "#") {
+      color = color.slice(1);
+      usePound = true;
+    }
+
+    let num = parseInt(color, 16);
+    let r = (num >> 16) + amount;
+    let b = ((num >> 8) & 0x00ff) + amount;
+    let g = (num & 0x0000ff) + amount;
+
+    r = r > 255 ? 255 : r < 0 ? 0 : r;
+    b = b > 255 ? 255 : b < 0 ? 0 : b;
+    g = g > 255 ? 255 : g < 0 ? 0 : g;
+
+    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16);
+  };
+
   // Fetch pets based on clientId and projectId
   useEffect(() => {
     const fetchPets = async () => {
@@ -153,19 +197,73 @@ export default function ProjectAppointments() {
     fetchPets();
   }, [clientId, projectId]);
 
+  // Fetch booked appointments
+  useEffect(() => {
+    const fetchBookedAppointments = async () => {
+      try {
+        const appointmentsArray = [];
+        const appointmentsRef = collection(db, "appointments");
+        const appointmentsSnapshot = await getDocs(appointmentsRef);
+
+        // Extract event_datetime from each document and convert to Date object
+        appointmentsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.event_datetime) {
+            // Convert Firestore Timestamp to JavaScript Date object
+            const dateObj = data.event_datetime.toDate();
+            appointmentsArray.push(dateObj);
+          }
+        });
+
+        // Save the fetched dates to state
+        setBookedTimes(appointmentsArray);
+      } catch (error) {
+        console.error("Error fetching appointments:", error);
+      }
+    };
+
+    fetchBookedAppointments();
+  }, []);
+
   // Fetch available time slots
   const [timeSlots, setTimeSlots] = useState([]);
-  useEffect(() => {
-    const slots = [];
-    const startHour = 8;
-    const endHour = 18;
 
-    for (let hour = startHour; hour < endHour; hour++) {
-      slots.push(convertTo12HourFormat(hour, 0));
-      slots.push(convertTo12HourFormat(hour, 30));
-    }
-    setTimeSlots(slots);
-  }, []);
+  useEffect(() => {
+    const generateTimeSlots = () => {
+      const slots = [];
+      const startHour = 8;
+      const endHour = 18;
+
+      for (let hour = startHour; hour < endHour; hour++) {
+        const time1 = convertTo12HourFormat(hour, 0);
+        const time2 = convertTo12HourFormat(hour, 30);
+
+        const datetime1 = new Date(`${formData.event_date} ${time1}`);
+        const datetime2 = new Date(`${formData.event_date} ${time2}`);
+
+        // Check if the slot is already booked
+        if (
+          !bookedTimes.some(
+            (booked) =>
+              booked instanceof Date && booked.getTime() === datetime1.getTime()
+          )
+        ) {
+          slots.push(time1);
+        }
+        if (
+          !bookedTimes.some(
+            (booked) =>
+              booked instanceof Date && booked.getTime() === datetime2.getTime()
+          )
+        ) {
+          slots.push(time2);
+        }
+      }
+      setTimeSlots(slots);
+    };
+
+    generateTimeSlots();
+  }, [formData.event_date, bookedTimes]);
 
   // Convert 24-hour time to 12-hour format with AM/PM
   const convertTo12HourFormat = (hour, minute) => {
@@ -181,9 +279,11 @@ export default function ProjectAppointments() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleCheckboxChange = (e) => {
-    setFormData({ ...formData, agree: e.target.checked });
-  };
+// Handle checkbox changes for each checkbox separately
+const handleCheckboxChange = (e) => {
+  const { name, checked } = e.target;
+  setFormData({ ...formData, [name]: checked });
+};
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -203,48 +303,75 @@ export default function ProjectAppointments() {
       return toast.error("Comments/Questions are required.");
     }
 
+    // Create the event datetime
     const event_datetime = new Date(
       `${formData.event_date} ${formData.event_time}`
     );
 
-    // Prepare data for upload based on project type
-    const appointmentData = {
-      projectId: projectId,
-      reason: formData.reason,
-      pet: isAnimalShelter ? "No Pets" : formData.pet || "No Pets",
-      event_datetime: event_datetime,
-      condition: isAnimalShelter ? "" : formData.condition,
-      additional: isAnimalShelter ? formData.comments : formData.additional,
-      createdAt: serverTimestamp(),
-      status: "pending",
-      clientId: clientId,
-    };
+    const currentUser = auth.currentUser;
+    const userUid = currentUser?.uid;
+
+    if (!userUid) {
+      toast.error("You must be logged in to book an appointment.");
+      return;
+    }
+
+    setLoading(true); // Start the loading spinner
+
+    // Prepare appointment data based on project type
+    const appointmentData = isAnimalShelter
+      ? {
+          reason: formData.reason,
+          event_datetime,
+          projectId,
+          clientId: userUid,
+          numberOfVisitors: formData.numberOfVisitors,
+          additional: formData.comments,
+          createdAt: serverTimestamp(),
+          status: "pending",
+        }
+      : {
+          reason: formData.reason,
+          pet: formData.pet || "No Pets",
+          event_datetime,
+          projectId,
+          clientId: userUid,
+          condition: formData.condition || "",
+          additional: formData.additional || "",
+          createdAt: serverTimestamp(),
+          status: "pending",
+        };
 
     try {
-      if (isAnimalShelter) {
-        appointmentData.numberOfVisitors = formData.numberOfVisitors;
-        await addDoc(collection(db, "appointments-shelter"), appointmentData);
-      } else {
-        appointmentData.condition = formData.condition;
-        await addDoc(collection(db, "appointments"), appointmentData);
-      }
+      // Step 1: Add the appointment to the flat "appointments" collection
+      const appointmentsRef = collection(db, "appointments");
+      await addDoc(appointmentsRef, appointmentData);
 
+      toast.success("Appointment booked successfully!");
+      navigate(`/sites/${slug}/dashboard`);
+
+      // Step 2: Create a notification entry
       const notificationData = {
-        clientId: clientId,
         message: `Your appointment was successfully booked for ${formData.event_date} at ${formData.event_time}. Status: 'Pending'`,
-        projectId: projectId,
         read: false,
         timestamp: serverTimestamp(),
         type: "appointment",
       };
 
-      await addDoc(collection(db, "notifications"), notificationData);
-
-      toast.success("Appointment booked successfully!");
+      // Step 3: Add the notification to the database
+      const notificationsRef = collection(
+        db,
+        "notifications",
+        projectId,
+        userUid
+      );
+      await addDoc(notificationsRef, notificationData);
       navigate(`/sites/${slug}/dashboard`);
     } catch (error) {
       console.error("Error booking appointment: ", error);
       toast.error("Failed to book the appointment.");
+    } finally {
+      setLoading(false); // Stop the loading spinner
     }
   };
 
@@ -255,9 +382,8 @@ export default function ProjectAppointments() {
           <div className="text-center">
             <h2 className="text-3xl font-bold mt-6">Set Appointment</h2>
           </div>
+          {loading && <Spinner />}
           <form className="mt-6" onSubmit={handleSubmit}>
-
-
             <div className="mb-4">
               <label htmlFor="reason" className="block text-left font-medium">
                 Reason for Appointment
@@ -325,6 +451,7 @@ export default function ProjectAppointments() {
                 name="event_date"
                 value={formData.event_date}
                 onChange={handleInputChange}
+                min={getMinDate()} // Disable past dates and today
                 className="w-full mt-2 p-2 border rounded-lg"
                 required
               />
@@ -428,13 +555,14 @@ export default function ProjectAppointments() {
               </>
             )}
 
+            {/* Terms and Conditions Checkbox */}
             <div className="mb-4">
               <label className="inline-flex items-center">
                 <input
                   type="checkbox"
-                  id="agree"
-                  name="agree"
-                  checked={formData.agree}
+                  id="agreeTerms"
+                  name="agreeTerms"
+                  checked={formData.agreeTerms}
                   onChange={handleCheckboxChange}
                   className="form-checkbox"
                   required
@@ -445,19 +573,59 @@ export default function ProjectAppointments() {
                     to={`/sites/${slug}/terms-and-conditions`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 underline"
+                    className="link link-hover duration-200 ease-in-out transition"
+                    style={{ color: headerColor }}
                   >
                     Terms and Conditions
-                  </Link>{" "}
+                  </Link>
+                </span>
+              </label>
+            </div>
+
+            {/* Privacy Policy Checkbox */}
+            <div className="mb-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="checkbox"
+                  id="agreePrivacy"
+                  name="agreePrivacy"
+                  checked={formData.agreePrivacy}
+                  onChange={handleCheckboxChange}
+                  className="form-checkbox"
+                  required
+                />
+                <span className="ml-2">
+                  I agree to the{" "}
+                  <Link
+                    to={`/sites/${slug}/privacy-policy`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link link-hover duration-200 ease-in-out transition"
+                    style={{ color: headerColor }}
+                  >
+                    Privacy Policy
+                  </Link>
                 </span>
               </label>
             </div>
 
             <button
               type="submit"
-              className="w-full p-2 bg-blue-600 text-white rounded-lg"
+              className={`w-full p-2 rounded-lg ${
+                loading ? "bg-gray-400 cursor-not-allowed" : "text-white"
+              }`}
+              style={{
+                backgroundColor: !loading
+                  ? isHovered
+                    ? darkenColor(headerColor, -20) // Darker shade on hover
+                    : headerColor
+                  : "#cccccc",
+              }}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              disabled={loading}
             >
-              Book Appointment
+              {loading ? "Booking..." : "Book Appointment"}
             </button>
           </form>
         </section>

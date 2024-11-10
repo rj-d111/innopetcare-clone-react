@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore'; // Firestore functions
 import { db } from '../../firebase'; // Firebase initialization
-import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth'; // Firebase Auth functions
+import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile } from 'firebase/auth'; // Firebase Auth functions
 import { toast } from 'react-toastify';
 import Spinner from '../Spinner'; // Assuming Spinner is in the same directory
 
@@ -53,7 +53,9 @@ export default function ProjectProfile() {
         name: clientInfo.name,
         phone: clientInfo.phone,
       });
+      await updateProfile(auth.currentUser, { displayName: clientInfo.name });
       toast.success('Profile updated successfully');
+
     } catch (error) {
       console.error('Error updating profile:', error);
     }
@@ -122,43 +124,6 @@ export default function ProjectProfile() {
         </button>
       </div>
 
-      {/* Password Change Section */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold mb-4">Change Password</h2>
-        <div className="mb-4">
-          <label className="block text-gray-700">Current Password</label>
-          <input
-            type="password"
-            className="border rounded-lg px-4 py-2 w-full"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700">New Password</label>
-          <input
-            type="password"
-            className="border rounded-lg px-4 py-2 w-full"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700">Retype New Password</label>
-          <input
-            type="password"
-            className="border rounded-lg px-4 py-2 w-full"
-            value={retypePassword}
-            onChange={(e) => setRetypePassword(e.target.value)}
-          />
-        </div>
-        <button
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-          onClick={handlePasswordChange}
-        >
-          Save Password
-        </button>
-      </div>
     </div>
   );
 }

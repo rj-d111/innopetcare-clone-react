@@ -1,15 +1,23 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import useAuthStatus from "../components/hooks/useAuthStatusUsers";
+import Spinner from "../components/Spinner";
 
-function ProtectedApprovedUserRoute({ isAuthenticated, isApproved, children }) {
-  // Redirect to login if not authenticated
+function ProtectedApprovedUserRoute({ children }) {
+  const { isAuthenticated, isApproved, checkingStatus } = useAuthStatus();
+  const location = useLocation();
+
+  if (checkingStatus) {
+    return <Spinner />; // Show loading indicator while checking status
+  }
+
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  // Redirect to approval if authenticated but not approved
-  if (isAuthenticated && !isApproved) {
-    return <Navigate to="/approval" />;
+
+  if (!isApproved) {
+    return <Navigate to="/approval" replace />;
   }
-  // Render the protected component if approved
+
   return children ? children : <Outlet />;
 }
 

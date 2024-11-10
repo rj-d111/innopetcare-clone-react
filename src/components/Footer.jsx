@@ -1,12 +1,24 @@
-import React from 'react';
-import { FaFacebook, FaYoutube } from 'react-icons/fa';
-import InnoPetCareLogo from '../assets/png/innopetcare-black.png'; // Path to the logo
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { FaFacebook, FaYoutube } from "react-icons/fa";
+import InnoPetCareLogo from "../assets/png/innopetcare-black.png";
+import { Link } from "react-router-dom";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const Footer = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const auth = getAuth();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(!!user); // Set true if user is logged in, false otherwise
+    });
+
+    // Cleanup the listener on component unmount
+    return () => unsubscribe();
+  }, [auth]);
+
   function CurrentYear() {
-    const year = new Date().getFullYear();
-    return year;
+    return new Date().getFullYear();
   }
 
   return (
@@ -16,38 +28,47 @@ const Footer = () => {
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
           <img src={InnoPetCareLogo} alt="InnoPetCare" className="h-10 mb-4" />
           <p className="text-gray-600 mb-4">
-            InnoPetCare is a content management system (CMS) designed specifically for veterinary clinics and animal shelters to manage their online presence.
+            InnoPetCare is a content management system (CMS) designed
+            specifically for veterinary clinics and animal shelters to manage
+            their online presence.
           </p>
-          <div className="flex space-x-4">
-            <a href="#" className="text-black"><FaFacebook size={24} /></a>
-            <a href="#" className="text-black"><FaYoutube size={24} /></a>
-          </div>
         </div>
 
         {/* Company Links */}
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
           <h3 className="font-semibold mb-4">Company</h3>
           <ul className="space-y-2">
-            <li><Link to="/about" className="text-gray-600 hover:underline">About InnoPetCare</Link></li>
-            <li><Link to="/about" className="text-gray-600 hover:underline">Contact Us</Link></li>
+            <li>
+              <Link to="/about" className="text-gray-600 hover:underline">
+                About InnoPetCare
+              </Link>
+            </li>
+            <li>
+              <Link to="/contact" className="text-gray-600 hover:underline">
+                Contact Us
+              </Link>
+            </li>
           </ul>
         </div>
 
-        {/* Products and Resources */}
-        <div className="flex flex-col items-center md:items-start text-center md:text-left">
-          <h3 className="font-semibold mb-4">Products</h3>
-          <ul className="space-y-2">
-            <li><Link to="/register" className="text-gray-600 hover:underline">For Veterinary Clinic</Link></li>
-            <li><Link to="/register" className="text-gray-600 hover:underline">For Animal Shelter</Link></li>
-          </ul>
-
-          {/* <h3 className="font-semibold mt-6 mb-4">Resources</h3> */}
-          <ul className="space-y-2">
-            {/* <li><a href="#" className="text-gray-600 hover:underline">Templates</a></li> */}
-            {/* <li><a href="#" className="text-gray-600 hover:underline">Tutorials</a></li> */}
-            {/* <li><a href="#" className="text-gray-600 hover:underline">Help Center</a></li> */}
-          </ul>
-        </div>
+        {/* Conditionally Render Services Section */}
+        {!isAuthenticated && (
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <h3 className="font-semibold mb-4">Services</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/register" className="text-gray-600 hover:underline">
+                  For Veterinary Clinic
+                </Link>
+              </li>
+              <li>
+                <Link to="/register" className="text-gray-600 hover:underline">
+                  For Animal Shelter
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Footer Bottom */}
@@ -56,7 +77,24 @@ const Footer = () => {
           &copy; {CurrentYear()} InnoPetCare, All Rights Reserved
         </p>
         <p className="text-gray-600">
-          <a href="#" className="hover:underline">Terms Of Use</a> | <a href="#" className="hover:underline">Privacy Policy</a>
+          
+            <Link
+              to="/terms-and-conditions"
+              className="text-gray-600 hover:underline"
+            >
+              Terms and Conditions
+            </Link>
+
+            <span className="px-3">|</span>
+          
+        
+            <Link
+              to="/privacy-policy"
+              className="text-gray-600 hover:underline"
+            >
+              Privacy Policy
+            </Link>
+          
         </p>
       </div>
     </footer>

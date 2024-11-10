@@ -1,54 +1,76 @@
-import React, { useState } from 'react';
-import { IoIosAddCircleOutline } from 'react-icons/io';
-import RecordsVaccination from './RecordsVaccination';
-import RecordsDeworming from './RecordsDeworming';
-import RecordsMedicalHistory from './RecordsMedicalHistory';
-import RecordsRecentRecord from './RecordsRecentRecord';
-import RecordsServices from './RecordsServices';
+import React, { useState, useEffect } from 'react';
+import RecordsTab from './RecordsTab';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../../firebase';
 
-const PetRecords = ({petUid}) => {
-    const [activeTab, setActiveTab] = useState('Recent Record'); // State to manage active tab
+const PetRecords = ({ petUid, projectId }) => {
+    const [activeTab, setActiveTab] = useState('Recent Record');
+    const [dynamicTabs, setDynamicTabs] = useState([]);
+
+    // Fixed tabs that should always be present
+    const fixedTabs = [
+        { id: 'recent-record', name: 'Recent Record' },
+        { id: 'medical-history', name: 'Medical History' }
+    ];
+
+    // Fetch sections from Firestore
+    const fetchSections = async () => {
+        try {
+            const sectionsRef = collection(db, `pet-health-sections/${projectId}/sections`);
+            const snapshot = await getDocs(sectionsRef);
+
+            // Extract section names and IDs
+            const sections = snapshot.docs.map(doc => ({
+                id: doc.id,
+                name: doc.data().name
+            }));
+            
+            setDynamicTabs(sections);
+        } catch (error) {
+            console.error('Error fetching sections:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (projectId) {
+            fetchSections();
+        }
+    }, [projectId]);
 
     // Handler to change the active tab
-    const handleTabClick = (tab) => {
-        setActiveTab(tab);
+    const handleTabClick = (tabId) => {
+        setActiveTab(tabId);
     };
 
     // Function to render the component based on active tab
     const renderActiveComponent = () => {
         switch (activeTab) {
-            case 'Recent Record':
-                return <RecordsRecentRecord />;
-            case 'Vaccination':
-                return <RecordsVaccination petId={petUid} />;
-            case 'Deworming':
-                return <RecordsDeworming petId={petUid}/>;
-            case 'Services':
-                return <RecordsServices petId={petUid}/>;
-            case 'Medical History':
-                return <RecordsMedicalHistory petId={petUid}/>;
+            case 'recent-record':
+                return <RecordsTab />;
+            case 'medical-history':
+                return <RecordsTab projectId={projectId} sectionId="medical-history" petId={petUid} />;
             default:
-                return null;
+                return <RecordsTab projectId={projectId} sectionId={activeTab} petId={petUid} />;
         }
     };
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-lg mt-4">
+            {/* Render the dynamic tabs */}
             <div className="tabs tabs-boxed">
-                {/* Tab Buttons */}
-                {['Recent Record', 'Vaccination', 'Deworming', 'Services', 'Medical History'].map((tab) => (
+                {fixedTabs.concat(dynamicTabs).map((tab) => (
                     <p
-                        key={tab}
-                        className={`tab ${activeTab === tab ? 'tab-active' : 'tab-bordered'}`}
-                        onClick={() => handleTabClick(tab)} // Change active tab on click
+                        key={tab.id}
+                        className={`tab ${activeTab === tab.id ? 'tab-active' : 'tab-bordered'}`}
+                        onClick={() => handleTabClick(tab.id)}
                     >
-                        {tab}
+                        {tab.name}
                     </p>
                 ))}
             </div>
+
+            {/* Render the active component */}
             <div className="mt-4">
-                
-                {/* Render the active component */}
                 {renderActiveComponent()}
             </div>
         </div>

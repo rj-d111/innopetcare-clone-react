@@ -23,7 +23,10 @@ export default function TechAdminFeedback() {
 
       // Calculate Total Users and Average Rating
       const total = feedbackList.length;
-      const totalRating = feedbackList.reduce((sum, feedback) => sum + (feedback.rating || 0), 0);
+      const totalRating = feedbackList.reduce(
+        (sum, feedback) => sum + (feedback.rating || 0),
+        0
+      );
       const avgRating = total > 0 ? (totalRating / total).toFixed(1) : 0;
       setTotalUsers(total);
       setAverageRating(avgRating);
@@ -49,7 +52,7 @@ export default function TechAdminFeedback() {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">User Feedback</h2>
-      
+
       {/* Stats */}
       <div className="stats shadow mb-4">
         <div className="stat">
@@ -84,7 +87,9 @@ export default function TechAdminFeedback() {
             {feedbackData.map((feedback) => (
               <tr key={feedback.id} className="hover:bg-gray-100">
                 <td className="p-2">
-                  {feedback.timestamp?.toDate().toLocaleString()}
+                  {feedback.timestamp && feedback.timestamp.toDate
+                    ? feedback.timestamp.toDate().toLocaleString()
+                    : "N/A"}
                 </td>
                 <td className="p-2">{feedback.additionalComments || "N/A"}</td>
                 <td className="p-2">{feedback.featureSuggestion || "N/A"}</td>

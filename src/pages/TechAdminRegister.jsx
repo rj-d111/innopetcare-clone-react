@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import OAuth from "../components/OAuth";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -25,7 +24,6 @@ export default function TechAdminRegister() {
 
   const { name, email, password, confirm_password } = formData;
   const navigate = useNavigate();
- 
 
   useEffect(() => {
     if (error) {
@@ -37,7 +35,7 @@ export default function TechAdminRegister() {
           if (prev === 1) {
             clearInterval(countdownTimer);
             setShowError(false);
-            setError(""); // Clear error after fading out
+            setError("");
             return 0;
           }
           return prev - 1;
@@ -50,7 +48,7 @@ export default function TechAdminRegister() {
 
   const closeError = () => {
     setShowError(false);
-    setError(""); // Clear error when closed
+    setError("");
   };
 
   const onChange = (e) => {
@@ -58,7 +56,7 @@ export default function TechAdminRegister() {
       ...prevState,
       [e.target.id]: e.target.value,
     }));
-    setError(""); // Clear error on change
+    setError("");
   };
 
   const onSubmit = async (e) => {
@@ -102,29 +100,30 @@ export default function TechAdminRegister() {
         email,
         password
       );
+      const user = userCredential.user;
+
       await updateProfile(auth.currentUser, {
         displayName: name,
       });
-      const user = userCredential.user;
 
-      console.log(user);
+      const techAdminData = {
+        name,
+        email,
+        isVerified: true,
+        timestamp: serverTimestamp(),
+      };
 
-      const formDataCopy = { ...formData };
-      delete formDataCopy.password;
-      delete formDataCopy.confirm_password;
-      formDataCopy.timestamp = serverTimestamp();
-      // Add the user.isVerified field
-      formDataCopy.isVerified = true;
+      await setDoc(doc(db, "tech-admin", user.uid), techAdminData);
 
-      await setDoc(doc(db, "tech-admin", user.uid), formDataCopy);
-      navigate("/");
       toast.success("Success! Your account has been created!");
+      navigate("/admin");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         setError("Email address already in use. Please sign in instead.");
         toast.error("Email address already in use. Please sign in instead.");
       } else {
         setError(error.message || "An unexpected error occurred.");
+        toast.error(error.message || "An unexpected error occurred.");
       }
     }
   };
@@ -188,7 +187,6 @@ export default function TechAdminRegister() {
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
               />
             </div>
-         
 
             <div className="mb-5">
               <label htmlFor="password" className="block text-gray-500 mb-2">

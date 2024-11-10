@@ -7,13 +7,14 @@ import PetRecords from "./records/PetRecords";
 const OwnerPetHealthRecords = () => {
   const [selectedPet, setSelectedPet] = useState(null); // State to store selected pet information
 
+  console.log(selectedPet);
   // Function to handle pet selection
   const handlePetSelect = (pet) => {
     setSelectedPet(pet); // Update the selected pet information
   };
 
   return (
-    <div className="flex">
+    <div className="flex h-[calc(100vh-64px)]">
       {/* Pass the handler function to PetSidebar */}
       <PetSidebar onPetSelect={handlePetSelect} />
       
@@ -24,7 +25,7 @@ const OwnerPetHealthRecords = () => {
           {/* Pass the selected pet data as props */}
           {selectedPet && (
             <>
-              <PetInformation pet={selectedPet} />
+              <PetInformation pet={selectedPet} petUid={selectedPet.id}/>
               <OwnerInformation clientId={selectedPet.clientId} />
               <PetRecords petUid={selectedPet.id} />
             </>
