@@ -7,6 +7,8 @@ import {
   getDocs,
   getDoc,
   doc,
+  orderBy,
+  limit,
 } from "firebase/firestore"; // Firestore functions
 import { db } from "../../firebase"; // Import Firebase auth
 import { format } from "date-fns"; // Optional for better date formatting
@@ -50,20 +52,27 @@ export default function ProjectDashboard() {
   useEffect(() => {
     const fetchProjectId = async () => {
       try {
+        // Query to find the document with the matching slug
         const q = query(
           collection(db, "global-sections"),
           where("slug", "==", slug)
         );
         const querySnapshot = await getDocs(q);
+  
         if (!querySnapshot.empty) {
-          const docData = querySnapshot.docs[0].data();
-          setProjectId(docData.projectId);
+          // Get the first matching document
+          const docSnapshot = querySnapshot.docs[0];
+          const docData = docSnapshot.data();
+          const projectId = docSnapshot.id; // Use document ID as projectId
+  
+          setProjectId(projectId);
           setProjectName(docData.name);
           setHeaderColor(docData.headerColor);
-
-          const projectRef = doc(db, "projects", projectId); // Use `doc` with `projectId` directly
+  
+          // Fetch project details using the retrieved projectId
+          const projectRef = doc(db, "projects", projectId);
           const projectSnapshot = await getDoc(projectRef);
-
+  
           if (projectSnapshot.exists()) {
             const projectData = projectSnapshot.data();
             console.log(projectData.type);
@@ -71,65 +80,65 @@ export default function ProjectDashboard() {
           } else {
             console.log("Project not found");
           }
+        } else {
+          console.log("No matching global-sections document found for slug:", slug);
         }
       } catch (error) {
         console.error("Error fetching projectId: ", error);
       }
     };
-    fetchProjectId();
+  
+    if (slug) {
+      fetchProjectId();
+    }
   }, [slug]);
+  
 
   // Fetch the upcoming appointments
   useEffect(() => {
     const fetchAppointments = async () => {
       if (clientId && projectId) {
         try {
-          // Choose collection based on project type
-          const appointmentsCollection = isAnimalShelter
-            ? "appointments-shelter"
-            : "appointments-vet";
-
-          // Reference to the client's specific appointment subcollection
-          const clientAppointmentsRef = collection(
-            db,
-            appointmentsCollection,
-            projectId,
-            clientId
+          const appointmentsRef = collection(db, "appointments");
+          // Fetch all documents matching clientId and projectId without ordering
+          const appointmentsQuery = query(
+            appointmentsRef,
+            where("clientId", "==", clientId),
+            where("projectId", "==", projectId)
           );
-
-          const q = query(
-            clientAppointmentsRef,
-            where("status", "==", "pending") // Assuming you're looking for pending status
+  
+          const querySnapshot = await getDocs(appointmentsQuery);
+          const appointments = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+  
+          // Filter for future appointments
+          const upcomingAppointments = appointments
+            .map((appointment) => ({
+              ...appointment,
+              event_datetime: new Date(appointment.event_datetime.seconds * 1000),
+            }))
+            .filter((appointment) => appointment.event_datetime > new Date());
+  
+          // Sort the appointments by date (ascending)
+          upcomingAppointments.sort(
+            (a, b) => a.event_datetime - b.event_datetime
           );
-
-          const querySnapshot = await getDocs(q);
-          let foundAppointment = null;
-
-          querySnapshot.forEach((doc) => {
-            const appointment = doc.data();
-            const appointmentDate = new Date(
-              appointment.event_datetime.seconds * 1000
-            );
-
-            // Only include upcoming appointments (future dates)
-            if (appointmentDate > new Date()) {
-              foundAppointment = {
-                event_datetime: appointmentDate,
-                status: appointment.status,
-              };
-            }
-          });
-
+  
+          // Get the closest upcoming appointment
+          const foundAppointment = upcomingAppointments[0] || null;
           setUpcomingAppointment(foundAppointment);
         } catch (error) {
-          console.error("Error fetching appointments: ", error);
+          console.error("Error fetching appointments:", error);
         }
       }
     };
-
+  
     fetchAppointments();
-  }, [clientId, projectId, isAnimalShelter]); // Include isAnimalShelter in dependencies
+  }, [clientId, projectId]);
 
+  
   // Helper to format date in human-readable format
   const formatAppointmentDate = (date) => {
     return format(date, "MMMM d, yyyy h:mm a");

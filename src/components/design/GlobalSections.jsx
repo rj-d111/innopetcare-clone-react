@@ -9,6 +9,8 @@ import {
   where,
   getDocs,
   addDoc,
+  GeoPoint,
+  setDoc,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import {
@@ -22,6 +24,12 @@ import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
 import Spinner from "../Spinner.jsx";
 import { useParams } from "react-router-dom";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import axios from "axios";
+import customMarker from "./customMarker.js"; // Import the custom marker
+import { FaSearch } from "react-icons/fa";
+import MapUpdater from "./MapUpdater.js";
 
 export default function GlobalSections({
   formData,
@@ -34,32 +42,41 @@ export default function GlobalSections({
   const [image, setImage] = useState(null);
   const [documentExists, setDocumentExists] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [latitude, setLatitude] = useState(null);
+  const [addressStatus, setAddressStatus] = useState(null); // For displaying alerts
+  const [searchAddress, setSearchAddress] = useState(formData.address || "");
+  const [longitude, setLongitude] = useState(null);
+  const [showManualCoordinates, setShowManualCoordinates] = useState(false);
+  const locationIQToken = "pk.71c987e9d0e505df233f7b6ae288f93a";
 
   useEffect(() => {
     const fetchDocument = async () => {
       const docRef = doc(db, "global-sections", id);
       const docSnap = await getDoc(docRef);
-  
+
       if (docSnap.exists()) {
         const docData = docSnap.data();
         setFormData({
           name: docData.name || "",
           slug: docData.slug || "",
           address: docData.address || "", // Include address field
+          geoPoint: docData.location || null,
           headerColor: docData.headerColor || "",
           headerTextColor: docData.headerTextColor || "",
           logoPicture: docData.image || "",
           selectedItemColor: docData.selectedItemColor || "#bc1823",
         });
+        setLatitude(docData.location?.latitude);
+        setLongitude(docData.location?.longitude);
         setDocumentExists(true);
       } else {
         setDocumentExists(false);
       }
     };
-  
+
     fetchDocument();
   }, [id, setFormData]);
-  
+
   const generateSlug = (name) => {
     return name
       .toLowerCase()
@@ -94,6 +111,67 @@ export default function GlobalSections({
       }));
     }
   }
+
+  const handleSearchAddress = async () => {
+    setShowManualCoordinates(false);
+    if (searchAddress.trim().length < 3) {
+      setAddressStatus("error");
+      toast.error("Please enter a valid address");
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `https://us1.locationiq.com/v1/search?key=${locationIQToken}&q=${encodeURIComponent(
+          searchAddress
+        )}&format=json`
+      );
+
+      if (response.data && response.data.length > 0) {
+        const { lat, lon, display_name } = response.data[0];
+
+        // Update formData with the fetched address and coordinates
+        setFormData((prev) => ({
+          ...prev,
+          address: searchAddress,
+          geoPoint: new GeoPoint(parseFloat(lat), parseFloat(lon)),
+        }));
+
+        // Update state variables for the map
+        setLatitude(parseFloat(lat));
+        setLongitude(parseFloat(lon));
+        setAddressStatus("success");
+      } else {
+        setAddressStatus("error");
+      }
+    } catch (error) {
+      console.error("Error fetching geolocation:", error);
+      setAddressStatus("error");
+    }
+  };
+
+  // Function to handle manual latitude and longitude entry
+  const handleManualCoordinates = () => {
+    console.log("Manual Coordinates:", latitude, longitude);
+
+    // Check if both latitude and longitude are valid
+    if (latitude && longitude) {
+      const lat = parseFloat(latitude);
+      const lon = parseFloat(longitude);
+
+      // Update the formData with new coordinates
+      setFormData((prev) => ({
+        ...prev,
+        geoPoint: new GeoPoint(lat, lon),
+      }));
+
+      // Update the state variables used by the map
+      setLatitude(lat);
+      setLongitude(lon);
+
+      setAddressStatus("manual");
+    }
+  };
 
   async function storeImage(image) {
     return new Promise((resolve, reject) => {
@@ -141,36 +219,42 @@ export default function GlobalSections({
     e.preventDefault();
     setLoading(true);
 
+    // Validation to ensure required fields are filled
     if (
       !formData.name ||
       !formData.slug ||
       !formData.headerColor ||
       !formData.headerTextColor ||
       !formData.selectedItemColor ||
-      !formData.address
+      !formData.address ||
+      !formData.geoPoint
     ) {
       setLoading(false);
-      toast.error("Please fill all the required fields");
+      toast.error("Please fill out all the required fields");
       return;
     }
 
     try {
       let logoPictureUrl = formData.logoPicture;
 
+      // Upload image if it exists
       if (image) {
         logoPictureUrl = await storeImage(image);
       }
 
-      await addDoc(collection(db, "global-sections"), {
+      // Create a new document with the given projectId
+      const docRef = doc(db, "global-sections", id);
+      await setDoc(docRef, {
         name: formData.name,
         slug: formData.slug,
-        address: formData.address, // Include address in submission
+        address: formData.address,
+        location: formData.geoPoint,
         headerColor: formData.headerColor,
         headerTextColor: formData.headerTextColor,
         selectedItemColor: formData.selectedItemColor,
         image: logoPictureUrl || null,
-        projectId: id,
       });
+
       toast.success("Global section created successfully!");
     } catch (error) {
       console.error("Error saving document:", error);
@@ -184,50 +268,48 @@ export default function GlobalSections({
     e.preventDefault();
     setLoading(true);
 
+    console.log(formData);
+
+    // Validation to ensure required fields are filled
     if (
       !formData.name ||
       !formData.slug ||
       !formData.headerColor ||
       !formData.headerTextColor ||
       !formData.selectedItemColor ||
-      !formData.address
+      !formData.address ||
+      !formData.geoPoint
     ) {
       setLoading(false);
-      toast.error("Please fill all the required fields");
+      toast.error("Please fill out all the required fields");
       return;
     }
 
     try {
       let logoPictureUrl = formData.logoPicture;
 
+      // Upload a new image if one is provided
       if (image) {
         if (formData.logoPicture && typeof formData.logoPicture === "string") {
-          await deleteImage();
+          await deleteImage(); // Delete the existing image if needed
         }
         logoPictureUrl = await storeImage(image);
       }
 
-      const q = query(
-        collection(db, "global-sections"),
-        where("projectId", "==", id)
-      );
-      const querySnapshot = await getDocs(q);
-      const existingDoc = querySnapshot.docs[0];
+      // Update the existing document directly using the projectId as docId
+      const docRef = doc(db, "global-sections", id);
+      await updateDoc(docRef, {
+        name: formData.name,
+        slug: formData.slug,
+        address: formData.address,
+        location: formData.geoPoint,
+        headerColor: formData.headerColor,
+        headerTextColor: formData.headerTextColor,
+        selectedItemColor: formData.selectedItemColor,
+        image: logoPictureUrl || null,
+      });
 
-      if (existingDoc) {
-        await updateDoc(existingDoc.ref, {
-          name: formData.name,
-          slug: formData.slug,
-          address: formData.address, // Include address in update
-          headerColor: formData.headerColor,
-          headerTextColor: formData.headerTextColor,
-          selectedItemColor: formData.selectedItemColor,
-          image: logoPictureUrl || null,
-        });
-        toast.success("Global section updated successfully!");
-      } else {
-        toast.error("Document not found for update.");
-      }
+      toast.success("Global section updated successfully!");
     } catch (error) {
       console.error("Error updating document:", error);
       toast.error("Failed to update changes");
@@ -351,6 +433,105 @@ export default function GlobalSections({
           }
           className="w-full h-10 p-0 rounded-lg"
         />
+      </div>
+
+      <div>
+        {/* Alert Message */}
+        {addressStatus && (
+          <div
+            className={`mt-2 p-2 text-xs rounded ${
+              addressStatus === "success"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }`}
+            onClick={() => setShowManualCoordinates(true)}
+          >
+            {addressStatus === "success"
+              ? "Address found successfully!"
+              : "Address not found. Click here to enter coordinates manually."}
+          </div>
+        )}
+
+        {/* Address Input and Search Button */}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium">Address</label>
+          <div className="flex">
+            <textarea
+              name="address"
+              value={searchAddress || formData.address}
+              rows={2}
+              placeholder="Enter address"
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs resize-none"
+              onChange={(e) => setSearchAddress(e.target.value)}
+            />
+            <button
+              onClick={handleSearchAddress}
+              className="ml-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg"
+            >
+              <FaSearch />
+            </button>
+          </div>
+        </div>
+
+        {/* Conditional Alerts */}
+        {addressStatus && (
+          <div
+            role="alert"
+            className="alert alert-warning  my-2 rounded-md bg-yellow-100 text-yellow-700 cursor-pointer text-xs"
+            onClick={() => setShowManualCoordinates((prev) => !prev)}
+          >
+            <span>
+              Location not accurate? Enter manual Latitude and Longitude
+              instead. <span className="font-bold">See more</span>
+            </span>
+          </div>
+        )}
+
+        {/* Manual Latitude and Longitude Inputs */}
+        {showManualCoordinates && (
+          <div className="space-y-2 mt-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium">Latitude</label>
+              <input
+                type="number"
+                value={latitude || ""}
+                onChange={(e) => setLatitude(e.target.value)}
+                placeholder="Enter latitude"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium">Longitude</label>
+              <input
+                type="number"
+                value={longitude || ""}
+                onChange={(e) => setLongitude(e.target.value)}
+                placeholder="Enter longitude"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs"
+              />
+            </div>
+            <button
+              onClick={handleManualCoordinates}
+              className="w-full mt-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg"
+            >
+              Update Coordinates
+            </button>
+          </div>
+        )}
+
+        {/* Embedded Map */}
+        {latitude && longitude && (
+          <MapContainer
+            center={[latitude, longitude]}
+            zoom={18}
+            style={{ height: "300px", width: "100%" }}
+          >
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <Marker position={[latitude, longitude]} icon={customMarker} />
+            {/* Add the MapUpdater component here */}
+            <MapUpdater latitude={latitude} longitude={longitude} />
+          </MapContainer>
+        )}
       </div>
 
       <button
