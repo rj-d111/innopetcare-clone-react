@@ -33,42 +33,49 @@ export default function NewProjectModal({ show, onClose, onProjectCreate }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); // Start loading spinner
-
+  
     const projectData = {
-      typeOfAdmin: formData.typeOfAdmin,
+      type: formData.typeOfAdmin == "Veterinary Admin" ? "Veterinary Site": "Animal Shelter Site", 
       businessRegNumber: formData.businessRegNumber,
       city: formData.city,
       postalCode: formData.postalCode,
-      isApproved: false,
-      createdAt: new Date(),
-      clientId: currentUser.uid,
-      legalName: formData.legalName,
+      status: "pending",
+      createdAt: serverTimestamp(),
+      userId: currentUser.uid,
+      name: formData.legalName,
     };
-
+  
     try {
       const uploadedFiles = [];
+      // Upload all document files to Firebase storage
       for (const file of documentFiles) {
         const fileRef = ref(storage, `project-documents/${currentUser.uid}/${file.name}`);
         await uploadBytes(fileRef, file);
         const url = await getDownloadURL(fileRef);
         uploadedFiles.push({ name: file.name, url });
       }
-
+  
       projectData.documentFiles = uploadedFiles;
-
-      await addDoc(collection(db, "projects-waiting"), projectData);
-
+  
+      // Upload to /projects collection
+      const newProjectRef = await addDoc(collection(db, "projects-waiting"), {
+        ...projectData,
+      });
+  
+      // Create a notification for the user
       const notificationData = {
-        text: `Your document, ${formData.typeOfAdmin} for ${formData.legalName}, has been submitted and is currently pending further review. Status: 'Pending'.`,
+        message: `Your document, ${formData.typeOfAdmin} for ${formData.legalName}, has been submitted and is currently pending review.`,
         read: false,
         timestamp: serverTimestamp(),
         type: "project",
       };
-
-      await addDoc(collection(db, "notifications", currentUser.uid, "notifications"), notificationData);
-
+  
+      // Store notification in /notifications-users/{userId}/notifications
+      const notificationRef = collection(db, `notifications-users/${currentUser.uid}/notifications`);
+      await addDoc(notificationRef, notificationData);
+  
+      // Show success message and navigate
       toast.success("Project submitted successfully!");
-      navigate("/notifications");
       onClose(); // Close modal on successful submit
     } catch (error) {
       console.error("Error uploading project:", error);
@@ -77,6 +84,7 @@ export default function NewProjectModal({ show, onClose, onProjectCreate }) {
       setLoading(false); // Stop loading spinner
     }
   };
+  
 
   return (
     <div className={`fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-40 ${show ? '' : 'hidden'}`}>

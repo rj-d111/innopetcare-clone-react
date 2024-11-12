@@ -75,7 +75,7 @@ export default function Donate() {
 
   return (
     <>
-      <div className="p-6 md:max-w-md mx-auto bg-gray-100 shadow-md rounded-lg space-y-4 min-h-screen">
+      <div className="p-6 md:max-w-full  mx-auto bg-gray-100 shadow-md rounded-lg space-y-4 min-h-screen">
         <div className="bg-yellow-100 p-4 rounded-md">
           <h2 className="text-lg font-semibold">Donation Page</h2>
           <p className="text-sm text-gray-700">

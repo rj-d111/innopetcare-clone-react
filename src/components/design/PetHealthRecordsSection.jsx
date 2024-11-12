@@ -137,7 +137,7 @@ export default function PetHealthRecordsSection() {
         />
       )}
 
-      <div className="p-6 md:max-w-md mx-auto bg-gray-100 shadow-md rounded-lg space-y-4 h-full">
+      <div className="p-6 md:max-w-full  mx-auto bg-gray-100 shadow-md rounded-lg space-y-4 h-full">
         <div className="bg-yellow-100 p-4 rounded-md">
           <h2 className="text-lg font-semibold">Pet Health Records Section</h2>
           <p className="text-sm text-gray-700">

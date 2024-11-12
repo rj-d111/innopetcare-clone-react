@@ -12,7 +12,7 @@ export default function NotificationsCMS() {
 
   useEffect(() => {
     if (user) {
-      const notificationsRef = collection(db, "notifications", user.uid, "notifications");
+      const notificationsRef = collection(db, "notifications-users", user.uid, "notifications");
       const q = query(notificationsRef, orderBy("timestamp", "desc"));
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -29,7 +29,7 @@ export default function NotificationsCMS() {
 
   const markAsRead = async (notificationId) => {
     try {
-      const notificationDoc = doc(db, "notifications", user.uid, "notifications", notificationId);
+      const notificationDoc = doc(db, "notifications-users", user.uid, "notifications", notificationId);
       await updateDoc(notificationDoc, { read: true });
       toast.info("Notification marked as read");
     } catch (error) {
@@ -44,7 +44,7 @@ export default function NotificationsCMS() {
   
       if (unreadNotifications.length > 0) {
         unreadNotifications.forEach((notification) => {
-          const notificationDoc = doc(db, "notifications", user.uid, "notifications", notification.id);
+          const notificationDoc = doc(db, "notifications-users", user.uid, "notifications", notification.id);
           batch.update(notificationDoc, { read: true });
         });
   
@@ -63,7 +63,7 @@ export default function NotificationsCMS() {
   
   const deleteNotification = async (notificationId) => {
     try {
-      const notificationDoc = doc(db, "notifications", user.uid, "notifications", notificationId);
+      const notificationDoc = doc(db, "notifications-users", user.uid, "notifications", notificationId);
       await deleteDoc(notificationDoc);
       toast.success("Notification deleted successfully");
     } catch (error) {
@@ -124,7 +124,7 @@ export default function NotificationsCMS() {
     
                 {/* Notification Message */}
                 <p className={`mt-2 text-sm ${notification.read ? "text-gray-600" : "text-gray-800 font-bold"}`}>
-                  {notification.text}
+                  {notification.message}
                 </p>
               </div>
             </div>

@@ -1,34 +1,29 @@
 import { FaUserCircle } from "react-icons/fa";
-import InnoPetCareSmall from "../../assets/png/InnoPetCareSmall.png";
 import { useState } from "react";
 
-const CanvasWeb = ({ formData, imagePreview }) => {
+const CanvasWeb = ({ formData, imagePreview, homeSections }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+
   return (
     <>
-      <div className="grow mockup-browser border-base-300 border">
+      <div className="grow mockup-browser border-base-300 border max-w-full">
+        {/* Toolbar */}
         <div className="mockup-browser-toolbar">
           <div className="input border-base-300 border">
             https://innopetcare.com/sites/{formData.slug || ""}
           </div>
         </div>
 
-        {/* Nav Bar */}
+        {/* Navigation Bar */}
         <nav
           className="flex items-center justify-between py-4 sticky text-sm px-5"
           style={{
-            background:
-              formData.headerColor === "" ? "#1e88e5" : formData.headerColor,
-            color:
-              formData.headerTextColor === ""
-                ? "#ffffff"
-                : formData.headerTextColor,
+            background: formData.headerColor || "#1e88e5",
+            color: formData.headerTextColor || "#ffffff",
           }}
         >
-          {/* Logo */}
-
+          {/* Logo Section */}
           <div className="flex items-center space-x-6">
-            {/* <img src={InnoPetCareSmall} alt="Logo" className="h-8" /> */}
             {(imagePreview || formData.logoPicture) && (
               <img
                 src={imagePreview || formData.logoPicture}
@@ -38,9 +33,9 @@ const CanvasWeb = ({ formData, imagePreview }) => {
             )}
             <p>{formData.name || "Default Project Name"}</p>
           </div>
-          {/* Combined Flex Container */}
+
+          {/* Navigation Links */}
           <div className="flex items-center space-x-6">
-            {/* Navigation Links */}
             <ul className="flex items-center space-x-6">
               <li>About Us</li>
               <li>Services</li>
@@ -54,73 +49,49 @@ const CanvasWeb = ({ formData, imagePreview }) => {
               onMouseEnter={() => setDropdownOpen(true)}
               onMouseLeave={() => setDropdownOpen(false)}
             >
-              <FaUserCircle
-                className="text-3xl cursor-pointer"
-                fill={
-                  formData.headerTextColor === ""
-                    ? "#ffffff"
-                    : formData.headerTextColor
-                }
-              />
-
-              {/* Dropdown Menu */}
+              <FaUserCircle className="text-3xl cursor-pointer" />
               {isDropdownOpen && (
-                <ul
-                  role="menu"
-                  data-popover="profile-menu"
-                  data-popover-placement="bottom"
-                  className={`absolute right-0 z-10 min-w-[180px] overflow-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg focus:outline-none transition-all duration-300 ease-in-out transform`}
-                >
-                  <li className="flex flex-col rounded-md p-2 text-black">
-                    Example Name example@gmail.com
+                <ul className="absolute right-0 z-10 bg-white shadow-lg p-2 rounded-lg">
+                  <li className="p-2 cursor-pointer hover:bg-gray-100">
+                    Dashboard
                   </li>
-                  <hr className="my-2 border-slate-200" role="menuitem" />
-                  <li
-                    role="menuitem"
-                    className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                  >
-                    <p className="text-slate-800 font-medium ml-2">Dashboard</p>
+                  <li className="p-2 cursor-pointer hover:bg-gray-100">
+                    Edit Profile
                   </li>
-                  <li
-                    role="menuitem"
-                    className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                  >
-                    <p className="text-slate-800 font-medium ml-2">
-                      Edit Profile
-                    </p>
-                  </li>
-                  <li
-                    role="menuitem"
-                    className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                  >
-                    <p className="text-slate-800 font-medium ml-2">
-                      Notifications
-                    </p>
-                  </li>
-                  <li
-                    role="menuitem"
-                    className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                  >
-                    <p className="text-slate-800 font-medium ml-2">Help</p>
-                  </li>
-                  <li
-                    role="menuitem"
-                    className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                  >
-                    <p className="text-slate-800 font-medium ml-2">Settings</p>
-                  </li>
-                  <hr className="my-2 border-slate-200" role="menuitem" />
-                  <li
-                    role="menuitem"
-                    className="cursor-pointer flex items-center rounded-md p-2 hover:bg-slate-100"
-                  >
-                    <p className="text-slate-800 font-medium ml-2">Sign Out</p>
+                  <li className="p-2 cursor-pointer hover:bg-gray-100">
+                    Sign Out
                   </li>
                 </ul>
               )}
             </div>
           </div>
         </nav>
+
+        {/* Content Area with max width of 560px */}
+        <div className="p-5 overflow-y-auto md:max-w-2xl 2xl:max-w-full  flex-grow mx-auto">
+          {homeSections.map((section) => (
+            <div
+              key={section.id}
+              className="mb-5 p-5 text-center"
+            >
+              <h3 className="text-xl font-bold">{section.sectionTitle}</h3>
+              <p className="text-gray-600">{section.sectionSubtext}</p>
+              <p className="text-sm mb-4">{section.sectionContent}</p>
+              {section.sectionImages && section.sectionImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  {section.sectionImages.map((url, index) => (
+                    <img
+                      key={index}
+                      src={url}
+                      alt={`Image ${index + 1}`}
+                      className="w-full h-40 object-cover rounded-md"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );

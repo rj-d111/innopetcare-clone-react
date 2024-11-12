@@ -11,7 +11,7 @@ import CanvasMobile from "../components/design/CanvasMobile";
 import { useParams } from "react-router";
 import Forum from "../components/design/Forum";
 import AdoptPet from "../components/design/AdoptPet";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
 import Volunteer from "../components/design/Volunteer";
 import Donate from "../components/design/Donate";
@@ -117,6 +117,39 @@ function Design({ isWebVersion, setWebVersion }) {
     }
   };
 
+  const [homeSections, setHomeSections] = useState([]);
+
+useEffect(() => {
+  const fetchHomeSections = async () => {
+    try {
+      const sectionsCollectionRef = collection(
+        db,
+        "home-sections",
+        id,
+        "sections"
+      );
+      const sectionsQuery = query(
+        sectionsCollectionRef,
+        orderBy("sectionCreated", "asc")
+      );
+      const querySnapshot = await getDocs(sectionsQuery);
+
+      const sectionsList = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setHomeSections(sectionsList);
+    } catch (error) {
+      console.error("Error fetching sections:", error);
+    }
+  };
+
+  if (id) {
+    fetchHomeSections();
+  }
+}, [id]);
+
+
   return (
     <div className="flex">
       <Sidebar
@@ -132,7 +165,7 @@ function Design({ isWebVersion, setWebVersion }) {
           </div>
           <div className="hidden md:flex md:flex-grow md:justify-center md:2/3 mx-10 py-10 h-[calc(100vh-80px)] overflow-auto">
             {isWebVersion ? (
-              <CanvasWeb formData={formData} imagePreview={imagePreview} />
+              <CanvasWeb formData={formData} imagePreview={imagePreview} homeSections={homeSections} />
             ) : (
               <CanvasMobile />
             )}

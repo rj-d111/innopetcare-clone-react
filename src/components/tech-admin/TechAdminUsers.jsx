@@ -6,7 +6,7 @@ import { FaSearch, FaRegEye, FaSortUp, FaSortDown } from "react-icons/fa";
 import { IoCloseCircle, IoTimeOutline } from "react-icons/io5";
 import { FaCircleCheck } from "react-icons/fa6";
 import { Link } from "react-router-dom";
-import { doc, getDocs, updateDoc, collection, query } from "firebase/firestore";
+import { doc, getDocs, updateDoc, collection, query, setDoc, serverTimestamp, addDoc } from "firebase/firestore";
 
 export default function TechAdminUsers() {
   const [users, setUsers] = useState([]);
@@ -67,14 +67,27 @@ export default function TechAdminUsers() {
   const handleAction = async (userId, action, userName) => {
     const userDocRef = doc(db, "users", userId);
     const newStatus = action === "accept" ? "approved" : "rejected";
-
+  
     try {
+      // Update user status
       await updateDoc(userDocRef, { status: newStatus });
-
+  
+      // If action is "accept", create a notification document with a random ID
+      if (action === "accept") {
+        const notificationCollectionRef = collection(db, `notifications-users/${userId}/notifications`);
+        await addDoc(notificationCollectionRef, {
+          message: `${userName}, your account has been approved!`,
+          timestamp: serverTimestamp(),
+          read: false,
+          type: "account"
+        });
+      }
+  
+      // Show success toast message
       toast.success(
         `${userName} was successfully ${newStatus === "approved" ? "approved" : "rejected"}`
       );
-
+  
       // Update the local state
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
@@ -86,6 +99,8 @@ export default function TechAdminUsers() {
       console.error("Error updating user status: ", error);
     }
   };
+  
+  
 
   // Sorting logic
   const handleSort = (key) => {
@@ -118,7 +133,7 @@ export default function TechAdminUsers() {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Tech Admin Users</h2>
+      <h2 className="text-2xl hanfont-bold mb-4">Tech Admin Users</h2>
   
       {/* Filter Buttons */}
       <div className="flex justify-between mb-5">

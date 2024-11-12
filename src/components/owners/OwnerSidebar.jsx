@@ -104,6 +104,22 @@ const Sidebar = ({ projectType }) => {
             </li> */}
           </>
         )}
+        <li>
+          <Link
+            to={`/${id}/feedback`}
+            className="block py-2 px-4 rounded hover:bg-blue-700"
+          >
+            User Feedback
+          </Link>
+        </li>
+        <li>
+          <Link
+            to={`/${id}/report`}
+            className="block py-2 px-4 rounded hover:bg-blue-700"
+          >
+            Send Report
+          </Link>
+        </li>
       </ul>
     </aside>
   );

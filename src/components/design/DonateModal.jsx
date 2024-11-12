@@ -65,7 +65,7 @@ export default function DonateModal({ onClose, onSave, donationData }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="p-6 md:max-w-md mx-auto bg-white shadow-md rounded-lg space-y-4 relative">
+      <div className="p-6 md:max-w-full  mx-auto bg-white shadow-md rounded-lg space-y-4 relative">
         <IoClose
           className="text-red-600 text-2xl absolute top-4 right-4 cursor-pointer"
           onClick={onClose}

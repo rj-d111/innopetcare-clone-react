@@ -1,52 +1,50 @@
 import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
-import { IoIosStar } from "react-icons/io";
-import { IoStarOutline } from "react-icons/io5";
-import { FaUsers } from "react-icons/fa";
-import { FaStar } from "react-icons/fa6";
+import { FaUsers, FaStar } from "react-icons/fa";
 
 export default function TechAdminFeedback() {
-  const [feedbackData, setFeedbackData] = useState([]);
+  const [feedbackList, setFeedbackList] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
 
+  // Fetch feedback data from Firestore
   useEffect(() => {
     const fetchFeedback = async () => {
-      const feedbackCollection = collection(db, "feedback");
-      const feedbackSnapshot = await getDocs(feedbackCollection);
-      const feedbackList = feedbackSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setFeedbackData(feedbackList);
+      try {
+        const feedbackCollection = collection(db, "user-feedback-cms");
+        const querySnapshot = await getDocs(feedbackCollection);
+        const feedbackData = querySnapshot.docs.map((doc) => doc.data());
 
-      // Calculate Total Users and Average Rating
-      const total = feedbackList.length;
-      const totalRating = feedbackList.reduce(
-        (sum, feedback) => sum + (feedback.rating || 0),
-        0
-      );
-      const avgRating = total > 0 ? (totalRating / total).toFixed(1) : 0;
-      setTotalUsers(total);
-      setAverageRating(avgRating);
+        setFeedbackList(feedbackData);
+
+        // Calculate total users and average rating
+        const total = feedbackData.length;
+        const average =
+          feedbackData.reduce((acc, curr) => acc + (curr.rating || 0), 0) /
+          (total || 1);
+
+        setTotalUsers(total);
+        setAverageRating(average);
+      } catch (error) {
+        console.error("Error fetching feedback:", error);
+      }
     };
 
     fetchFeedback();
   }, []);
 
+  // Function to render rating as stars
   const renderStars = (rating) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        i <= rating ? (
-          <IoIosStar key={i} className="text-yellow-500" />
+    return [...Array(5)].map((_, index) => (
+      <span key={index}>
+        {index < rating ? (
+          <FaStar className="text-yellow-500" />
         ) : (
-          <IoStarOutline key={i} className="text-gray-400" />
-        )
-      );
-    }
-    return stars;
+          <FaStar className="text-gray-300" />
+        )}
+      </span>
+    ));
   };
 
   return (
@@ -54,7 +52,8 @@ export default function TechAdminFeedback() {
       <h2 className="text-2xl font-bold mb-4">User Feedback</h2>
 
       {/* Stats */}
-      <div className="stats shadow mb-4">
+      <div className="stats shadow mb-8">
+        {/* Total Users Responded */}
         <div className="stat">
           <div className="stat-figure text-primary">
             <FaUsers size={30} />
@@ -63,6 +62,7 @@ export default function TechAdminFeedback() {
           <div className="stat-value text-primary">{totalUsers}</div>
         </div>
 
+        {/* Average Rating */}
         <div className="stat">
           <div className="stat-figure text-secondary">
             <FaStar size={30} />
@@ -72,29 +72,49 @@ export default function TechAdminFeedback() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Feedback Table */}
       <div className="overflow-x-auto">
         <table className="table w-full">
+          {/* Table Head */}
           <thead>
             <tr>
-              <th className="p-2">Timestamp</th>
-              <th className="p-2">Additional Comments</th>
-              <th className="p-2">Feature Suggestion</th>
-              <th className="p-2">Rating</th>
+              <th>#</th>
+              <th>Rating</th>
+              <th>Experience</th>
+              <th>Helpful Feature</th>
+              <th>Improvements</th>
+              <th>Design Feedback</th>
+              <th>UI Confusion</th>
+              <th>Mobile vs Web</th>
+              <th>New Features</th>
+              <th>Additional Comments</th>
+              <th>Date Submitted</th>
             </tr>
           </thead>
+          {/* Table Body */}
           <tbody>
-            {feedbackData.map((feedback) => (
-              <tr key={feedback.id} className="hover:bg-gray-100">
-                <td className="p-2">
-                  {feedback.timestamp && feedback.timestamp.toDate
-                    ? feedback.timestamp.toDate().toLocaleString()
-                    : "N/A"}
+            {feedbackList.map((feedback, index) => (
+              <tr key={index} className={index % 2 === 0 ? "bg-base-200" : ""}>
+                <th>{index + 1}</th>
+
+                {/* Star Rating Column */}
+                <td>
+                  <div className="flex items-center justify-center h-full">
+                    {renderStars(feedback.rating)}
+                  </div>
                 </td>
-                <td className="p-2">{feedback.additionalComments || "N/A"}</td>
-                <td className="p-2">{feedback.featureSuggestion || "N/A"}</td>
-                <td className="p-2 flex space-x-1">
-                  {renderStars(feedback.rating)}
+
+                {/* Feedback Columns */}
+                <td>{feedback.experience || "No feedback provided"}</td>
+                <td>{feedback.helpfulFeature || "N/A"}</td>
+                <td>{feedback.improvement || "N/A"}</td>
+                <td>{feedback.designFeedback || "N/A"}</td>
+                <td>{feedback.uiConfusion || "N/A"}</td>
+                <td>{feedback.mobileWebDifference || "N/A"}</td>
+                <td>{feedback.newFeatures || "N/A"}</td>
+                <td>{feedback.additionalComments || "N/A"}</td>
+                <td>
+                  {feedback.createdAt?.toDate().toLocaleString() || "N/A"}
                 </td>
               </tr>
             ))}

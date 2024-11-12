@@ -115,6 +115,8 @@ import SendReport from "./pages/SendReport";
 import TechAdminUserReport from "./components/tech-admin/TechAdminUserReport";
 import TechAdminCrystalReport from "./components/tech-admin/TechAdminCrystalReport";
 import TechAdminFinancialReports from "./components/tech-admin/TechAdminFinancialReports";
+import OwnerSendReport from "./components/owners/OwnerSendReport";
+import OwnerFeedback from "./components/owners/OwnerFeedback";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -338,6 +340,8 @@ function AppContent() {
             <Route path="animal-schedule" element={<OwnerAnimalSchedule />} />
             <Route path="pet-records" element={<OwnerPetHealthRecords />} />
             <Route path="pet-owners" element={<OwnerPetOwners />} />
+            <Route path="report" element={<OwnerSendReport />} />
+            <Route path="feedback" element={<OwnerFeedback />} />
             <Route
               path="pet-owners/:ownerId"
               element={<OwnerPetOwnersDetails />}

@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   orderBy,
+  addDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import Spinner from "../Spinner";
@@ -109,31 +110,71 @@ export default function ProjectUserFeedback() {
     }));
   };
 
-  // Form validation and submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // // Form validation and submission
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
 
-    // Validate that all required fields are filled out
-    const unansweredQuestions = questions.filter(
-      (q) =>
-        !formData[q.id] ||
-        (Array.isArray(formData[q.id]) && formData[q.id].length === 0)
-    );
+  //   // Validate that all required fields are filled out
+  //   const unansweredQuestions = questions.filter(
+  //     (q) =>
+  //       !formData[q.id] ||
+  //       (Array.isArray(formData[q.id]) && formData[q.id].length === 0)
+  //   );
 
-    if (unansweredQuestions.length > 0) {
-      toast.error("Please answer all the questions!");
-      return;
-    }
+  //   if (unansweredQuestions.length > 0) {
+  //     toast.error("Please answer all the questions!");
+  //     return;
+  //   }
 
-    try {
-      // Here you would save the feedback to Firestore or process it as needed
-      console.log("Submitted data:", formData);
-      toast.success("Feedback submitted successfully!");
-    } catch (error) {
-      console.error("Error submitting feedback:", error);
-      toast.error("Failed to submit feedback.");
-    }
-  };
+  //   try {
+  //     // Here you would save the feedback to Firestore or process it as needed
+  //     console.log("Submitted data:", formData);
+  //     toast.success("Feedback submitted successfully!");
+  //   } catch (error) {
+  //     console.error("Error submitting feedback:", error);
+  //     toast.error("Failed to submit feedback.");
+  //   }
+  // };
+
+// Updated handleSubmit function
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // Validate that all required fields are filled out
+  const unansweredQuestions = questions.filter(
+    (q) =>
+      !formData[q.id] ||
+      (Array.isArray(formData[q.id]) && formData[q.id].length === 0)
+  );
+
+  if (unansweredQuestions.length > 0) {
+    toast.error("Please answer all the questions!");
+    return;
+  }
+
+  try {
+    // Prepare the data to be saved
+    const dataToSave = {
+      createdAt: new Date(),
+      projectId: projectId,
+      responses: formData,
+    };
+
+    // Save the feedback to Firestore under /user-feedback-users/${projectId}/responses
+    const feedbackRef = collection(db, `user-feedback-users/${projectId}/responses`);
+    await addDoc(feedbackRef, dataToSave);
+
+    toast.success("Feedback submitted successfully!");
+
+    // Reset the form after submission
+    setFormData({});
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
+    toast.error("Failed to submit feedback.");
+  }
+};
+
+
 
   if (loading) return <Spinner />;
 
