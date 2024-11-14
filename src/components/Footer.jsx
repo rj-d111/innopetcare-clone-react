@@ -48,27 +48,41 @@ const Footer = () => {
                 Contact Us
               </Link>
             </li>
+            <li>
+              <Link to="/help" className="text-gray-600 hover:underline">
+                Help Menu
+              </Link>
+            </li>
           </ul>
         </div>
 
         {/* Conditionally Render Services Section */}
-        {!isAuthenticated && (
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <h3 className="font-semibold mb-4">Services</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/register" className="text-gray-600 hover:underline">
-                  For Veterinary Clinic
-                </Link>
-              </li>
-              <li>
-                <Link to="/register" className="text-gray-600 hover:underline">
-                  For Animal Shelter
-                </Link>
-              </li>
-            </ul>
-          </div>
-        )}
+
+        <div>
+          {!isAuthenticated && (
+            <div className="flex flex-col items-center md:items-start text-center md:text-left">
+              <h3 className="font-semibold mb-4">Services</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link
+                    to="/register"
+                    className="text-gray-600 hover:underline"
+                  >
+                    For Veterinary Clinic
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/register"
+                    className="text-gray-600 hover:underline"
+                  >
+                    For Animal Shelter
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer Bottom */}
@@ -77,24 +91,18 @@ const Footer = () => {
           &copy; {CurrentYear()} InnoPetCare, All Rights Reserved
         </p>
         <p className="text-gray-600">
-          
-            <Link
-              to="/terms-and-conditions"
-              className="text-gray-600 hover:underline"
-            >
-              Terms and Conditions
-            </Link>
+          <Link
+            to="/terms-and-conditions"
+            className="text-gray-600 hover:underline"
+          >
+            Terms and Conditions
+          </Link>
 
-            <span className="px-3">|</span>
-          
-        
-            <Link
-              to="/privacy-policy"
-              className="text-gray-600 hover:underline"
-            >
-              Privacy Policy
-            </Link>
-          
+          <span className="px-3">|</span>
+
+          <Link to="/privacy-policy" className="text-gray-600 hover:underline">
+            Privacy Policy
+          </Link>
         </p>
       </div>
     </footer>

@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { MdDashboard, MdLogout } from "react-icons/md";
-import { FaUserAlt, FaRegFolderOpen } from "react-icons/fa";
+import {
+  MdDashboard,
+  MdLogout,
+  MdOutlineReportGmailerrorred,
+} from "react-icons/md";
+import { FaUserAlt, FaRegFolderOpen, FaMoneyBill } from "react-icons/fa";
 import { RiFileAddFill } from "react-icons/ri";
 import { VscFeedback } from "react-icons/vsc";
 import { toast } from "react-toastify";
+import { TbReportAnalytics } from "react-icons/tb";
 
 export default function HeaderTechAdmin() {
   const [pageState, setPageState] = useState("Sign in");
@@ -98,57 +103,93 @@ export default function HeaderTechAdmin() {
           &times;
         </button>
 
-        <ul className="space-y-4">
-          <li
-            className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
-              activeSection === "dashboard" ? "bg-yellow-950" : ""
-            }`}
-            onClick={() => handleSectionChange("dashboard")}
-          >
-            <MdDashboard className="mr-2" /> Dashboard
-          </li>
-          <li
-            className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
-              activeSection === "users" ? "bg-yellow-950" : ""
-            }`}
-            onClick={() => handleSectionChange("users")}
-          >
-            <FaUserAlt className="mr-2" /> Users
-          </li>
-          <li
-            className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
-              activeSection === "projects" ? "bg-yellow-950" : ""
-            }`}
-            onClick={() => handleSectionChange("projects")}
-          >
-            <FaRegFolderOpen className="mr-2" /> Projects
-          </li>
-          <li
-            className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
-              activeSection === "additional" ? "bg-yellow-950" : ""
-            }`}
-            onClick={() => handleSectionChange("additional")}
-          >
-            <RiFileAddFill className="mr-2" /> Additional Pending Projects
-          </li>
-          <li
-            className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
-              activeSection === "feedback" ? "bg-yellow-950" : ""
-            }`}
-            onClick={() => handleSectionChange("feedback")}
-          >
-            <VscFeedback className="mr-2" /> User Feedback
-          </li>
-          <li
-            className="flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 hover:bg-yellow-950"
-            onClick={() => {
-              handleLogout();
-              setIsMobileMenuOpen(false);
-            }}
-          >
-            <MdLogout className="mr-2" /> Logout
-          </li>
-        </ul>
+        <div className="flex flex-col h-[calc(100vh-64px)]">
+          {/* Scrollable section */}
+          <div className="overflow-y-auto space-y-4">
+            <ul>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "dashboard" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("dashboard")}
+              >
+                <MdDashboard className="mr-2" /> Dashboard
+              </li>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "users" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("users")}
+              >
+                <FaUserAlt className="mr-2" /> Users
+              </li>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "projects" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("projects")}
+              >
+                <FaRegFolderOpen className="mr-2" /> Projects
+              </li>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "additional" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("additional")}
+              >
+                <RiFileAddFill className="mr-2" /> Additional Pending Projects
+              </li>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "feedback" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("feedback")}
+              >
+                <VscFeedback className="mr-2" /> User Feedback
+              </li>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "send-report" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("send-report")}
+              >
+                <MdOutlineReportGmailerrorred className="mr-2" /> Send Report
+              </li>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "report" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("report")}
+              >
+                <TbReportAnalytics className="mr-2" /> Report Generation
+              </li>
+              <li
+                className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
+                  activeSection === "finance" ? "bg-yellow-950" : ""
+                }`}
+                onClick={() => handleSectionChange("finance")}
+              >
+                <FaMoneyBill className="mr-2" /> Financial Reports
+              </li>
+            </ul>
+          </div>
+
+          {/* Fixed Logout Button */}
+          <div className="mt-auto">
+            <ul>
+              <li
+                className="flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 hover:bg-yellow-950"
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <MdLogout className="mr-2" /> Logout
+              </li>
+            </ul>
+            <div className="mb-4"></div>
+          </div>
+        </div>
       </div>
     </header>
   );

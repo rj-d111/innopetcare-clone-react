@@ -6,7 +6,17 @@ import { FaSearch, FaRegEye, FaSortUp, FaSortDown } from "react-icons/fa";
 import { IoCloseCircle, IoTimeOutline } from "react-icons/io5";
 import { FaCircleCheck } from "react-icons/fa6";
 import { Link } from "react-router-dom";
-import { doc, getDocs, updateDoc, collection, query, setDoc, serverTimestamp, addDoc } from "firebase/firestore";
+import { MdDelete } from "react-icons/md";
+import {
+  doc,
+  getDocs,
+  updateDoc,
+  collection,
+  query,
+  setDoc,
+  serverTimestamp,
+  addDoc,
+} from "firebase/firestore";
 
 export default function TechAdminUsers() {
   const [users, setUsers] = useState([]);
@@ -42,7 +52,7 @@ export default function TechAdminUsers() {
   useEffect(() => {
     const applyFilters = () => {
       let filtered = users;
-  
+
       // Apply search filter
       if (searchQuery.trim() !== "") {
         filtered = filtered.filter(
@@ -51,43 +61,48 @@ export default function TechAdminUsers() {
             user.email?.toLowerCase().includes(searchQuery.toLowerCase())
         );
       }
-  
+
       // Apply status filter
       if (filterStatus !== "all") {
         filtered = filtered.filter((user) => user.status === filterStatus);
       }
-  
+
       setFilteredUsers(filtered);
     };
-  
+
     applyFilters();
   }, [searchQuery, filterStatus, users]);
-  
+
   // Function to handle user approval or rejection
   const handleAction = async (userId, action, userName) => {
     const userDocRef = doc(db, "users", userId);
     const newStatus = action === "accept" ? "approved" : "rejected";
-  
+
     try {
       // Update user status
       await updateDoc(userDocRef, { status: newStatus });
-  
+
       // If action is "accept", create a notification document with a random ID
       if (action === "accept") {
-        const notificationCollectionRef = collection(db, `notifications-users/${userId}/notifications`);
+        const notificationCollectionRef = collection(
+          db,
+          `notifications-users/${userId}/notifications`
+        );
         await addDoc(notificationCollectionRef, {
           message: `${userName}, your account has been approved!`,
           timestamp: serverTimestamp(),
           read: false,
-          type: "account"
+          type: "account",
         });
       }
-  
+
       // Show success toast message
       toast.success(
-        `${userName} was successfully ${newStatus === "approved" ? "approved" : "rejected"}`
+        `${userName} was successfully ${
+          newStatus === "approved" ? "approved" : "rejected"
+        }`
       );
-  
+
       // Update the local state
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
@@ -99,8 +114,6 @@ export default function TechAdminUsers() {
       console.error("Error updating user status: ", error);
     }
   };
-  
-  
 
   // Sorting logic
   const handleSort = (key) => {
@@ -134,64 +147,60 @@ export default function TechAdminUsers() {
   return (
     <div className="p-6">
       <h2 className="text-2xl hanfont-bold mb-4">Tech Admin Users</h2>
-  
+
       {/* Filter Buttons */}
-      <div className="flex justify-between mb-5">
-        <div className="join join-vertical lg:join-horizontal">
-          <button
-            className={`btn join-item ${filterStatus === "all" && "btn-active"}`}
-            onClick={() => setFilterStatus("all")}
-          >
-            All
-          </button>
-          <button
-            className={`btn join-item ${
-              filterStatus === "approved" && "btn-active"
-            }`}
-            onClick={() => setFilterStatus("approved")}
-          >
-            Approved
-          </button>
-          <button
-            className={`btn join-item ${
-              filterStatus === "pending" && "btn-active"
-            }`}
-            onClick={() => setFilterStatus("pending")}
-          >
-            Pending
-          </button>
-          <button
-            className={`btn join-item ${
-              filterStatus === "rejected" && "btn-active"
-            }`}
-            onClick={() => setFilterStatus("rejected")}
-          >
-            Rejected
-          </button>
-          <button
-            className={`btn join-item ${
-              filterStatus === "deleted" && "btn-active"
-            }`}
-            onClick={() => setFilterStatus("deleted")}
-          >
-            Deleted
-          </button>
-        </div>
-  
-        {/* Search Bar */}
-        <div className="join">
-          <input
-            className="input input-bordered join-item w-60"
-            placeholder="Search by name or email"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button className="btn join-item rounded-r-full">
-            <FaSearch />
-          </button>
-        </div>
-      </div>
-  
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-5">
+  {/* Filter Buttons */}
+  <div className="join join-vertical sm:join-horizontal">
+    <button
+      className={`btn join-item ${filterStatus === "all" ? "btn-active" : ""}`}
+      onClick={() => setFilterStatus("all")}
+    >
+      All
+    </button>
+    <button
+      className={`btn join-item ${filterStatus === "approved" ? "btn-active" : ""}`}
+      onClick={() => setFilterStatus("approved")}
+    >
+      Approved
+    </button>
+    <button
+      className={`btn join-item ${filterStatus === "pending" ? "btn-active" : ""}`}
+      onClick={() => setFilterStatus("pending")}
+    >
+      Pending
+    </button>
+    <button
+      className={`btn join-item ${filterStatus === "rejected" ? "btn-active" : ""}`}
+      onClick={() => setFilterStatus("rejected")}
+    >
+      Rejected
+    </button>
+    <button
+      className={`btn join-item ${filterStatus === "deleted" ? "btn-active" : ""}`}
+      onClick={() => setFilterStatus("deleted")}
+    >
+      Deleted
+    </button>
+  </div>
+
+  {/* Search Bar */}
+  <div className="flex items-center w-full sm:w-auto">
+    <div className="join w-full sm:w-auto">
+      <input
+        className="input input-bordered join-item w-full sm:w-60"
+        placeholder="Search by name or email"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <button className="btn join-item rounded-r-full">
+        <FaSearch />
+      </button>
+    </div>
+  </div>
+</div>
+
+
       {/* Users Table */}
       <div className="overflow-x-auto">
         <table className="table w-full">
@@ -246,13 +255,25 @@ export default function TechAdminUsers() {
                         </>
                       ) : user.status === "pending" ? (
                         <>
-                          <IoTimeOutline className="text-yellow-500" size={20} />
+                          <IoTimeOutline
+                            className="text-yellow-500"
+                            size={20}
+                          />
                           <div className="text-yellow-500">Pending</div>
                         </>
-                      ) : (
+                      ) : user.status === "rejected" ? (
                         <>
                           <IoCloseCircle className="text-red-500" size={20} />
                           <div className="text-red-500">Rejected</div>
+                        </>
+                      ) : user.status === "deleted" ? (
+                        <>
+                          <MdDelete className="text-red-500" size={20} />
+                          <div className="text-red-500">Deleted</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-slate-900">{user.status}</div>
                         </>
                       )}
                     </div>
@@ -268,14 +289,20 @@ export default function TechAdminUsers() {
                     <button
                       className="btn btn-success btn-sm mr-2 text-white"
                       onClick={() => handleAction(user.id, "accept", user.name)}
-                      disabled={user.status === "approved"}
+                      disabled={
+                        user.status === "approved" || user.status === "deleted"
+                      }
                     >
                       Accept
                     </button>
                     <button
                       className="btn btn-error btn-sm text-white"
                       onClick={() => handleAction(user.id, "reject", user.name)}
-                      disabled={user.status === "rejected" || user.status === "approved"}
+                      disabled={
+                        user.status === "rejected" ||
+                        user.status === "approved" ||
+                        user.status === "deleted"
+                      }
                     >
                       Reject
                     </button>
@@ -292,7 +319,7 @@ export default function TechAdminUsers() {
           </tbody>
         </table>
       </div>
-  
+
       {/* Pagination */}
       <div className="flex justify-center mt-4">
         {Array.from({ length: totalPages }, (_, index) => (
@@ -309,5 +336,4 @@ export default function TechAdminUsers() {
       </div>
     </div>
   );
-  
 }

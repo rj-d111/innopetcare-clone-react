@@ -169,6 +169,14 @@ export default function ProjectFooter() {
                 Adopt Pets
               </Link>
             </li>
+            <li>
+              <Link
+                to={`/sites/${slug}/help`}
+                className="text-gray-600 hover:underline"
+              >
+                Help Menu
+              </Link>
+            </li>
           </ul>
         </div>
 

@@ -85,7 +85,7 @@ export default function TechAdminProjects() {
   return (
     <div className="p-10 bg-white max-w-5xl mx-auto">
       <h1 className="text-3xl font-bold mb-4">Projects</h1>
-      <div className="flex justify-between items-center mb-5">
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-5">
         {/* Filter buttons for Project Type */}
         <div className="join join-vertical lg:join-horizontal">
           <button
@@ -115,7 +115,7 @@ export default function TechAdminProjects() {
         </div>
 
         {/* Tab list for Project Status */}
-        <div role="tablist" className="tabs tabs-boxed">
+        <div role="tablist" className="tabs tabs-boxed mt-4 lg:mt-0 lg:ml-4">
           <button
             role="tab"
             className={`tab ${filterStatus === "all" ? "tab-active" : ""}`}
@@ -147,16 +147,18 @@ export default function TechAdminProjects() {
         </div>
 
         {/* Search Bar */}
-        <div className="join">
-          <input
-            className="input input-bordered join-item w-60"
-            placeholder="Search by name or user"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button className="btn join-item rounded-r-full">
-            <FaSearch />
-          </button>
+        <div className="flex items-center mt-4 lg:mt-0 lg:ml-4">
+          <div className="join">
+            <input
+              className="input input-bordered join-item w-full lg:w-60"
+              placeholder="Search by name or user"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button className="btn join-item rounded-r-full">
+              <FaSearch />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -197,24 +199,15 @@ export default function TechAdminProjects() {
               filteredProjects.map((project) => (
                 <tr key={project.id} className="hover:bg-gray-100">
                   <td>{project.name}</td>
-                  <td>
-                    {project.createdAt?.toDate().toLocaleString()}
-                  </td>
-                  <td>
-                    {project.status}
-                  </td>
+                  <td>{project.createdAt?.toDate().toLocaleString()}</td>
+                  <td>{project.status}</td>
                   <td>{project.type}</td>
-                  <td>
-                    {project.userName}
-                  </td>
+                  <td>{project.userName}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td
-                  colSpan="5"
-                  className="text-center"
-                >
+                <td colSpan="5" className="text-center">
                   No projects found
                 </td>
               </tr>

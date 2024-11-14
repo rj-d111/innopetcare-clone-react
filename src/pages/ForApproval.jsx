@@ -31,11 +31,9 @@ export default function ForApproval() {
           Waiting For Approval
         </h1>
         <p className="text-gray-600">
-          For approval, you will need to visit our vet clinic or call us.
-        </p>
-        <p className="font-bold">09XXXXXXXXX</p>
+           For approval, please visit our vet clinic or contact us. To learn more, visit the <span className='font-bold'>Contact Us</span> page.        </p>
         <p className="text-gray-600 my-4">
-          If your account has not been registered, it will automatically be deleted after 7 days.
+          If your account has not been registered, it may be deleted after 7 days.
         </p>
         <p 
           className="text-sm text-right mt-3 text-yellow-600 hover:underline hover:text-yellow-800 transition duration-200 ease-in-out cursor-pointer"
