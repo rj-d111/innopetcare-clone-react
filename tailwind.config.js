@@ -9,6 +9,10 @@ module.exports = {
         "right-md":
           "4px 0 6px -1px rgba(0, 0, 0, 0.1), 4px 0 4px -2px rgba(0, 0, 0, 0.1)",
       },
+      screens: {
+        print: {raw: 'print'},
+        // screen: {raw: 'screen'},
+      },
     },
   },
   variants: {

@@ -4,6 +4,7 @@ import { db } from "../../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Spinner from "../Spinner";
 import PetRecords from "./records/PetRecords";
+import { FaPrint } from "react-icons/fa";
 
 export default function OwnerAdoptionsDetailsPet() {
   const { petId, id } = useParams();
@@ -79,9 +80,20 @@ export default function OwnerAdoptionsDetailsPet() {
 
   const age = calculateAge(birthdate);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <>
-      <div className="bg-white p-6 rounded-lg shadow-lg">
+<div className="bg-white p-6 rounded-lg shadow-lg print:shadow-none print:rounded-none element no-scrollbar">
+        <div className="flex justify-end print:hidden">
+        <button class="btn btn-primary"
+        onClick={handlePrint}>
+            <FaPrint />
+            Print Pet Records
+          </button>
+      </div>
         <div className="flex items-center">
           <img
             src={image || "https://via.placeholder.com/100"} // Use pet's image or a placeholder

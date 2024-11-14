@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles for printing */
+@media print {
+  
+  .page-break {
+    page-break-before: always; /* Forces a new page before this element */
+    break-before: page; /* For better browser support */
+  }
+
+  .no-scrollbar {
+    overflow: visible !important;
+  }
+
+  /* Ensure tables do not break rows across pages */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Remove shadows and rounded corners during printing */
+  .no-shadow-print {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+}

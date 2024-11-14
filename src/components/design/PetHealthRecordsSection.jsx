@@ -122,6 +122,7 @@ export default function PetHealthRecordsSection() {
     <>
       {isModalOpen && (
         <PetHealthRecordsSectionModal
+          projectId={id} // Pass the projectId as a prop
           closeModal={() => setIsModalOpen(false)}
           onSectionAddedOrEdited={handleSectionAddedOrEdited}
           selectedSection={selectedSection}
@@ -219,8 +220,11 @@ export default function PetHealthRecordsSection() {
         <button
           type="button"
           className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-3 rounded-full font-semibold"
-          onClick={() => setIsModalOpen(true)} // Open modal to add new section
-        >
+          onClick={() => {
+            setSelectedSection(null); // Clear selectedSection
+            setIsModalOpen(true); // Open modal to add new section
+          }}
+              >
           + Add Pet Health Record Section
         </button>
       </div>

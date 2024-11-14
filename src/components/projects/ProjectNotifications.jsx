@@ -62,14 +62,19 @@ export default function ProjectNotifications() {
   // Fetch notifications in real-time
   useEffect(() => {
     if (user && projectId) {
-      const notificationsRef = collection(db, "notifications", projectId, user.uid);
-      
+      const notificationsRef = collection(
+        db,
+        "notifications",
+        projectId,
+        user.uid
+      );
+
       // Create a query to order notifications by timestamp in descending order
       const notificationsQuery = query(
         notificationsRef,
         orderBy("timestamp", "desc")
       );
-  
+
       const unsubscribe = onSnapshot(notificationsQuery, (querySnapshot) => {
         const notificationsArray = querySnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -77,7 +82,7 @@ export default function ProjectNotifications() {
         }));
         setNotifications(notificationsArray);
       });
-  
+
       // Cleanup function to unsubscribe from the listener when the component unmounts
       return () => unsubscribe();
     }
@@ -134,8 +139,10 @@ export default function ProjectNotifications() {
                 <div className="flex justify-between">
                   {/* Notification Type */}
                   <span className="text-white text-xs font-bold px-2 py-1 rounded bg-blue-500">
-                    {notification.type.charAt(0).toUpperCase() +
-                      notification.type.slice(1).toLowerCase()}
+                    {notification?.type
+                      ? notification.type.charAt(0).toUpperCase() +
+                        notification.type.slice(1).toLowerCase()
+                      : "Notifications"}
                   </span>
 
                   {/* Notification Time */}

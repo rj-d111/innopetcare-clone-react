@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { LuPencil } from "react-icons/lu";
 import EditPetModal from "../EditPetsModal";
+import { FaPrint } from "react-icons/fa";
 
 // Helper function to calculate age from birth date
 const calculateAge = (birthDate) => {
@@ -59,6 +60,7 @@ const PetInformation = ({ pet = null, petUid, isClient = false }) => {
               <h2 className="text-2xl font-bold">{petName}</h2>
             </div>
           </div>
+
           {!isClient && (
             <button
               className="btn btn-outline mt-4 md:mt-0 flex items-center space-x-2"

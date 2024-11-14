@@ -26,7 +26,7 @@ export default function HomeGuest() {
         <div className="container text-center mx-auto py-16 relative z-10 px-8 md:px-0">
           {" "}
           {/* Add z-10 for text above the image */}
-          <h1 className="text-xl md:text-6xl font-bold text-yellow-900">
+          <h1 className="text-4xl md:text-6xl font-bold text-yellow-900">
             Welcome to
             <img
               onClick={() => navigate("/")}
@@ -123,7 +123,7 @@ export default function HomeGuest() {
           alt=""
           className="w-full md:w-1/2 object-cover"
         />
-        <p className="flex items-center text-lg text-slate-900 font-medium">
+        <p className="md:flex md:items-center text-justify text-lg text-slate-900 md:font-medium">
           We at InnoPetCare are passionate about animal care. To support this
           passion, we offer a special feature that can be added to your
           veterinary clinic website at no extra cost. This feature will

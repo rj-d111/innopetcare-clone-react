@@ -48,6 +48,7 @@ export default function HeaderDynamic() {
   const isActiveLink = (path) => window.location.pathname.includes(path);
   // const isActiveLink = (path) => console.log(location.pathname === path);
 
+  
   function onLogout() {
     auth
       .signOut()
@@ -116,15 +117,51 @@ export default function HeaderDynamic() {
   }, [slug]);
 
   useEffect(() => {
-    auth.onAuthStateChanged((user) => {
+    const fetchClientData = async () => {
       if (user) {
-        setClientData({
-          name: user.displayName,
-          email: user.email,
-        });
+        try {
+          // Fetch client data from Firestore using the current user's UID
+          const clientDocRef = doc(db, "clients", user.uid);
+          const clientDoc = await getDoc(clientDocRef);
+  
+          if (clientDoc.exists()) {
+            const clientData = clientDoc.data();
+  
+            // Fetch the project ID of the current veterinary site
+            const globalSectionQuery = query(
+              collection(db, "global-sections"),
+              where("slug", "==", slug)
+            );
+            const globalSectionSnapshot = await getDocs(globalSectionQuery);
+  
+            if (!globalSectionSnapshot.empty) {
+              const projectId = globalSectionSnapshot.docs[0].id;
+  
+              // Check if the client's projectId matches the current site's projectId
+              if (clientData.projectId === projectId) {
+                // If projectId matches, set client data
+                setClientData({
+                  name: clientData.name,
+                  email: clientData.email,
+                });
+              } else {
+                // If projectId does not match, clear client data
+                setClientData({
+                  name: "",
+                  email: "",
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching client data: ", error);
+        }
       }
-    });
-  }, [auth]);
+    };
+  
+    fetchClientData();
+  }, [user, slug]);
+  
 
   return (
     <>

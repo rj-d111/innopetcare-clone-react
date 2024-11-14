@@ -67,6 +67,15 @@ export default function HeaderTechAdmin() {
       case "feedback":
         navigate("/admin/feedback");
         break;
+      case "send-report":
+        navigate("/admin/send-report");
+        break;
+      case "report":
+        navigate("/admin/report");
+        break;
+      case "finance":
+        navigate("/admin/finance");
+        break;
       default:
         navigate("/admin/dashboard");
     }

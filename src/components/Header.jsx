@@ -103,7 +103,7 @@ export default function Header() {
       {isLoading ? (
         <Spinner />
       ) : (
-        <header className="flex justify-between items-center p-4 bg-yellow-500 shadow-sm sticky top-0 z-40">
+        <header className="flex justify-between items-center p-4 bg-yellow-500 shadow-sm sticky top-0 z-40 print:hidden">
           {/* Logo for different screen sizes */}
           <img
             onClick={() => navigate("/")}

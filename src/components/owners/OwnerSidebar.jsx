@@ -5,7 +5,7 @@ const Sidebar = ({ projectType }) => {
   const { id } = useParams(); // useParams must be inside the component
 
   return (
-    <aside className="w-1/4 h-[calc(100vh-64px)] bg-blue-800 text-white p-4">
+    <aside className="w-1/4 h-[calc(100vh-64px)] bg-blue-800 text-white p-4 print:hidden">
       <h2 className="text-lg font-semibold mb-4">Navigation</h2>
       <ul>
         <li>
