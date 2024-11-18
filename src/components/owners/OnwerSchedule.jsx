@@ -97,7 +97,7 @@ export default function OwnerSchedule() {
         type: status === "accepted" ? "Appointment Accepted" : "Appointment Rejected",
         message: `Your appointment for ${eventDatetime} has been ${status}.`,
         timestamp: serverTimestamp(),
-        isRead: false,
+        read: false,
       };
   
       // Add notification to Firestore under /notifications/{projectId}/{clientId}/

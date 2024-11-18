@@ -18,6 +18,8 @@ export default function ProjectFooter() {
   const [projectId, setProjectId] = useState("");
   const [isAnimalShelter, setAnimalShelter] = useState(false);
 
+
+  // Fetch owner details from Firestore
   // Fetch owner details from Firestore
   useEffect(() => {
     const fetchOwnerDetails = async () => {
@@ -32,12 +34,8 @@ export default function ProjectFooter() {
           const globalSectionDoc = globalSectionsSnapshot.docs[0];
           const ownerData = globalSectionDoc.data();
 
-          // Set owner details and projectId
           setOwnerDetails(ownerData);
-          setProjectId(globalSectionDoc.id); // Set the project ID
-
-          // Fetch project type using the fetched projectId
-          await fetchProjectType(projectId);
+          setProjectId(globalSectionDoc.id);
         }
       } catch (error) {
         console.error("Error fetching owner details:", error);
@@ -49,23 +47,28 @@ export default function ProjectFooter() {
     }
   }, [slug, db]);
 
-  const CurrentYear = () => new Date().getFullYear();
+  // Fetch project type when projectId is set
+  useEffect(() => {
+    const fetchProjectType = async () => {
+      if (!projectId) return;
 
-  const fetchProjectType = async (projectId) => {
-    try {
-      const projectDocRef = doc(db, "projects", projectId);
-      const projectDoc = await getDoc(projectDocRef);
+      try {
+        const projectDocRef = doc(db, "projects", projectId);
+        const projectDoc = await getDoc(projectDocRef);
 
-      if (projectDoc.exists()) {
-        const projectData = projectDoc.data();
-        if (projectData.type === "Animal Shelter Site") {
-          setAnimalShelter(true);
+        if (projectDoc.exists()) {
+          const projectData = projectDoc.data();
+          setAnimalShelter(projectData.type === "Animal Shelter Site");
         }
+      } catch (error) {
+        console.error("Error fetching project type:", error);
       }
-    } catch (error) {
-      console.error("Error fetching project type:", error);
-    }
-  };
+    };
+
+    fetchProjectType();
+  }, [projectId, db]);
+
+  const CurrentYear = () => new Date().getFullYear();
 
   return (
     <footer className="bg-gray-100 py-10">

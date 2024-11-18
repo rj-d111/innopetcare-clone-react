@@ -21,5 +21,30 @@ module.exports = {
   daisyui: {
     themes: ["light"],
   },
-  plugins: [require("daisyui")],
+  plugins: [
+    require("daisyui"),
+    function ({ addUtilities }) {
+      addUtilities({
+        // Utility for forcing page breaks before an element
+        ".page-break-before": {
+          "page-break-before": "always",
+          "break-before": "page",
+        },
+        // Utility for forcing page breaks after an element
+        ".page-break-after": {
+          "page-break-after": "always",
+          "break-after": "page",
+        },
+        // Utility to avoid breaking inside an element
+        ".page-break-inside-avoid": {
+          "page-break-inside": "avoid",
+          "break-inside": "avoid",
+        },
+        // Utility to allow automatic page breaks inside an element
+        ".break-inside-auto": {
+          "break-inside": "auto",
+        },
+      });
+    },
+  ],
 };

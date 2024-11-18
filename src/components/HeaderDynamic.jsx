@@ -167,7 +167,7 @@ export default function HeaderDynamic() {
     <>
       {/* Main Header Navigation */}
       <nav
-        className="flex items-center justify-between py-4 sticky top-0 px-5 z-50"
+        className="flex items-center justify-between py-4 sticky top-0 px-5 z-50 print:hidden"
         style={{
           background: headerData.headerColor,
           color: headerData.headerTextColor,

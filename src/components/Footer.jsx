@@ -22,7 +22,7 @@ const Footer = () => {
   }
 
   return (
-    <footer className="bg-gray-100 py-10">
+    <footer className="bg-gray-100 p-10">
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Logo and Description */}
         <div className="flex flex-col items-center md:items-start text-center md:text-left">

@@ -3,10 +3,12 @@ import RecordsTab from "./RecordsTab";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase";
 
-const PetRecords = ({ petUid, projectId }) => {
+const PetRecords = ({ petUid, projectId, isClient = false  }) => {
   const [activeTab, setActiveTab] = useState("all");
   const [dynamicTabs, setDynamicTabs] = useState([]);
 
+
+  console.log(petUid, "\n", projectId, "\n", isClient);
   // Fixed tabs
   const fixedTabs = [
     { id: "all", name: "All" },
@@ -43,14 +45,13 @@ const PetRecords = ({ petUid, projectId }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg mt-4 print:shadow-none print:rounded-none">
+    <div className="bg-white p-6 rounded-lg shadow-lg mt-4 print:shadow-none print:rounded-none print:overflow-visible">
       
       <div className="hidden print:block font-bold">
         <h1 className="text-2xl">Pet Health Records</h1>
       </div>
 
       {/* Tabs */}
-      
       <div className="tabs tabs-boxed print:hidden">
         {fixedTabs.concat(dynamicTabs).map((tab) => (
           <p
@@ -65,7 +66,7 @@ const PetRecords = ({ petUid, projectId }) => {
 
       {/* Render the RecordsTab based on the active tab */}
       <div className="mt-4">
-        <RecordsTab projectId={projectId} petId={petUid} sectionId={activeTab} />
+        <RecordsTab projectId={projectId} petId={petUid} sectionId={activeTab} isClient={isClient} />
       </div>
     </div>
   );

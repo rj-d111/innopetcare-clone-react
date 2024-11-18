@@ -10,10 +10,12 @@ import Footer from "../Footer";
 import { useParams } from "react-router";
 import ProjectDonateSites from "./ProjectDonateSites";
 import ProjectFooter from "./ProjectFooter";
+import { FaDollarSign } from "react-icons/fa";
 
 export default function ProjectDonate() {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [headerColor, setHeaderColor] =useState('#4A00FF');
   const { slug } = useParams();
   const db = getFirestore();
 
@@ -29,6 +31,10 @@ export default function ProjectDonate() {
         if (!globalSectionsSnapshot.empty) {
           const globalSectionDoc = globalSectionsSnapshot.docs[0];
           const projectId = globalSectionDoc.id;
+          const globalSectionData = globalSectionDoc.data();
+
+          setHeaderColor(globalSectionData['headerColor']);
+
 
           const sectionsRef = collection(db, `donations/${projectId}/sections`);
           const sectionsSnapshot = await getDocs(sectionsRef);
@@ -161,12 +167,13 @@ export default function ProjectDonate() {
       <ProjectDonateSites />
       <div className="mx-auto my-5">
         <button
-          className="btn btn-primary text-white px-6 py-3 rounded-lg block mx-auto"
+          className="btn text-white px-6 py-3 rounded-lg mx-auto flex flex-row"
+          style={{backgroundColor: headerColor}}
           onClick={() => {
             window.location.href = "appointments";
           }}
         >
-          Set Appointment
+          <FaDollarSign /> Donate Now
         </button>
       </div>
 

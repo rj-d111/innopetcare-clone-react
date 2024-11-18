@@ -10,7 +10,7 @@ import {
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router";
 import { db } from "../../firebase";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
 
 export default function ProjectPrivacySettings() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -53,8 +53,12 @@ export default function ProjectPrivacySettings() {
     try {
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
-      await deleteDoc(doc(db, "clients", user.uid));
+      const userDocRef = doc(db, "clients", user.uid);
+      await updateDoc(userDocRef, { status: "archived" });
+   
+      // Delete the user from Firebase Authentication
       await deleteUser(user);
+
       toast.success("Account deleted successfully");
 
       await signOut(auth);

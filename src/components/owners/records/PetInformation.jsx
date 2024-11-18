@@ -63,7 +63,7 @@ const PetInformation = ({ pet = null, petUid, isClient = false }) => {
 
           {!isClient && (
             <button
-              className="btn btn-outline mt-4 md:mt-0 flex items-center space-x-2"
+              className="btn btn-outline mt-4 md:mt-0 flex items-center space-x-2 print:hidden"
               onClick={() => openModal(petUid)}
             >
               <div className="flex flex-row px-3 md:space-x-3 items-center">

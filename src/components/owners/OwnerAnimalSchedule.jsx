@@ -89,7 +89,7 @@ export default function OwnerAnimalSchedule() {
         type: status === "accepted" ? "Appointment Accepted" : "Appointment Rejected",
         message: `Your appointment for ${eventDatetime} has been ${status}.`,
         timestamp: serverTimestamp(),
-        isRead: false,
+        read: false,
       };
 
       const notificationsRef = collection(db, "notifications", projectId, clientId);

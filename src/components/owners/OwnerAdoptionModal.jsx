@@ -28,6 +28,7 @@ export default function OwnerAdoptionModal({
     otherSpecies: "", // Add field for other species
     otherBreed: "", // Add field for other breed
     imagePreviewUrl: "", // For storing the preview URL
+    description: "",
     notes: "", // New notes field
   });
   const [breeds, setBreeds] = useState([]);
@@ -186,6 +187,7 @@ export default function OwnerAdoptionModal({
         weight: petData.weight,
         color: petData.color,
         image: imageUrl,
+        description: petData.description,
         notes: petData.notes || "No notes", // Add notes field
       };
 
@@ -342,6 +344,14 @@ export default function OwnerAdoptionModal({
               />
             )}
 
+            <label>Description:</label>
+            <textarea
+              name="notes"
+              className="input input-bordered w-full h-24"
+              placeholder="Enter description about the pet"
+              value={petData.description}
+              onChange={handleInputChange}
+            />
             <label>Adoption Notes:</label>
             <textarea
               name="notes"

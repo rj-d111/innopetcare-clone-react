@@ -81,14 +81,14 @@ export default function TechAdminSidebar() {
         >
           <MdOutlineReportGmailerrorred className="mr-2" /> Send Report
         </li>
-        <li
+        {/* <li
           className={`flex items-center cursor-pointer p-2 rounded-lg transition-colors duration-200 ${
             isActive("/admin/report") ? "bg-yellow-950" : ""
           }`}
           onClick={() => navigate("/admin/report")}
         >
           <TbReportAnalytics className="mr-2" /> Report Generation
-        </li>
+        </li> */}
         <li
           className={`flex items-center cursor-pointer p-2 rounded-lg transition-colors duration-200 ${
             isActive("/admin/finance") ? "bg-yellow-950" : ""

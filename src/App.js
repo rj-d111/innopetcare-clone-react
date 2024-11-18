@@ -49,7 +49,6 @@ import ProjectLogin from "./components/projects/ProjectLogin";
 import ProjectRegister from "./components/projects/ProjectRegister";
 import ProjectForgotPassword from "./components/projects/ProjectForgotPassword";
 import TermsConditions from "./pages/TermsConditions";
-import ProjectHelp from "./components/projects/ProjectHelp";
 import TechAdminRegister from "./pages/TechAdminRegister";
 import ProjectMessages from "./components/projects/ProjectMessages";
 import ProjectNotifications from "./components/projects/ProjectNotifications";
@@ -117,6 +116,7 @@ import TechAdminCrystalReport from "./components/tech-admin/TechAdminCrystalRepo
 import TechAdminFinancialReports from "./components/tech-admin/TechAdminFinancialReports";
 import OwnerSendReport from "./components/owners/OwnerSendReport";
 import OwnerFeedback from "./components/owners/OwnerFeedback";
+import ProjectHelp from "./components/projects/ProjectHelp";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -430,7 +430,7 @@ function AppContent() {
           <Route path="volunteer" element={<ProjectVolunteer/>} />
           <Route path="donate" element={<ProjectDonate />} />
           <Route path="contact" element={<ProjectContact />} />
-          <Route path="help" element={<Help />} />
+          <Route path="help" element={<ProjectHelp />} />
 
           {/* Including these protected routes */}
           <Route path="/sites/:slug/appointments" element={<ProjectAppointments />} />

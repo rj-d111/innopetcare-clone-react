@@ -114,6 +114,9 @@ export default function OwnerAdoptionsDetails() {
             <strong>Weight:</strong> {petDetails.weight} kg
           </p>
           <p>
+            <strong>Description:</strong> {petDetails.description}
+          </p>
+          <p>
             <strong>Notes:</strong> {petDetails.notes}
           </p>
         </div>

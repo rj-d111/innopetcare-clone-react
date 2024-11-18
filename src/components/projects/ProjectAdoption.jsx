@@ -28,25 +28,28 @@ export default function ProjectAdoption() {
           where('slug', '==', slug)
         );
         const globalSectionsSnapshot = await getDocs(globalSectionsQuery);
-
+  
         if (!globalSectionsSnapshot.empty) {
-          // Use doc.id to get the projectId
           const projectId = globalSectionsSnapshot.docs[0].id;
-
-          // Fetch pets using the projectId and ensure they are not archived
+  
+          // Fetch all pets for the projectId
           const adoptionsQuery = query(
             collection(db, 'adoptions'),
-            where('projectId', '==', projectId),
-            where('isArchive', '==', false)
+            where('projectId', '==', projectId)
           );
+  
           const adoptionsSnapshot = await getDocs(adoptionsQuery);
-
           const pets = adoptionsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
           }));
-
-          setFilteredPets(pets);
+  
+          // Filter out pets that have `isArchive` set to true
+          const filteredPets = pets.filter(
+            pet => !pet.isArchive || pet.isArchive === false
+          );
+  
+          setFilteredPets(filteredPets);
         }
       } catch (error) {
         console.error('Error fetching projectId or pets:', error);
@@ -54,9 +57,10 @@ export default function ProjectAdoption() {
         setLoading(false);
       }
     };
-
+  
     fetchPets();
   }, [slug]);
+  
 
 // Map button labels to the actual species values in your database
 const categoryMapping = {

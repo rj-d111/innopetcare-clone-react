@@ -2,7 +2,17 @@ import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaSearch, FaRegEye, FaSortUp, FaSortDown } from "react-icons/fa";
+import {
+  FaSearch,
+  FaRegEye,
+  FaSortUp,
+  FaSortDown,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaArchive,
+  FaTrash,
+  FaQuestionCircle,
+} from "react-icons/fa";
 import { IoCloseCircle, IoTimeOutline } from "react-icons/io5";
 import { FaCircleCheck } from "react-icons/fa6";
 import { Link } from "react-router-dom";
@@ -21,11 +31,23 @@ import {
 export default function TechAdminUsers() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [filterStatus, setFilterStatus] = useState("pending");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
+
+  const getAccountStatus = (lastActivityTime, userStatus) => {
+    if (!lastActivityTime) return "";
+
+    if (userStatus === "archived") return "";
+
+    const lastActiveDate = lastActivityTime.toDate();
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    return lastActiveDate > oneYearAgo ? "active" : "inactive";
+  };
 
   // Fetch users from Firestore
   useEffect(() => {
@@ -150,56 +172,65 @@ export default function TechAdminUsers() {
 
       {/* Filter Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-5">
-  {/* Filter Buttons */}
-  <div className="join join-vertical sm:join-horizontal">
-    <button
-      className={`btn join-item ${filterStatus === "all" ? "btn-active" : ""}`}
-      onClick={() => setFilterStatus("all")}
-    >
-      All
-    </button>
-    <button
-      className={`btn join-item ${filterStatus === "approved" ? "btn-active" : ""}`}
-      onClick={() => setFilterStatus("approved")}
-    >
-      Approved
-    </button>
-    <button
-      className={`btn join-item ${filterStatus === "pending" ? "btn-active" : ""}`}
-      onClick={() => setFilterStatus("pending")}
-    >
-      Pending
-    </button>
-    <button
-      className={`btn join-item ${filterStatus === "rejected" ? "btn-active" : ""}`}
-      onClick={() => setFilterStatus("rejected")}
-    >
-      Rejected
-    </button>
-    <button
-      className={`btn join-item ${filterStatus === "deleted" ? "btn-active" : ""}`}
-      onClick={() => setFilterStatus("deleted")}
-    >
-      Deleted
-    </button>
-  </div>
+        {/* Filter Buttons */}
+        <div className="join join-vertical sm:join-horizontal">
+          <button
+            className={`btn join-item ${
+              filterStatus === "all" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterStatus("all")}
+          >
+            All
+          </button>
+          <button
+            className={`btn join-item ${
+              filterStatus === "approved" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterStatus("approved")}
+          >
+            Approved
+          </button>
+          <button
+            className={`btn join-item ${
+              filterStatus === "pending" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterStatus("pending")}
+          >
+            Pending
+          </button>
+          <button
+            className={`btn join-item ${
+              filterStatus === "rejected" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterStatus("rejected")}
+          >
+            Rejected
+          </button>
+          <button
+            className={`btn join-item ${
+              filterStatus === "archived" ? "btn-active" : ""
+            }`}
+            onClick={() => setFilterStatus("archived")}
+          >
+            Archived
+          </button>
+        </div>
 
-  {/* Search Bar */}
-  <div className="flex items-center w-full sm:w-auto">
-    <div className="join w-full sm:w-auto">
-      <input
-        className="input input-bordered join-item w-full sm:w-60"
-        placeholder="Search by name or email"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-      <button className="btn join-item rounded-r-full">
-        <FaSearch />
-      </button>
-    </div>
-  </div>
-</div>
-
+        {/* Search Bar */}
+        <div className="flex items-center w-full sm:w-auto">
+          <div className="join w-full sm:w-auto">
+            <input
+              className="input input-bordered join-item w-full sm:w-60"
+              placeholder="Search by name or email"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button className="btn join-item rounded-r-full">
+              <FaSearch />
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Users Table */}
       <div className="overflow-x-auto">
@@ -227,91 +258,120 @@ export default function TechAdminUsers() {
                   </div>
                 </th>
               ))}
-              <th>Status</th>
+              <th>Account Status</th>
+              <th>Approval Status</th>
               <th>View Details</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedUsers.length > 0 ? (
-              paginatedUsers.map((user, index) => (
-                <tr key={user.id}>
-                  <th>{index + 1 + (currentPage - 1) * itemsPerPage}</th>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.phone}</td>
-                  <td>
-                    {user.lastActivityTime
-                      ? user.lastActivityTime.toDate().toLocaleString()
-                      : "N/A"}
-                  </td>
-                  {/* Status Column with Icons */}
-                  <td>
-                    <div className="flex flex-col items-center">
-                      {user.status === "approved" ? (
-                        <>
-                          <FaCircleCheck className="text-green-500" size={20} />
-                          <div className="text-green-500">Approved</div>
-                        </>
-                      ) : user.status === "pending" ? (
-                        <>
-                          <IoTimeOutline
-                            className="text-yellow-500"
-                            size={20}
-                          />
-                          <div className="text-yellow-500">Pending</div>
-                        </>
-                      ) : user.status === "rejected" ? (
-                        <>
-                          <IoCloseCircle className="text-red-500" size={20} />
-                          <div className="text-red-500">Rejected</div>
-                        </>
-                      ) : user.status === "deleted" ? (
-                        <>
-                          <MdDelete className="text-red-500" size={20} />
-                          <div className="text-red-500">Deleted</div>
-                        </>
+              paginatedUsers.map((user, index) => {
+                const accountStatus = getAccountStatus(
+                  user.lastActivityTime,
+                  user.status
+                );
+                return (
+                  <tr key={user.id}>
+                    <th>{index + 1 + (currentPage - 1) * itemsPerPage}</th>
+                    <td>{user.name}</td>
+                    <td>{user.email}</td>
+                    <td>{user.phone}</td>
+                    <td>
+                      {user.lastActivityTime
+                        ? user.lastActivityTime.toDate().toLocaleString()
+                        : "N/A"}
+                    </td>
+                    {/* Account Status Column */}
+                    <td>
+                      {accountStatus === "active" ? (
+                        <div className="flex items-center text-green-500">
+                          <FaCheckCircle className="mr-2" /> Active
+                        </div>
+                      ) : accountStatus === "inactive" ? (
+                        <div className="flex items-center text-red-500">
+                          <FaTimesCircle className="mr-2" /> Inactive
+                        </div>
                       ) : (
-                        <>
-                          <div className="text-slate-900">{user.status}</div>
-                        </>
+                        <div className="flex items-center text-gray-500">
+                          <FaQuestionCircle className="mr-2" /> N/A
+                        </div>
                       )}
-                    </div>
-                  </td>
-                  <td>
-                    <Link to={`/admin/users/${user.id}`}>
-                      <button className="flex items-center space-x-1 text-blue-500 hover:text-blue-700">
-                        <FaRegEye /> <span>View</span>
+                    </td>
+                    {/* Status Column with Icons */}
+                    <td>
+                      <div className="flex flex-col items-center">
+                        {user.status === "approved" ? (
+                          <>
+                            <FaCircleCheck
+                              className="text-green-500"
+                              size={20}
+                            />
+                            <div className="text-green-500">Approved</div>
+                          </>
+                        ) : user.status === "pending" ? (
+                          <>
+                            <IoTimeOutline
+                              className="text-yellow-500"
+                              size={20}
+                            />
+                            <div className="text-yellow-500">Pending</div>
+                          </>
+                        ) : user.status === "rejected" ? (
+                          <>
+                            <IoCloseCircle className="text-red-500" size={20} />
+                            <div className="text-red-500">Rejected</div>
+                          </>
+                        ) : user.status === "archived" ? (
+                          <>
+                            <FaArchive className="text-orange-500" size={20} />
+                            <div className="text-orange-500">Archived</div>
+                          </>
+                        ) : (
+                          <div className="text-gray-500">N/A</div>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <Link to={`/admin/users/${user.id}`}>
+                        <button className="flex items-center space-x-1 text-blue-500 hover:text-blue-700">
+                          <FaRegEye /> <span>View</span>
+                        </button>
+                      </Link>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-success btn-sm mr-2 text-white"
+                        onClick={() =>
+                          handleAction(user.id, "accept", user.name)
+                        }
+                        disabled={
+                          user.status === "approved" ||
+                          user.status === "archived"
+                        }
+                      >
+                        Accept
                       </button>
-                    </Link>
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-success btn-sm mr-2 text-white"
-                      onClick={() => handleAction(user.id, "accept", user.name)}
-                      disabled={
-                        user.status === "approved" || user.status === "deleted"
-                      }
-                    >
-                      Accept
-                    </button>
-                    <button
-                      className="btn btn-error btn-sm text-white"
-                      onClick={() => handleAction(user.id, "reject", user.name)}
-                      disabled={
-                        user.status === "rejected" ||
-                        user.status === "approved" ||
-                        user.status === "deleted"
-                      }
-                    >
-                      Reject
-                    </button>
-                  </td>
-                </tr>
-              ))
+                      <button
+                        className="btn btn-error btn-sm text-white"
+                        onClick={() =>
+                          handleAction(user.id, "reject", user.name)
+                        }
+                        disabled={
+                          user.status === "rejected" ||
+                          user.status === "approved" ||
+                          user.status === "archived"
+                        }
+                      >
+                        Reject
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="9" className="text-center">
+                <td colSpan="10" className="text-center">
                   No users found
                 </td>
               </tr>

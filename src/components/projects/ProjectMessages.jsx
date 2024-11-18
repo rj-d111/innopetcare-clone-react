@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  serverTimestamp, 
-  doc, 
-  setDoc, 
-  orderBy 
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  doc,
+  setDoc,
+  orderBy,
+  onSnapshot,
 } from "firebase/firestore";
 import { db, storage } from "../../firebase";
-import { getAuth } from "firebase/auth"; 
+import { getAuth } from "firebase/auth";
 import { IoMdSend } from "react-icons/io";
 import { FaFileAlt, FaUserCircle } from "react-icons/fa";
 import { AiFillPicture } from "react-icons/ai";
 import Spinner from "../../components/Spinner";
 import { Timestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useParams } from "react-router";
 
 const getLastActiveStatus = (lastActivityTime) => {
   if (!lastActivityTime) return "";
@@ -28,13 +30,20 @@ const getLastActiveStatus = (lastActivityTime) => {
   const diffMinutes = Math.floor(diffMillis / (60 * 1000));
 
   if (diffMinutes < 10) return { status: "Active now", color: "bg-green-500" };
-  if (diffMinutes < 60) return { status: `Active ${diffMinutes} min ago`, color: "bg-yellow-500" };
+  if (diffMinutes < 60)
+    return { status: `Active ${diffMinutes} min ago`, color: "bg-yellow-500" };
   if (diffMinutes < 1440) {
     const hours = Math.floor(diffMinutes / 60);
-    return { status: `Active ${hours} hr${hours > 1 ? "s" : ""} ago`, color: "bg-orange-500" };
+    return {
+      status: `Active ${hours} hr${hours > 1 ? "s" : ""} ago`,
+      color: "bg-orange-500",
+    };
   }
   const days = Math.floor(diffMinutes / 1440);
-  return { status: `Active ${days} day${days > 1 ? "s" : ""} ago`, color: "bg-red-500" };
+  return {
+    status: `Active ${days} day${days > 1 ? "s" : ""} ago`,
+    color: "bg-red-500",
+  };
 };
 
 export default function ProjectMessages() {
@@ -43,29 +52,47 @@ export default function ProjectMessages() {
   const [messageText, setMessageText] = useState("");
   const [projectId, setProjectId] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  const [headerColor, setHeaderColor] = useState("#2563eb");
   const [chatId, setChatId] = useState(null);
   const auth = getAuth();
   const user = auth.currentUser;
-  const [slug, setSlug] = useState("");
+  const { slug } = useParams();
 
   useEffect(() => {
-    const pathname = window.location.href;
-    const parts = pathname.split("sites/");
-    if (parts.length > 1) {
-      const extractedSlug = parts[1].split("/")[0];
-      setSlug(extractedSlug);
-    }
-  }, []);
+    const fetchProjectId = async () => {
+      try {
+        const q = query(
+          collection(db, "global-sections"),
+          where("slug", "==", slug)
+        );
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const docData = querySnapshot.docs[0].data();
+          const projectId = querySnapshot.docs[0].id;
+
+          // Set the projectId and extracted data
+          setProjectId(projectId);
+          setHeaderColor(docData["headerColor"]);
+        } else {
+          console.log("No matching documents found");
+        }
+      } catch (error) {
+        console.error("Error fetching project:", error);
+      }
+    };
+
+    fetchProjectId();
+  }, [slug]); // Add `slug` as a dependency
 
   useEffect(() => {
+    console.log(projectId);
     if (!projectId) return;
-  
-    const fetchOrCreateChat = async () => {
-      const chatDocId = [user.uid, projectId].join("_");
-      setChatId(chatDocId); // Set chatId to use in message references
 
+    const fetchOrCreateChat = async () => {
+      const chatDocId = [projectId, user.uid].join("_");
+      setChatId(chatDocId); // Set chatId to use in message references
       const chatDocRef = doc(db, "chats", chatDocId);
-      console.log(chatDocRef);
       const messagesCollectionRef = collection(chatDocRef, "messages");
       const messagesQuery = query(messagesCollectionRef, orderBy("timestamp"));
 
@@ -101,7 +128,6 @@ export default function ProjectMessages() {
             name: data.name,
             lastActivityTime: data.lastActivityTime,
           });
-          setProjectId(data.projectId); // Set projectId for chat
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -113,7 +139,7 @@ export default function ProjectMessages() {
 
   const sendMessage = async () => {
     if (!messageText.trim() || !chatId) return;
-
+  
     setIsSending(true);
     const messageData = {
       text: messageText,
@@ -121,24 +147,29 @@ export default function ProjectMessages() {
       receiverId: projectId,
       timestamp: serverTimestamp(),
       type: "text",
+      isSeen: false,
     };
-
+  
     const chatDocRef = doc(db, "chats", chatId);
     const messagesCollectionRef = collection(chatDocRef, "messages");
-
+  
     try {
+      // Add the message to the messages sub-collection
       await addDoc(messagesCollectionRef, messageData);
+  
+      // Update the chat document with last message details
       await setDoc(
         chatDocRef,
         {
           participants: [user.uid, projectId],
           lastMessage: messageText,
           lastTimestamp: serverTimestamp(),
+          isSeenByAdmin: user.role === "client" ? false : true,
+          isSeenByClient: user.role === "client" ? true : false,
         },
         { merge: true }
       );
-
-      setMessages((prev) => [...prev, { ...messageData, timestamp: new Date() }]);
+  
       setMessageText("");
     } catch (error) {
       console.error("Error sending message:", error);
@@ -146,51 +177,82 @@ export default function ProjectMessages() {
       setIsSending(false);
     }
   };
+  
 
   const handleFileUpload = async (file, type) => {
     if (!file || !projectId) return;
-
+  
     setIsSending(true);
-    const fileRef = ref(storage, `messages/${user.uid}_${projectId}/${file.name}`);
-    await uploadBytes(fileRef, file);
-    const fileUrl = await getDownloadURL(fileRef);
-
-    const messageData = {
-      fileUrl,
-      fileName: file.name,
-      senderId: user.uid,
-      receiverId: projectId,
-      timestamp: serverTimestamp(),
-      type,
-    };
-
-    const chatDocRef = doc(db, "chats", chatId);
-    const messagesCollectionRef = collection(chatDocRef, "messages");
-
+    const fileRef = ref(storage, `messages/${projectId}_${user.uid}/${file.name}`);
+    
     try {
+      // Upload the file to Firebase Storage
+      await uploadBytes(fileRef, file);
+      const fileUrl = await getDownloadURL(fileRef);
+  
+      const messageData = {
+        fileUrl,
+        fileName: file.name,
+        senderId: user.uid,
+        receiverId: projectId,
+        timestamp: serverTimestamp(),
+        type,
+        isSeen: false,
+      };
+  
+      const chatDocRef = doc(db, "chats", chatId);
+      const messagesCollectionRef = collection(chatDocRef, "messages");
+  
+      // Add the message to the messages sub-collection
       await addDoc(messagesCollectionRef, messageData);
+  
+      // Update the chat document with the last message details
       await setDoc(
         chatDocRef,
         {
           participants: [user.uid, projectId],
           lastMessage: type === "image" ? "Image" : file.name,
           lastTimestamp: serverTimestamp(),
+          isSeenByAdmin: user.role === "client" ? false : true,
+          isSeenByClient: user.role === "client" ? true : false,
         },
         { merge: true }
       );
-
-      setMessages((prev) => [...prev, { ...messageData, timestamp: new Date() }]);
+  
+      // Clear the file input (if needed)
     } catch (error) {
       console.error("Error uploading file:", error);
     } finally {
       setIsSending(false);
     }
   };
+  
+
+  useEffect(() => {
+    if (!chatId) return;
+  
+    const chatDocRef = doc(db, "chats", chatId);
+    const messagesCollectionRef = collection(chatDocRef, "messages");
+    const q = query(messagesCollectionRef, orderBy("timestamp", "asc"));
+  
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedMessages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(fetchedMessages);
+    });
+  
+    // Cleanup listener on component unmount
+    return () => unsubscribe();
+  }, [chatId]);
+  
 
   const lastActive = getLastActiveStatus(userData?.lastActivityTime);
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-72px)]">
       <div className="w-1/4 bg-gray-300 p-4 border-r border-gray-200">
         <h2 className="font-semibold text-lg mb-4">Chats</h2>
         <div className="flex items-center mb-4">
@@ -200,9 +262,13 @@ export default function ProjectMessages() {
             className="w-12 h-12 rounded-full object-cover mr-3"
           />
           <div>
-            <p className="font-medium">{userData?.name || "User Name"} (Admin)</p>
+            <p className="font-medium">
+              {userData?.name || "User Name"} (Admin)
+            </p>
             {lastActive.status && (
-              <span className={`px-2 py-1 rounded-full text-white text-sm font-medium ${lastActive.color}`}>
+              <span
+                className={`px-2 py-1 rounded-full text-white text-sm font-medium ${lastActive.color}`}
+              >
                 {lastActive.status}
               </span>
             )}
@@ -218,24 +284,40 @@ export default function ProjectMessages() {
             messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.senderId === user.uid ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  message.senderId === user.uid
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
               >
                 <div
                   className={`p-3 rounded-xl max-w-md ${
-                    message.senderId === user.uid ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
+                    message.senderId !== user.uid
+                      ? "bg-gray-200 text-black"
+                      : ""
                   }`}
+                  style={
+                    message.senderId === user.uid
+                      ? { backgroundColor: headerColor, color: "white" }
+                      : {}
+                  }
                 >
                   {message.type === "text" ? (
                     <p>{message.text || ""}</p>
                   ) : message.type === "image" ? (
-                    <img src={message.fileUrl} alt="Attachment" className="max-w-full rounded" />
+                    <img
+                      src={message.fileUrl}
+                      alt="Attachment"
+                      className="max-w-full rounded"
+                    />
                   ) : (
                     <a
                       href={message.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline text-blue-600"
-                    >
+                      className="underline"
+                      style={{color: message.senderId === user.uid ? "white" : headerColor}}
+                      >
                       {message.fileName || "File"}
                     </a>
                   )}
@@ -274,7 +356,8 @@ export default function ProjectMessages() {
               rows={messageText.split("\n").length}
             />
             <button
-              className="ml-2 bg-blue-500 text-white p-2 rounded-lg"
+              className="ml-2 text-white p-2 rounded-lg"
+              style={{backgroundColor: headerColor}}
               onClick={sendMessage}
               disabled={isSending}
             >

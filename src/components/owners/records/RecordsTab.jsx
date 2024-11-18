@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "../../../firebase";
 import { toast } from "react-toastify";
 import RecordsTabModal from "./RecordsTabModal";
-import { FaPrint } from "react-icons/fa";
+import { FaPencilAlt, FaPrint, FaTrash } from "react-icons/fa";
 
-export default function RecordsTab({ projectId, sectionId, petId }) {
+export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
   const [records, setRecords] = useState([]);
   const [sections, setSections] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState("all");
-
+  const [selectedRecord, setSelectedRecord] = useState(null); // New state for selected record
   // Fetch sections and columns from Firebase
   const fetchSectionsAndColumns = async () => {
     try {
@@ -60,13 +60,33 @@ export default function RecordsTab({ projectId, sectionId, petId }) {
   };
 
   // Fetch records based on the new data structure
+  // Fetch records based on the new data structure
   const fetchRecords = async () => {
     try {
       if (!projectId || !petId) return;
 
       let fetchedRecords = [];
 
-      if (sectionId === "all") {
+      if (sectionId === "recent-record") {
+        // Fetch only the most recent records based on the recordCreated attribute
+        for (const section of sections) {
+          const recordsRef = collection(
+            db,
+            `pet-health-records/${projectId}/${petId}/${section.id}/records`
+          );
+          const snapshot = await getDocs(
+            query(recordsRef, orderBy("recordCreated", "desc"), limit(1))
+          );
+
+          const recentRecords = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            sectionId: section.id,
+            ...doc.data(),
+          }));
+
+          fetchedRecords = [...fetchedRecords, ...recentRecords];
+        }
+      } else if (sectionId === "all") {
         // Fetch records for all sections
         for (const section of sections) {
           const recordsRef = collection(
@@ -109,12 +129,19 @@ export default function RecordsTab({ projectId, sectionId, petId }) {
     fetchRecords();
   }, [projectId, sectionId, petId]);
 
+  // Open modal for editing
+  const handleEditRecord = (record) => {
+    setSelectedRecord(record);
+    setShowAddModal(true);
+  };
+
   return (
     <div>
       {/* Add Record Button */}
       {sectionId !== "all" &&
         sectionId !== "recent-record" &&
-        sectionId !== "medical-history" && (
+        sectionId !== "medical-history" &&
+        !isClient && (
           <button
             onClick={() => {
               setShowAddModal(true);
@@ -151,9 +178,11 @@ export default function RecordsTab({ projectId, sectionId, petId }) {
                         {column.name}
                       </th>
                     ))}
-                    <th className="px-4 py-2 border border-gray-300 text-left print:hidden">
-                      Actions
-                    </th>
+                    {!isClient && (
+                      <th className="px-4 py-2 border border-gray-300 text-left print:hidden">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -167,12 +196,19 @@ export default function RecordsTab({ projectId, sectionId, petId }) {
                           {record.records?.[column.id] || "-"}
                         </td>
                       ))}
+                      {!isClient && (
                       <td className="px-4 py-2 border border-gray-300 print:hidden">
-                        <button className="text-xs btn btn-sm">Edit</button>
-                        <button className="text-xs btn btn-sm text-red-600">
-                          Delete
+                        <button
+                          className="btn bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+                          onClick={() => handleEditRecord(record)}
+                        >
+                          <FaPencilAlt /> Edit
+                        </button>
+                        <button className="btn bg-red-600 text-white hover:bg-red-700 flex items-center justify-center gap-2">
+                          <FaTrash /> Delete
                         </button>
                       </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -190,6 +226,7 @@ export default function RecordsTab({ projectId, sectionId, petId }) {
           petId={petId}
           onClose={() => setShowAddModal(false)}
           onRecordAdded={fetchRecords}
+          existingRecord={selectedRecord} // Pass the selected record
         />
       )}
     </div>

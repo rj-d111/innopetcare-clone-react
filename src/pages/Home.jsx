@@ -223,12 +223,13 @@ export default function Home() {
                 <div className="absolute bg-white shadow-lg rounded-lg right-0 z-10 transition-all transform origin-top scale-y-100">
                   <button
                     className="block w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setProjectToRename(project);
-                      setShowRenameModal(true);
-                      setMenuOpen(null); // Close the menu when Edit is clicked
-                    }}
+                    // onClick={(e) => {
+                    //   e.stopPropagation();
+                    //   setProjectToRename(project);
+                    //   setShowRenameModal(true);
+                    //   setMenuOpen(null); // Close the menu when Edit is clicked
+                    // }}
+                    onClick={() => navigate(`/design/${project.id}`)}
                   >
                     <div className="flex items-center justify-start p-2">
                       <FaPencilAlt className="mr-2" /> Edit

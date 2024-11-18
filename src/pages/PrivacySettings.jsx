@@ -56,7 +56,7 @@ export default function PrivacySettings() {
   
       // Update user's status to "deleted" in Firestore instead of deleting the document
       const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, { status: "deleted" });
+      await updateDoc(userDocRef, { status: "archived" });
   
       // Delete the user from Firebase Authentication
       await deleteUser(user);

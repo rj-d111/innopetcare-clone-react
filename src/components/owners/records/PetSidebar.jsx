@@ -54,11 +54,11 @@ const PetSidebar = ({ onPetSelect }) => {
   };
 
   return (
-    <div className="w-1/3 bg-gray-100 p-4">
+    <div className="w-1/3 bg-gray-100 p-4 print:hidden print:overflow-visible">
       <h2 className="text-lg font-bold mb-4">Pet Name List</h2>
       <div className="join">
         <input
-          className="input input-bordered join-item"
+          className="input input-bordered join-item w-full"
           placeholder="Search pet"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -69,7 +69,7 @@ const PetSidebar = ({ onPetSelect }) => {
       </div>
 
       {/* Filter buttons */}
-      <div className="flex gap-2 my-4">
+      <div className="flex flex-col lg:flex-row gap-2 my-4">
         <button
           className={`btn ${filterType === "All" ? "btn-accent" : "btn-outline"}`}
           onClick={() => setFilterType("All")}

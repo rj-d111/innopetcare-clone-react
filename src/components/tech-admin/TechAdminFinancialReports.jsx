@@ -3,6 +3,7 @@ import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+const exchangeRate = 56; // 1 USD = 56 PHP
 
 export default function TechAdminFinancialReports() {
   // Dummy data for the bar graph
@@ -10,14 +11,14 @@ export default function TechAdminFinancialReports() {
     labels: ['January', 'February', 'March', 'April', 'May', 'June'],
     datasets: [
       {
-        label: 'Revenue (in $)',
-        data: [12000, 15000, 8000, 18000, 22000, 17000],
+        label: 'Revenue (in PHP)',
+        data: [12000, 15000, 8000, 18000, 22000, 17000].map(value => value * exchangeRate),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
       },
     ],
-  };
+    };
 
   const options = {
     responsive: true,

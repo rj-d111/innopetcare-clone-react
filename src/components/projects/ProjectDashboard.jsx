@@ -58,21 +58,21 @@ export default function ProjectDashboard() {
           where("slug", "==", slug)
         );
         const querySnapshot = await getDocs(q);
-  
+
         if (!querySnapshot.empty) {
           // Get the first matching document
           const docSnapshot = querySnapshot.docs[0];
           const docData = docSnapshot.data();
           const projectId = docSnapshot.id; // Use document ID as projectId
-  
+
           setProjectId(projectId);
           setProjectName(docData.name);
           setHeaderColor(docData.headerColor);
-  
+
           // Fetch project details using the retrieved projectId
           const projectRef = doc(db, "projects", projectId);
           const projectSnapshot = await getDoc(projectRef);
-  
+
           if (projectSnapshot.exists()) {
             const projectData = projectSnapshot.data();
             console.log(projectData.type);
@@ -81,18 +81,20 @@ export default function ProjectDashboard() {
             console.log("Project not found");
           }
         } else {
-          console.log("No matching global-sections document found for slug:", slug);
+          console.log(
+            "No matching global-sections document found for slug:",
+            slug
+          );
         }
       } catch (error) {
         console.error("Error fetching projectId: ", error);
       }
     };
-  
+
     if (slug) {
       fetchProjectId();
     }
   }, [slug]);
-  
 
   // Fetch the upcoming appointments
   useEffect(() => {
@@ -106,26 +108,28 @@ export default function ProjectDashboard() {
             where("clientId", "==", clientId),
             where("projectId", "==", projectId)
           );
-  
+
           const querySnapshot = await getDocs(appointmentsQuery);
           const appointments = querySnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
-  
+
           // Filter for future appointments
           const upcomingAppointments = appointments
             .map((appointment) => ({
               ...appointment,
-              event_datetime: new Date(appointment.event_datetime.seconds * 1000),
+              event_datetime: new Date(
+                appointment.event_datetime.seconds * 1000
+              ),
             }))
             .filter((appointment) => appointment.event_datetime > new Date());
-  
+
           // Sort the appointments by date (ascending)
           upcomingAppointments.sort(
             (a, b) => a.event_datetime - b.event_datetime
           );
-  
+
           // Get the closest upcoming appointment
           const foundAppointment = upcomingAppointments[0] || null;
           setUpcomingAppointment(foundAppointment);
@@ -134,11 +138,10 @@ export default function ProjectDashboard() {
         }
       }
     };
-  
+
     fetchAppointments();
   }, [clientId, projectId]);
 
-  
   // Helper to format date in human-readable format
   const formatAppointmentDate = (date) => {
     return format(date, "MMMM d, yyyy h:mm a");
@@ -242,28 +245,32 @@ export default function ProjectDashboard() {
               </div>
             </div>
 
-            <div className="bg-white p-10 rounded-lg shadow-md mb-6">
-              <h2 className="text-4xl font-bold mb-4">My Pets</h2>
+            {!isAnimalShelter && (
+              <>
+                <div className="bg-white p-10 rounded-lg shadow-md mb-6">
+                  <h2 className="text-4xl font-bold mb-4">My Pets</h2>
 
-              {/* Display limited number of pets */}
-              <PetsList
-                clientId={userId}
-                showFilters={false}
-                limit={4}
-                isClient={true}
-                slug={slug}
-              />
+                  {/* Display limited number of pets */}
+                  <PetsList
+                    clientId={userId}
+                    showFilters={false}
+                    limit={4}
+                    isClient={true}
+                    slug={slug}
+                  />
 
-              {/* View All Pets Button */}
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => navigate("pets")}
-                  className="btn btn-primary"
-                >
-                  View All Pets
-                </button>
-              </div>
-            </div>
+                  {/* View All Pets Button */}
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={() => navigate("pets")}
+                      className="btn btn-primary"
+                    >
+                      View All Pets
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

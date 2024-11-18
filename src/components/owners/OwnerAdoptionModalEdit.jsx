@@ -22,6 +22,7 @@ export default function OwnerAdoptionModalEdit({ uid, closeModal }) {
     color: "",
     image: null,
     imagePreviewUrl: "",
+    description: "",
     notes: "",
   });
   const [breeds, setBreeds] = useState([]);
@@ -75,6 +76,16 @@ export default function OwnerAdoptionModalEdit({ uid, closeModal }) {
       setPetData({ ...petData, [name]: value });
     }
   };
+
+  // Separate handler for description
+const handleDescriptionChange = (e) => {
+  setPetData({ ...petData, description: e.target.value });
+};
+
+// Separate handler for notes
+const handleNotesChange = (e) => {
+  setPetData({ ...petData, notes: e.target.value });
+};
 
   // Update pet data in Firestore on form submission
   const handleSubmit = async (e) => {
@@ -224,14 +235,21 @@ export default function OwnerAdoptionModalEdit({ uid, closeModal }) {
               className="mt-2 w-full h-auto"
             />
           )}
-
+          <label>Description:</label>
+          <textarea
+            name="notes"
+            className="input input-bordered w-full h-24"
+            placeholder="Enter description about the pet"
+            value={petData.description}
+            onChange={handleDescriptionChange}
+          />
           <label>Adoption Notes:</label>
           <textarea
             name="notes"
             className="input input-bordered w-full h-24"
             placeholder="Enter adoption notes"
             value={petData.notes}
-            onChange={handleInputChange}
+            onChange={handleNotesChange}
           />
 
           <button type="submit" className="btn btn-primary mt-4">

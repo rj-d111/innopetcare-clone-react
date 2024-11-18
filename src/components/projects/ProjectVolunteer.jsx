@@ -9,10 +9,12 @@ import {
 import Footer from "../Footer";
 import { useParams } from "react-router";
 import ProjectFooter from "./ProjectFooter";
+import { MdVolunteerActivism } from "react-icons/md";
 
 export default function ProjectVolunteer() {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [headerColor, setHeaderColor] =useState('#4A00FF');
   const { slug } = useParams();
   const db = getFirestore();
 
@@ -28,6 +30,9 @@ export default function ProjectVolunteer() {
         if (!globalSectionsSnapshot.empty) {
           const globalSectionDoc = globalSectionsSnapshot.docs[0];
           const projectId = globalSectionDoc.id;
+          const globalSectionData = globalSectionDoc.data();
+
+          setHeaderColor(globalSectionData['headerColor']);
 
           const sectionsRef = collection(
             db,
@@ -40,7 +45,6 @@ export default function ProjectVolunteer() {
             ...sectionDoc.data(),
           }));
 
-          console.log(fetchedSections);
 
           setSections(fetchedSections);
         } else {
@@ -162,12 +166,13 @@ export default function ProjectVolunteer() {
       </div>
       <div className="mx-auto my-5">
         <button
-          className="btn btn-primary text-white px-6 py-3 rounded-lg block mx-auto"
+          className="btn text-white px-6 py-3 rounded-lg flex flex-row mx-auto"
+          style={{backgroundColor: headerColor}}
           onClick={() => {
             window.location.href = "appointments";
           }}
         >
-          Set Appointment
+          <MdVolunteerActivism /> Volunteer Now
         </button>
       </div>
       <ProjectFooter />

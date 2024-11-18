@@ -411,6 +411,7 @@ const handleCheckboxChange = (e) => {
                       Drop-off Donations
                     </option>
                     <option value="Volunteer Work">Volunteer Work</option>
+                    <option value="For Adoption">For Adoption</option>
                   </>
                 )}
               </select>

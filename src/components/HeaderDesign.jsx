@@ -180,7 +180,7 @@ const HeaderDesign = ({
         </div>
       </div>
 
-      <div className="join">
+      <div className="join hidden">
         <button
           className={`btn join-item hover:border-white hover:bg-yellow-500 border-yellow-500 ${
             !isWebVersion ? "bg-white" : "bg-yellow-600"

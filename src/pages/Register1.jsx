@@ -85,12 +85,13 @@ function Register1({ formData, onChange, onNext }) {
         return;
       }
   
-      // Validate password length
-      if (password.length < 8) {
-        toast.error("Password must be at least 8 characters long.");
+      const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+
+      if (!passwordRegex.test(password)) {
+        toast.error("Password must be at least 8 characters long and contain both letters and numbers.");
         return;
       }
-  
+      
       // Validate password confirmation
       if (password !== confirm_password) {
         toast.error("Passwords do not match.");

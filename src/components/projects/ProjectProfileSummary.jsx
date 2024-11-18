@@ -40,12 +40,45 @@ export default function ProjectProfileSummary() {
     };
     fetchUserData();
   }, []);
+  const {slug} = useParams();
+  const [ownerDetails, setOwnerDetails] = useState(null);
+  const headerColor = ownerDetails?.headerColor || '#F59E0B';
+  // Fetch owner details from Firestore
+  useEffect(() => {
+    const fetchOwnerDetails = async () => {
+      try {
+        const globalSectionsQuery = query(
+          collection(db, "global-sections"),
+          where("slug", "==", slug)
+        );
+        const globalSectionsSnapshot = await getDocs(globalSectionsQuery);
+
+        if (!globalSectionsSnapshot.empty) {
+          const globalSectionDoc = globalSectionsSnapshot.docs[0];
+          const ownerData = globalSectionDoc.data();
 
 
+          setOwnerDetails(ownerData);
+        }
+      } catch (error) {
+        console.error("Error fetching owner details:", error);
+      }
+    };
+
+    if (slug) {
+      fetchOwnerDetails();
+    }
+  }, [slug, db]);
+
+  
   const auth = getAuth();
 
   return (
-    <div className="flex justify-center items-center h-screen bg-yellow-100">
+    <div className="flex justify-center items-center min-h-[calc(100vh-68px)] md:min-h-[calc(100vh-72px)]"
+    style={{
+      backgroundColor: `rgba(${parseInt(headerColor.slice(1, 3), 16)}, ${parseInt(headerColor.slice(3, 5), 16)}, ${parseInt(headerColor.slice(5, 7), 16)}, 0.1)`
+    }}
+    >
       <div className="bg-white shadow-lg rounded-lg p-8 text-center w-full max-w-xs">
         <div className="flex justify-center mb-4">
           {userData?.profileImage ? (

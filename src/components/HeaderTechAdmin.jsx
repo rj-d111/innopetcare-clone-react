@@ -164,14 +164,14 @@ export default function HeaderTechAdmin() {
               >
                 <MdOutlineReportGmailerrorred className="mr-2" /> Send Report
               </li>
-              <li
+              {/* <li
                 className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
                   activeSection === "report" ? "bg-yellow-950" : ""
                 }`}
                 onClick={() => handleSectionChange("report")}
               >
                 <TbReportAnalytics className="mr-2" /> Report Generation
-              </li>
+              </li> */}
               <li
                 className={`flex items-center cursor-pointer p-4 rounded-lg transition-colors duration-200 ${
                   activeSection === "finance" ? "bg-yellow-950" : ""
