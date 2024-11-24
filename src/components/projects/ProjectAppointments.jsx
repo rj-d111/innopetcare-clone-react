@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   addDoc,
   collectionGroup,
+  onSnapshot,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import Spinner from "../../components/Spinner";
@@ -41,6 +42,8 @@ export default function ProjectAppointments() {
   const [loading, setLoading] = useState(false); // Loading state for the spinner
   const [isHovered, setIsHovered] = useState(false);
   const [bookedTimes, setBookedTimes] = useState([]);
+
+  console.log(bookedTimes);
 
   const navigate = useNavigate();
   const auth = getAuth();
@@ -199,32 +202,34 @@ export default function ProjectAppointments() {
 
   // Fetch booked appointments
   useEffect(() => {
-    const fetchBookedAppointments = async () => {
-      try {
-        const appointmentsArray = [];
-        const appointmentsRef = collection(db, "appointments");
-        const appointmentsSnapshot = await getDocs(appointmentsRef);
-
-        // Extract event_datetime from each document and convert to Date object
-        appointmentsSnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.event_datetime) {
-            // Convert Firestore Timestamp to JavaScript Date object
-            const dateObj = data.event_datetime.toDate();
-            appointmentsArray.push(dateObj);
-          }
-        });
-
-        // Save the fetched dates to state
-        setBookedTimes(appointmentsArray);
-      } catch (error) {
+    const unsubscribe = onSnapshot(
+      collection(db, "appointments"),
+      (snapshot) => {
+        try {
+          const appointmentsArray = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.event_datetime && data.status !== "rejected") {
+              // Convert Firestore Timestamp to JavaScript Date object
+              const dateObj = data.event_datetime.toDate();
+              appointmentsArray.push(dateObj);
+            }
+          });
+  
+          // Save the fetched dates to state
+          setBookedTimes(appointmentsArray);
+        } catch (error) {
+          console.error("Error processing snapshot:", error);
+        }
+      },
+      (error) => {
         console.error("Error fetching appointments:", error);
       }
-    };
-
-    fetchBookedAppointments();
+    );
+  
+    // Clean up subscription on component unmount
+    return () => unsubscribe();
   }, []);
-
   // Fetch available time slots
   const [timeSlots, setTimeSlots] = useState([]);
 
@@ -279,11 +284,11 @@ export default function ProjectAppointments() {
     setFormData({ ...formData, [name]: value });
   };
 
-// Handle checkbox changes for each checkbox separately
-const handleCheckboxChange = (e) => {
-  const { name, checked } = e.target;
-  setFormData({ ...formData, [name]: checked });
-};
+  // Handle checkbox changes for each checkbox separately
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData({ ...formData, [name]: checked });
+  };
 
   // Handle form submission
   const handleSubmit = async (e) => {

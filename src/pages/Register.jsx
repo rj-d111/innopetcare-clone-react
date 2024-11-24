@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { db } from "../firebase";
 import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 
 function Register() {
   const navigate = useNavigate();
@@ -31,6 +32,8 @@ function Register() {
     },
     step3: { document: [] }, // Initialize document as an empty array
   });
+
+  console.log(formData);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -97,14 +100,14 @@ function Register() {
   const handleSubmit = async () => {
     const auth = getAuth();
     const { typeOfAdmin, name, email, phone, password } = formData.step1;
-    const { businessRegNumber, city, postalCode, firstName, lastName } = formData.step2;
+    const { businessRegNumber, city, postalCode, firstName, lastName, legalName } = formData.step2;
     const documentFiles = formData.step3.document;
-
+  
     try {
       // Step 1: Create the user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const userId = userCredential.user.uid;
-
+  
       // Step 2: Save user information to the users collection
       const userDocRef = doc(db, "users", userId);
       await setDoc(userDocRef, {
@@ -116,15 +119,26 @@ function Register() {
         accountCreated: serverTimestamp(),
         lastActivityTime: serverTimestamp(),
       });
-
-      // Step 3: Save business information to the projects collection
+  
+      // Step 3: Upload files to Firebase Storage and collect URLs
+      const storage = getStorage();
+      const fileUploadPromises = documentFiles.map(async (file) => {
+        const storageRef = ref(storage, `project-documents/${userId}/${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file); // Upload file to storage
+        const url = await getDownloadURL(snapshot.ref); // Get file URL
+        return { name: file.name, url }; // Return file metadata
+      });
+  
+      const uploadedFiles = await Promise.all(fileUploadPromises);
+  
+      // Step 4: Save business information to the projects collection
       const projectDocRef = doc(collection(db, "projects"));
       await setDoc(projectDocRef, {
         businessRegNumber,
         city,
         createdAt: serverTimestamp(),
-        documentFiles,
-        name: formData.step2.legalName, // Legal business name
+        documentFiles: uploadedFiles, // Save URLs and metadata instead of File objects
+        name: legalName || "N/A", // Legal business name
         postalCode,
         status: "pending",
         type: typeOfAdmin === "Veterinary Admin" ? "Veterinary Site" : "Animal Shelter Site",
@@ -132,13 +146,13 @@ function Register() {
         firstName,
         lastName,
       });
-
+  
       toast.success("Successfully registered to InnoPetCare");
-      // Step 4: Navigate to the pending page
+      // Step 5: Navigate to the pending page
       navigate("/pending");
     } catch (error) {
       console.error("Error registering user:", error);
-      // Add error handling here (e.g., display error message)
+      toast.error("Failed to register. Please try again.");
     }
   };
 

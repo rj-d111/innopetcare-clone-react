@@ -165,17 +165,24 @@ export default function ProjectDonate() {
       </div>
 
       <ProjectDonateSites />
-      <div className="mx-auto my-5">
-        <button
-          className="btn text-white px-6 py-3 rounded-lg mx-auto flex flex-row"
-          style={{backgroundColor: headerColor}}
-          onClick={() => {
-            window.location.href = "appointments";
-          }}
-        >
-          <FaDollarSign /> Donate Now
-        </button>
-      </div>
+      <div className="mx-auto my-5 text-center">
+  {/* Instruction Text */}
+  <p className="text-gray-700 font-medium mb-3 text-center">
+    If you want to donate supplies, you may click the button below
+  </p>
+
+  {/* Donate Button */}
+  <button
+    className="btn text-white px-6 py-3 rounded-lg mx-auto flex items-center"
+    style={{ backgroundColor: headerColor }}
+    onClick={() => {
+      window.location.href = "appointments";
+    }}
+  >
+    <FaDollarSign className="mr-2" /> Donate Now
+  </button>
+</div>
+
 
       <ProjectFooter />
     </>

@@ -48,17 +48,14 @@ const HeaderDesign = ({
         return true;
       };
 
-      // Check if data exists in global-sections table
-      const globalSectionsQuery = query(
-        collection(db, "global-sections"),
-        where("projectId", "==", uuid)
-      );
+      const globalSectionsDocRef = doc(db, "global-sections", uuid);
+      const globalSectionsSnapshot = await getDoc(globalSectionsDocRef);
       
-      const globalSectionsSnapshot = await getDocs(globalSectionsQuery);
-      if (globalSectionsSnapshot.empty) {
+      if (!globalSectionsSnapshot.exists()) {
         toast.error("Please add data to Global Sections.");
         return;
       }
+      
   
       // Check if data exists in home-sections table
         const homeSectionsQuery = query(
@@ -71,18 +68,6 @@ const HeaderDesign = ({
         }
   
        
-
-    
-      // Check if data exists in contact-info table
-      const contactInfoQuery = query(
-        collection(db, "contact-info"),
-        where("projectId", "==", uuid)
-      );
-      const contactInfoSnapshot = await getDocs(contactInfoQuery);
-      if (contactInfoSnapshot.empty) {
-        toast.error("Please add contact info.");
-        return;
-      }
   
       // Check if at least one service exists in services table if not animal shelter site
       if (project && project.type !== "Animal Shelter Site") {
@@ -99,17 +84,26 @@ const HeaderDesign = ({
 
       // Check if the project type is "Animal Shelter Site"
       if (project && project.type === "Animal Shelter Site") {
-        const volunteerExists = await checkDocumentExists(
-          "volunteer",
-          "Please add a section in Volunteer Section."
-        );
-        if (!volunteerExists) return;
 
-        const donationsExists = await checkDocumentExists(
-          "donations",
-          "Please add a donation site in Donations Section."
-        );
-        if (!donationsExists) return;
+           // Check if data exists in home-sections table
+           const volunteerSectionQuery = query(
+            collection(db, "volunteer-sections", uuid, "sections")
+          );
+          const querySnapshot = await getDocs(volunteerSectionQuery);
+          if (querySnapshot.empty) {
+            toast.error("Please add a section in Volunteer Section.");
+            return;
+          }
+          const donationsSectionsQuery = query(
+            collection(db, "donations-section", uuid, "donations")
+          );
+          const querySnapshotDonations = await getDocs(donationsSectionsQuery);
+          if (querySnapshotDonations.empty) {
+            toast.error("Please add a donation site in Donations Section.");
+            return;
+          }
+
+     
       }
 
       

@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 import { IoClose } from "react-icons/io5";
 import { dogBreeds, catBreeds } from "./breeds"; // Adjust the path as necessary
 
-export default function OwnerAdoptionModalEdit({ uid, closeModal }) {
+export default function OwnerAdoptionModalEdit({ projectId, uid, closeModal }) {
   const [petData, setPetData] = useState({
     petName: "",
     birthdate: "",
@@ -31,7 +31,8 @@ export default function OwnerAdoptionModalEdit({ uid, closeModal }) {
   useEffect(() => {
     const fetchPetData = async () => {
       try {
-        const petDoc = await getDoc(doc(db, "adoptions", uid));
+        // Reference the document in the animals subcollection
+        const petDoc = await getDoc(doc(db, `adoptions/${projectId}/animals`, uid));
         if (petDoc.exists()) {
           const data = petDoc.data();
           setPetData({
@@ -47,7 +48,7 @@ export default function OwnerAdoptionModalEdit({ uid, closeModal }) {
       }
     };
     fetchPetData();
-  }, [uid, closeModal]);
+  }, [uid, projectId, closeModal]);
 
   // Populate breeds based on species selection
   useEffect(() => {
@@ -78,14 +79,14 @@ export default function OwnerAdoptionModalEdit({ uid, closeModal }) {
   };
 
   // Separate handler for description
-const handleDescriptionChange = (e) => {
-  setPetData({ ...petData, description: e.target.value });
-};
+  const handleDescriptionChange = (e) => {
+    setPetData({ ...petData, description: e.target.value });
+  };
 
-// Separate handler for notes
-const handleNotesChange = (e) => {
-  setPetData({ ...petData, notes: e.target.value });
-};
+  // Separate handler for notes
+  const handleNotesChange = (e) => {
+    setPetData({ ...petData, notes: e.target.value });
+  };
 
   // Update pet data in Firestore on form submission
   const handleSubmit = async (e) => {
@@ -103,7 +104,7 @@ const handleNotesChange = (e) => {
       }
 
       // Update Firestore with modified data
-      await updateDoc(doc(db, "adoptions", uid), {
+      await updateDoc(doc(db, `adoptions/${projectId}/animals`, uid), {
         ...petData,
         image: imageUrl,
       });
@@ -237,7 +238,7 @@ const handleNotesChange = (e) => {
           )}
           <label>Description:</label>
           <textarea
-            name="notes"
+            name="description"
             className="input input-bordered w-full h-24"
             placeholder="Enter description about the pet"
             value={petData.description}

@@ -15,6 +15,7 @@ import {
   getDocs,
   doc,
   getDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import adoptPet from "../assets/png/adopt_pet.png";
 import AnimalShelterSitesModal from "./AnimalShelterSitesModal";
@@ -44,11 +45,83 @@ export default function HeaderDynamic() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAboutUsOpen, setIsAboutUsOpen] = useState(false);
-
+  const [isEnabled, setIsEnabled] = useState(true);
+  const [projectId, setProjectId] = useState("");
+  const [isCommunityForumEnabled, setIsCommunityForumEnabled] = useState(true);
+  const [isAppointmentsEnabled, setIsAppointmentsEnabled] = useState(true);
   const isActiveLink = (path) => window.location.pathname.includes(path);
   // const isActiveLink = (path) => console.log(location.pathname === path);
+  useEffect(() => {
+    if (!projectId) {
+      console.warn("Project ID is missing, cannot fetch appointments-section.");
+      setIsAppointmentsEnabled(true); // Default to enabled
+      return;
+    }
 
-  
+    const fetchAppointmentsSection = async () => {
+      try {
+        const sectionRef = doc(db, "appointments-section", projectId);
+        const snapshot = await getDoc(sectionRef);
+
+        if (snapshot.exists()) {
+          const sectionData = snapshot.data();
+          setIsAppointmentsEnabled(sectionData.isEnabled);
+        } else {
+          console.warn(
+            "Appointments section not found. Defaulting to enabled."
+          );
+          setIsAppointmentsEnabled(true); // Default to enabled if not found
+        }
+      } catch (error) {
+        console.error("Error fetching appointments section:", error);
+        setIsAppointmentsEnabled(true); // Fallback to default
+      }
+    };
+    const fetchCommunityForum = async () => {
+      try {
+        const sectionRef = doc(db, "community-forum-section", projectId);
+        const snapshot = await getDoc(sectionRef);
+
+        if (snapshot.exists()) {
+          const sectionData = snapshot.data();
+          setIsCommunityForumEnabled(sectionData.isEnabled);
+        } else {
+          console.warn(
+            "Community Forum section not found. Defaulting to enabled."
+          );
+          setIsCommunityForumEnabled(true); // Default to enabled if not found
+        }
+      } catch (error) {
+        console.error("Error fetching community forum section:", error);
+        setIsCommunityForumEnabled(true); // Fallback to default
+      }
+    };
+
+    fetchAppointmentsSection();
+    fetchCommunityForum();
+  }, [db, projectId]);
+
+  useEffect(() => {
+    const fetchAdoptSection = async () => {
+      try {
+        const adoptSectionRef = doc(db, "adopt-sections", projectId);
+        const adoptSectionSnap = await getDoc(adoptSectionRef);
+
+        if (adoptSectionSnap.exists()) {
+          const adoptSectionData = adoptSectionSnap.data();
+
+          setIsEnabled(adoptSectionData.isEnabled); // Use correct property key
+        } else {
+          console.warn("Adopt section not found.");
+        }
+      } catch (error) {
+        console.error("Error fetching adopt section:", error);
+      }
+    };
+
+    fetchAdoptSection();
+  }, [projectId, db]);
+
   function onLogout() {
     auth
       .signOut()
@@ -70,6 +143,8 @@ export default function HeaderDynamic() {
         );
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
+          const docId = querySnapshot.docs[0].id;
+          setProjectId(docId);
           const doc = querySnapshot.docs[0].data();
           setHeaderData({
             headerColor: doc.headerColor,
@@ -123,20 +198,20 @@ export default function HeaderDynamic() {
           // Fetch client data from Firestore using the current user's UID
           const clientDocRef = doc(db, "clients", user.uid);
           const clientDoc = await getDoc(clientDocRef);
-  
+
           if (clientDoc.exists()) {
             const clientData = clientDoc.data();
-  
+
             // Fetch the project ID of the current veterinary site
             const globalSectionQuery = query(
               collection(db, "global-sections"),
               where("slug", "==", slug)
             );
             const globalSectionSnapshot = await getDocs(globalSectionQuery);
-  
+
             if (!globalSectionSnapshot.empty) {
               const projectId = globalSectionSnapshot.docs[0].id;
-  
+
               // Check if the client's projectId matches the current site's projectId
               if (clientData.projectId === projectId) {
                 // If projectId matches, set client data
@@ -158,29 +233,29 @@ export default function HeaderDynamic() {
         }
       }
     };
-  
+
     fetchClientData();
   }, [user, slug]);
-  
 
   return (
     <>
       {/* Main Header Navigation */}
       <nav
-        className="flex items-center justify-between py-4 sticky top-0 px-5 z-50 print:hidden"
+        className="flex items-center justify-between py-4 sticky top-0 px-5 z-50 print:hidden select-none"
         style={{
           background: headerData.headerColor,
           color: headerData.headerTextColor,
         }}
       >
-        <div className="flex items-center lg:space-x-6">
+        <div className="flex items-center space-x-4 lg:space-x-6">
           {headerData.image && (
-            <>
-              <Link to={`sites/${slug}/`}>
-                <img src={headerData.image} alt="Logo" className="h-8" />
-              </Link>
-              <p>{headerData.name}</p>
-            </>
+            <Link to={`sites/${slug}/`} className="flex items-center space-x-2">
+              {/* Logo */}
+              <img src={headerData.image} alt="Logo" className="h-8 w-auto" />
+
+              {/* Name */}
+              <p className="text-lg font-semibold">{headerData.name}</p>
+            </Link>
           )}
         </div>
 
@@ -249,20 +324,23 @@ export default function HeaderDynamic() {
                 </Link>
               </>
             )}
-            <Link
-              to={`/sites/${slug}/appointments`}
-              className="transition-colors duration-200 px-3 py-2 rounded-md"
-              style={{
-                backgroundColor: isActiveLink(`/sites/${slug}/appointments`)
-                  ? headerData.headerTextColor
-                  : "transparent",
-                color: isActiveLink(`/sites/${slug}/appointments`)
-                  ? headerData.headerColor
-                  : headerData.headerTextColor,
-              }}
-            >
-              Appointments
-            </Link>
+            {isAppointmentsEnabled && (
+              <Link
+                to={`/sites/${slug}/appointments`}
+                className="transition-colors duration-200 px-3 py-2 rounded-md"
+                style={{
+                  backgroundColor: isActiveLink(`/sites/${slug}/appointments`)
+                    ? headerData.headerTextColor
+                    : "transparent",
+                  color: isActiveLink(`/sites/${slug}/appointments`)
+                    ? headerData.headerColor
+                    : headerData.headerTextColor,
+                }}
+              >
+                Appointments
+              </Link>
+            )}
+
             <Link
               to={`/sites/${slug}/contact`}
               className="transition-colors duration-200 px-3 py-2 rounded-md"
@@ -277,20 +355,42 @@ export default function HeaderDynamic() {
             >
               Contact Us
             </Link>
-            <Link
-              to={`/sites/${slug}/adopt-pet`}
-              className="transition-colors duration-200 px-3 py-2 rounded-md"
-              style={{
-                backgroundColor: isActiveLink(`/sites/${slug}/adopt-pet`)
-                  ? headerData.headerTextColor
-                  : "transparent",
-                color: isActiveLink(`/sites/${slug}/adopt-pet`)
-                  ? headerData.headerColor
-                  : headerData.headerTextColor,
-              }}
-            >
-              Adopt Pets
-            </Link>
+            {isEnabled && (
+              <Link
+                to={`/sites/${slug}/adopt-pet`}
+                className="transition-colors duration-200 px-3 py-2 rounded-md"
+                style={{
+                  backgroundColor: isActiveLink(`/sites/${slug}/adopt-pet`)
+                    ? headerData.headerTextColor
+                    : "transparent",
+                  color: isActiveLink(`/sites/${slug}/adopt-pet`)
+                    ? headerData.headerColor
+                    : headerData.headerTextColor,
+                }}
+              >
+                Adopt Pets
+              </Link>
+            )}
+
+            {isCommunityForumEnabled && (
+              <Link
+                to={`/sites/${slug}/community-forum`}
+                state={{ projectId }} // Pass the projectId via state
+                className="transition-colors duration-200 px-3 py-2 rounded-md"
+                style={{
+                  backgroundColor: isActiveLink(
+                    `/sites/${slug}/community-forum`
+                  )
+                    ? headerData.headerTextColor
+                    : "transparent",
+                  color: isActiveLink(`/sites/${slug}/community-forum`)
+                    ? headerData.headerColor
+                    : headerData.headerTextColor,
+                }}
+              >
+                Community Forum
+              </Link>
+            )}
           </ul>
 
           {/* Notifications, Messages, and User Icon for all screen sizes */}
@@ -533,15 +633,17 @@ export default function HeaderDynamic() {
                       </Link>
                     </>
                   )}
+                  {isAppointmentsEnabled && (
+                    <Link
+                      to={`sites/${slug}/appointments`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block transition-colors duration-200 px-3 py-2 rounded-md"
+                      style={{ color: headerData.headerTextColor }}
+                    >
+                      Appointments
+                    </Link>
+                  )}
 
-                  <Link
-                    to={`sites/${slug}/appointments`}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block transition-colors duration-200 px-3 py-2 rounded-md"
-                    style={{ color: headerData.headerTextColor }}
-                  >
-                    Appointments
-                  </Link>
                   <Link
                     to={`sites/${slug}/contact`}
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -550,14 +652,27 @@ export default function HeaderDynamic() {
                   >
                     Contact Us
                   </Link>
-                  <Link
-                    to={`sites/${slug}/adopt-pet`}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block transition-colors duration-200 px-3 py-2 rounded-md"
-                    style={{ color: headerData.headerTextColor }}
-                  >
-                    Adopt Pets
-                  </Link>
+                  {isEnabled && (
+                    <Link
+                      to={`sites/${slug}/adopt-pet`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block transition-colors duration-200 px-3 py-2 rounded-md"
+                      style={{ color: headerData.headerTextColor }}
+                    >
+                      Adopt Pets
+                    </Link>
+                  )}
+                  {isCommunityForumEnabled && (
+                    <Link
+                      to={`/sites/${slug}/community-forum`}
+                      state={{ projectId }} // Pass the projectId via state
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block transition-colors duration-200 px-3 py-2 rounded-md"
+                      style={{ color: headerData.headerTextColor }}
+                    >
+                      Community Forum
+                    </Link>
+                  )}
                 </div>
               )}
               {/* Additional Menu Options */}

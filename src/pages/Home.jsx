@@ -13,6 +13,7 @@ import {
   doc,
   addDoc,
   getDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "../firebase";
@@ -63,18 +64,34 @@ export default function Home() {
     return () => unsubscribe();
   }, [auth]);
 
-  const fetchProjects = async (userId) => {
+  const fetchProjects = (userId) => {
     const projectsQuery = query(
       collection(db, "projects"),
       where("userId", "==", userId)
     );
-    const projectsCollection = await getDocs(projectsQuery);
-    const projectList = projectsCollection.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setProjects(projectList);
+  
+    const unsubscribe = onSnapshot(
+      projectsQuery,
+      (snapshot) => {
+        // Map through the documents and filter locally for projects not "deleted"
+        const projectList = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((project) => project.status !== "deleted"); // Local filtering
+  
+        setProjects(projectList); // Update state with the filtered list
+      },
+      (error) => {
+        console.error("Error listening to projects:", error);
+      }
+    );
+  
+    // Return the unsubscribe function to stop listening when the component unmounts
+    return unsubscribe;
   };
+  
   const handleMenuToggle = (projectId, event) => {
     event.stopPropagation();
     setMenuOpen((prev) => (prev === projectId ? null : projectId));
@@ -220,7 +237,8 @@ export default function Home() {
               </div>
 
               {menuOpen === project.id && (
-                <div className="absolute bg-white shadow-lg rounded-lg right-0 z-10 transition-all transform origin-top scale-y-100">
+                <div className="absolute bg-white shadow-lg rounded-lg right-0 z-10 transition-all transform origin-top scale-y-100"                
+                >
                   <button
                     className="block w-full px-4 py-2 text-gray-700 hover:bg-gray-100"
                     // onClick={(e) => {
@@ -301,7 +319,7 @@ export default function Home() {
                           project.status === "disabled" ? "" : "toggle-success"
                         }`}
                         checked={project.status === "active"}
-                        readOnly
+                        disabled={project.status === "pending"}
                       />
                       {project.status === "active"
                         ? "Disable Site"

@@ -4,8 +4,14 @@ import { db } from "../../../firebase";
 import { toast } from "react-toastify";
 import RecordsTabModal from "./RecordsTabModal";
 import { FaPencilAlt, FaPrint, FaTrash } from "react-icons/fa";
+import AnimalAdoptionRecordsTabModal from "./AnimalAdoptionRecordsTabModal";
 
-export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
+export default function AnimalAdoptionRecordsTab({
+  projectId,
+  sectionId,
+  petId,
+  isClient,
+}) {
   const [records, setRecords] = useState([]);
   const [sections, setSections] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -18,7 +24,7 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
 
       const sectionsRef = collection(
         db,
-        "pet-health-sections",
+        "adoption-record-sections",
         projectId,
         "sections"
       );
@@ -32,7 +38,7 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
         // Fetch columns for each section
         const columnsRef = collection(
           db,
-          "pet-health-sections",
+          "adoption-record-sections",
           projectId,
           "sections",
           sectionId,
@@ -72,7 +78,7 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
         for (const section of sections) {
           const recordsRef = collection(
             db,
-            `pet-health-records/${projectId}/${petId}/${section.id}/records`
+            `adoption-records/${projectId}/${petId}/${section.id}/records`
           );
           const snapshot = await getDocs(
             query(recordsRef, orderBy("recordCreated", "desc"), limit(1))
@@ -91,7 +97,7 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
         for (const section of sections) {
           const recordsRef = collection(
             db,
-            `pet-health-records/${projectId}/${petId}/${section.id}/records`
+            `adoption-records/${projectId}/${petId}/${section.id}/records`
           );
           const snapshot = await getDocs(recordsRef);
 
@@ -106,7 +112,7 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
         // Fetch records for a specific section
         const recordsRef = collection(
           db,
-          `pet-health-records/${projectId}/${petId}/${sectionId}/records`
+          `adoption-records/${projectId}/${petId}/${sectionId}/records`
         );
         const snapshot = await getDocs(recordsRef);
 
@@ -124,6 +130,36 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
     }
   };
 
+  // Function to delete a record
+  const handleDeleteRecord = async (record) => {
+    try {
+      if (!projectId || !petId || !record.sectionId || !record.id) {
+        toast.error("Invalid record data. Unable to delete.");
+        return;
+      }
+
+      // Reference to the record in Firestore
+      const recordRef = doc(
+        db,
+        `adoption-records/${projectId}/${petId}/${record.sectionId}/records`,
+        record.id
+      );
+
+      // Confirm deletion
+      if (window.confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
+        await deleteDoc(recordRef);
+
+        // Refresh records after deletion
+        fetchRecords();
+
+        toast.success("Record deleted successfully!");
+      }
+    } catch (error) {
+      console.error("Error deleting record:", error);
+      toast.error("Failed to delete record.");
+    }
+  };
+
   useEffect(() => {
     fetchSectionsAndColumns();
     fetchRecords();
@@ -134,36 +170,6 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
     setSelectedRecord(record);
     setShowAddModal(true);
   };
-
-    // Function to delete a record
-    const handleDeleteRecord = async (record) => {
-      try {
-        if (!projectId || !petId || !record.sectionId || !record.id) {
-          toast.error("Invalid record data. Unable to delete.");
-          return;
-        }
-  
-        // Reference to the record in Firestore
-        const recordRef = doc(
-          db,
-          `pet-health-records/${projectId}/${petId}/${record.sectionId}/records`,
-          record.id
-        );
-  
-        // Confirm deletion
-        if (window.confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
-          await deleteDoc(recordRef);
-  
-          // Refresh records after deletion
-          fetchRecords();
-  
-          toast.success("Record deleted successfully!");
-        }
-      } catch (error) {
-        console.error("Error deleting record:", error);
-        toast.error("Failed to delete record.");
-      }
-    };
 
   return (
     <div>
@@ -228,19 +234,20 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
                         </td>
                       ))}
                       {!isClient && (
-                      <td className="px-4 py-2 border border-gray-300 print:hidden">
-                        <button
-                          className="btn bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
-                          onClick={() => handleEditRecord(record)}
-                        >
-                          <FaPencilAlt /> Edit
-                        </button>
-                        <button className="btn bg-red-600 text-white hover:bg-red-700 flex items-center justify-center gap-2"
-                        onClick={()=> handleDeleteRecord(record)}
-                        >
-                          <FaTrash /> Delete
-                        </button>
-                      </td>
+                        <td className="px-4 py-2 border border-gray-300 print:hidden">
+                          <button
+                            className="btn btn-sm text-xs bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+                            onClick={() => handleEditRecord(record)}
+                          >
+                            <FaPencilAlt /> Edit
+                          </button>
+                          <button
+                            className="btn btn-sm text-xs bg-red-600 text-white hover:bg-red-700 flex items-center justify-center gap-2"
+                            onClick={() => handleDeleteRecord(record)}
+                          >
+                            <FaTrash /> <span className="text-[0.7rem]">Delete</span>
+                          </button>
+                        </td>
                       )}
                     </tr>
                   ))}
@@ -253,7 +260,7 @@ export default function RecordsTab({ projectId, sectionId, petId, isClient }) {
 
       {/* RecordsTabModal for adding a new record */}
       {showAddModal && (
-        <RecordsTabModal
+        <AnimalAdoptionRecordsTabModal
           projectId={projectId}
           sectionId={selectedSection}
           petId={petId}

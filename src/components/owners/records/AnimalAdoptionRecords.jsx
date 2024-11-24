@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import RecordsTab from "./RecordsTab";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase";
+import AnimalAdoptionRecordsTab from "./AnimalAdoptionRecordsTab";
 
-const PetRecords = ({ petUid, projectId, isClient = false  }) => {
+const AnimalAdoptionRecords = ({ petUid, projectId, isClient = false  }) => {
   const [activeTab, setActiveTab] = useState("all");
   const [dynamicTabs, setDynamicTabs] = useState([]);
 
@@ -19,7 +20,7 @@ const PetRecords = ({ petUid, projectId, isClient = false  }) => {
   // Fetch sections from Firestore
   const fetchSections = async () => {
     try {
-      const sectionsRef = collection(db, `pet-health-sections/${projectId}/sections`);
+      const sectionsRef = collection(db, `adoption-record-sections/${projectId}/sections`);
       const snapshot = await getDocs(sectionsRef);
 
       // Extract section names and IDs
@@ -62,11 +63,11 @@ const PetRecords = ({ petUid, projectId, isClient = false  }) => {
   
       {/* Render the RecordsTab based on the active tab */}
       <div className="mt-4">
-        <RecordsTab projectId={projectId} petId={petUid} sectionId={activeTab} isClient={isClient} />
+        <AnimalAdoptionRecordsTab projectId={projectId} petId={petUid} sectionId={activeTab} isClient={isClient} />
       </div>
     </div>
   );
   
 };
 
-export default PetRecords;
+export default AnimalAdoptionRecords;

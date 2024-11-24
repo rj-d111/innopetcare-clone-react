@@ -80,23 +80,23 @@ export default function ProjectRegister() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-
+  
     // Set loading to true when form submission begins
     setLoading(true);
-
+  
     // Validation
     if (!name || !email || !password || !confirm_password || !phone) {
       toast.error("Please fill all the required fields");
       setLoading(false);
       return;
     }
-
+  
     if (!/\S+@\S+\.\S+/.test(email)) {
       toast.error("Please provide a valid email");
       setLoading(false);
       return;
     }
-
+  
     // Password must be at least 8 characters with a combination of alphanumeric characters
     if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password)) {
       toast.error(
@@ -110,7 +110,7 @@ export default function ProjectRegister() {
       setLoading(false);
       return;
     }
-
+  
     if (password !== confirm_password) {
       toast.error("The password and confirm password do not match");
       setFormData((prevState) => ({
@@ -121,7 +121,7 @@ export default function ProjectRegister() {
       setLoading(false);
       return;
     }
-
+  
     if (!/^9\d{9}$/.test(phone)) {
       toast.error(
         "The phone number must start with 9 and be followed by 9 digits."
@@ -129,8 +129,47 @@ export default function ProjectRegister() {
       setLoading(false);
       return;
     }
-
+  
     try {
+      // Check if email already exists in any of the collections
+      const checkEmailDuplicate = async (email) => {
+        const clientsQuery = query(
+          collection(db, "clients"),
+          where("email", "==", email)
+        );
+        const usersQuery = query(
+          collection(db, "users"),
+          where("email", "==", email)
+        );
+        const techAdminQuery = query(
+          collection(db, "tech-admin"),
+          where("email", "==", email)
+        );
+  
+        const [clientsSnapshot, usersSnapshot, techAdminSnapshot] = await Promise.all([
+          getDocs(clientsQuery),
+          getDocs(usersQuery),
+          getDocs(techAdminQuery),
+        ]);
+  
+        if (
+          !clientsSnapshot.empty ||
+          !usersSnapshot.empty ||
+          !techAdminSnapshot.empty
+        ) {
+          return true; // Email is already used
+        }
+        return false; // Email is not used
+      };
+  
+      const emailExists = await checkEmailDuplicate(email);
+  
+      if (emailExists) {
+        toast.error("This email is already in use. Please use a different email.");
+        setLoading(false);
+        return;
+      }
+  
       const auth = getAuth();
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -138,15 +177,15 @@ export default function ProjectRegister() {
         password
       );
       await updateProfile(auth.currentUser, { displayName: name });
-
+  
       const user = userCredential.user;
-
+  
       const q = query(
         collection(db, "global-sections"),
         where("slug", "==", slug)
       );
       const querySnapshot = await getDocs(q);
-      
+  
       let projectId = null;
       if (!querySnapshot.empty) {
         // Get the projectId from the document ID itself
@@ -154,18 +193,17 @@ export default function ProjectRegister() {
       } else {
         throw new Error("No project found for the given slug.");
       }
-      
-
+  
       const projectRef = doc(db, "projects", projectId);
       const projectDoc = await getDoc(projectRef);
-
+  
       if (!projectDoc.exists()) {
         throw new Error("No project found with the given projectId.");
       }
-
+  
       const projectData = projectDoc.data();
       const isAnimalShelterSite = projectData.type === "Animal Shelter Site";
-
+  
       const formDataCopy = { ...formData };
       delete formDataCopy.password;
       delete formDataCopy.confirm_password;
@@ -173,15 +211,15 @@ export default function ProjectRegister() {
       formDataCopy.status = isAnimalShelterSite ? "approved" : "pending";
       formDataCopy.projectId = projectId;
       formDataCopy.profileImage = "";
-
+  
       await setDoc(doc(db, "clients", user.uid), formDataCopy);
-
+  
       if (formDataCopy.status === "pending") {
         navigate(`/sites/${slug}/approval`);
       } else {
         navigate(`/sites/${slug}/dashboard`);
       }
-
+  
       toast.success("Success! Your account has been created!");
     } catch (error) {
       toast.error(error.message || "An unexpected error occurred.");
@@ -190,6 +228,7 @@ export default function ProjectRegister() {
       setLoading(false);
     }
   };
+  
 
   return (
     <>
@@ -270,7 +309,14 @@ export default function ProjectRegister() {
                     value={password}
                     onChange={onChange}
                     placeholder="Enter your password"
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    className={`w-full px-4 py-2 rounded-lg border ${
+                      password &&
+                      password.length >= 8 &&
+                      /[a-zA-Z]/.test(password) &&
+                      /\d/.test(password)
+                        ? "border-gray-300 focus:ring-yellow-500"
+                        : "border-red-500 focus:ring-red-500"
+                    } focus:outline-none focus:ring-2 focus:border-transparent`}
                   />
                   {showPassword ? (
                     <FaEyeSlash
@@ -284,7 +330,25 @@ export default function ProjectRegister() {
                     />
                   )}
                 </div>
+                <p
+                  className={`mt-2 text-sm ${
+                    password &&
+                    password.length >= 8 &&
+                    /[a-zA-Z]/.test(password) &&
+                    /\d/.test(password)
+                      ? "text-gray-500"
+                      : "text-red-500"
+                  }`}
+                >
+                  {password &&
+                  password.length >= 8 &&
+                  /[a-zA-Z]/.test(password) &&
+                  /\d/.test(password)
+                    ? "Your password meets the requirements!"
+                    : "Password must be at least 8 characters long and include both letters and numbers."}
+                </p>
               </div>
+
               <div className="mb-5">
                 <label
                   htmlFor="confirm_password"
@@ -340,11 +404,14 @@ export default function ProjectRegister() {
                 }`}
                 disabled={loading}
               >
-                {loading ? 
-                <>
-                <Spinner /> 
-                 Please wait...
-                </> : "Sign Up"}
+                {loading ? (
+                  <>
+                    <Spinner />
+                    Please wait...
+                  </>
+                ) : (
+                  "Sign Up"
+                )}
               </button>
             </form>
           </div>

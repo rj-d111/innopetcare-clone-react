@@ -71,7 +71,7 @@ export default function ProjectFooter() {
   const CurrentYear = () => new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-100 py-10">
+    <footer className="bg-gray-100 py-10 select-none">
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Column 1: Owner Details */}
         <div className="flex flex-col items-center md:items-start text-center md:text-left md:px-10">

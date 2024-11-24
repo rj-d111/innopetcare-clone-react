@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import Spinner from "../Spinner";
 import PetRecords from "./records/PetRecords";
 import { FaPrint } from "react-icons/fa";
+import OwnerHeaderPrint from "./OwnerHeaderPrint";
 
 export default function OwnerAdoptionsDetailsPet() {
   const { petId, id } = useParams();
@@ -86,7 +87,9 @@ export default function OwnerAdoptionsDetailsPet() {
 
   return (
     <>
-<div className="bg-white p-6 rounded-lg shadow-lg print:shadow-none print:rounded-none element no-scrollbar">
+<div className="bg-white p-6 rounded-lg shadow-lg print:shadow-none print:rounded-none">
+
+  <OwnerHeaderPrint projectId={id}/>
         <div className="flex justify-end print:hidden">
         <button class="btn btn-primary"
         onClick={handlePrint}>
@@ -126,7 +129,6 @@ export default function OwnerAdoptionsDetailsPet() {
           </div>
         </div>
       </div>
-
 
       <PetRecords petUid={petId} projectId={id} />
     </>

@@ -53,10 +53,22 @@ export default function ProjectMessages() {
   const [projectId, setProjectId] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [headerColor, setHeaderColor] = useState("#2563eb");
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [currentImage, setCurrentImage] = useState(null);
   const [chatId, setChatId] = useState(null);
   const auth = getAuth();
   const user = auth.currentUser;
   const { slug } = useParams();
+
+  const openImageModal = (imageUrl) => {
+    setCurrentImage(imageUrl);
+    setIsImageModalOpen(true);
+  };
+
+  const closeImageModal = () => {
+    setCurrentImage(null);
+    setIsImageModalOpen(false);
+  };
 
   useEffect(() => {
     const fetchProjectId = async () => {
@@ -308,7 +320,8 @@ export default function ProjectMessages() {
                     <img
                       src={message.fileUrl}
                       alt="Attachment"
-                      className="max-w-full rounded"
+                      className="max-w-full rounded cursor-pointer"
+                      onClick={() => openImageModal(message.fileUrl)}
                     />
                   ) : (
                     <a
@@ -366,6 +379,27 @@ export default function ProjectMessages() {
           </div>
         </div>
       </div>
+
+      {isImageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+        onClick={closeImageModal}
+        >
+          <div className="relative">
+            <img
+              src={currentImage}
+              alt="Full Screen"
+              className="max-w-full max-h-screen"
+            />
+            <button
+              className="absolute top-4 right-4 text-gray-300 text-5xl"
+              onClick={closeImageModal}
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

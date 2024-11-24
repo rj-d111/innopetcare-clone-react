@@ -12,13 +12,32 @@ import {
 import { db } from "../../firebase";
 import { useParams } from "react-router";
 import { toast } from "react-toastify";
-import { FaSearch } from "react-icons/fa";
+import {
+  FaSearch,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaClock,
+  FaQuestionCircle,
+} from "react-icons/fa";
 
 export default function OwnerAnimalSchedule() {
   const { id: projectId } = useParams();
   const [appointments, setAppointments] = useState([]);
   const [clients, setClients] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+
+  const confirmAction = (appointmentId, status, eventDatetime, clientId) => {
+    const confirmation = window.confirm(
+      `Are you sure you want to ${
+        status === "accepted" ? "accept" : "reject"
+      } this appointment for ${eventDatetime}?`
+    );
+
+    if (confirmation) {
+      handleAction(appointmentId, status, eventDatetime, clientId);
+    }
+  };
 
   // Fetch appointments based on projectId
   useEffect(() => {
@@ -61,13 +80,20 @@ export default function OwnerAnimalSchedule() {
     fetchClients();
   }, []);
 
-  const handleAction = async (appointmentId, status, eventDatetime, clientId) => {
+  const handleAction = async (
+    appointmentId,
+    status,
+    eventDatetime,
+    clientId
+  ) => {
     try {
       const appointmentRef = doc(db, "appointments", appointmentId);
       await updateDoc(appointmentRef, { status });
 
       toast.success(
-        `Successfully ${status === "accepted" ? "Accepted" : "Rejected"} for ${eventDatetime}`
+        `Successfully ${
+          status === "accepted" ? "Accepted" : "Rejected"
+        } for ${eventDatetime}`
       );
 
       await addNotification(clientId, projectId, status, eventDatetime);
@@ -83,36 +109,35 @@ export default function OwnerAnimalSchedule() {
     }
   };
 
-  const addNotification = async (clientId, projectId, status, eventDatetime) => {
+  const addNotification = async (
+    clientId,
+    projectId,
+    status,
+    eventDatetime
+  ) => {
     try {
       const notificationData = {
-        type: status === "accepted" ? "Appointment Accepted" : "Appointment Rejected",
+        type:
+          status === "accepted"
+            ? "Appointment Accepted"
+            : "Appointment Rejected",
         message: `Your appointment for ${eventDatetime} has been ${status}.`,
         timestamp: serverTimestamp(),
         read: false,
       };
 
-      const notificationsRef = collection(db, "notifications", projectId, clientId);
+      const notificationsRef = collection(
+        db,
+        "notifications",
+        projectId,
+        clientId
+      );
       await addDoc(notificationsRef, notificationData);
     } catch (error) {
       console.error("Error adding notification:", error);
       toast.error("Failed to send notification");
     }
   };
-
-  // Filter and sort appointments based on search query
-  const now = new Date();
-  const filteredAppointments = appointments
-    .filter((app) => app.event_datetime.toDate() >= now)
-    .sort((a, b) => a.event_datetime.toDate() - b.event_datetime.toDate())
-    .filter((app) => {
-      const ownerName = clients[app.clientId]?.name || "";
-      return (
-        ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.event_datetime.toDate().toLocaleDateString().includes(searchQuery)
-      );
-    });
 
   const formatDateTime = (date) => {
     return date.toLocaleDateString("en-US", {
@@ -126,22 +151,60 @@ export default function OwnerAnimalSchedule() {
     });
   };
 
+  // Filter and sort appointments based on status and search query
+  const now = new Date();
+  const filteredAppointments = appointments
+    .filter((app) => {
+      if (filterStatus !== "all") return app.status === filterStatus;
+      return true;
+    })
+    .filter((app) => app.event_datetime.toDate() >= now)
+    .sort((a, b) => a.event_datetime.toDate() - b.event_datetime.toDate())
+    .filter((app) => {
+      const ownerName = clients[app.clientId]?.name || "";
+      return (
+        ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        app.event_datetime.toDate().toLocaleDateString().includes(searchQuery)
+      );
+    });
+
+  const statusIcons = {
+    accepted: <FaCheckCircle className="text-green-500" />,
+    pending: <FaClock className="text-yellow-500" />,
+    rejected: <FaTimesCircle className="text-red-500" />,
+    default: <FaQuestionCircle className="text-gray-500" />,
+  };
+
   return (
     <div className="p-6">
-      <h2 className="font-semibold text-4xl mb-4">Animal Shelter Schedule</h2>
+      <h2 className="font-semibold text-4xl mb-4">Animal Schedule</h2>
 
-      <div className="flex justify-between my-3">
-        <h2 className="font-semibold text-2xl mb-4">Upcoming Appointments</h2>
+      <div className="flex flex-wrap items-center justify-between gap-4 my-3">
+        {/* Filter Buttons */}
+        <div className="flex gap-2 flex-wrap">
+          {["all", "accepted", "pending", "rejected"].map((status) => (
+            <button
+              key={status}
+              className={`btn ${
+                filterStatus === status ? "btn-primary" : "btn-outline"
+              }`}
+              onClick={() => setFilterStatus(status)}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
+        </div>
 
         {/* Search Bar */}
-        <div className="join">
+        <div className="flex items-center">
           <input
-            className="input input-bordered join-item w-60"
-            placeholder="Search by name, pet, or date"
+            className="input input-bordered w-60"
+            placeholder="Search by name, reason of appointment"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button className="btn join-item rounded-r-full">
+          <button className="btn rounded-l-none">
             <FaSearch />
           </button>
         </div>
@@ -153,14 +216,16 @@ export default function OwnerAnimalSchedule() {
           filteredAppointments.map((app) => (
             <li key={app.id} className="border p-4 rounded-lg shadow">
               <h3 className="font-semibold text-lg">
-                Name: {clients[app.clientId]?.name || "Unknown"}
+                <span className="font-bold">Name:</span> {clients[app.clientId]?.name || "Unknown"}
               </h3>
-              <p>Reason For Appointment: {app.reason}</p>
-              <p>Appointment Date: {formatDateTime(app.event_datetime.toDate())}</p>
-              <p>Number of Visitors: {app.numberOfVisitors || "N/A"}</p>
-              <p>Comments/Questions: {app.additional || "None"}</p>
+              <p><span className="font-bold">Reason For Appointment:</span> {app.reason}</p>
               <p>
-                Status:{" "}
+                <span className="font-bold">Appointment Date:</span> {formatDateTime(app.event_datetime.toDate())}
+              </p>
+              <p><span className="font-bold">Number of Visitors:</span> {app.numberOfVisitors || "N/A"}</p>
+              <p><span className="font-bold">Comments/Questions:</span> {app.additional || "None"}</p>
+              <p className="flex items-center gap-2">
+                <span className="font-bold">Status:</span> {statusIcons[app.status] || statusIcons.default}
                 <span
                   className={
                     app.status === "pending"
@@ -170,14 +235,14 @@ export default function OwnerAnimalSchedule() {
                       : "text-red-500"
                   }
                 >
-                  {app.status}
+                  {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
                 </span>
               </p>
               <div className="flex items-center space-x-3 mt-3">
                 <button
                   className="btn btn-success text-white"
                   onClick={() =>
-                    handleAction(
+                    confirmAction(
                       app.id,
                       "accepted",
                       app.event_datetime.toDate().toLocaleString(),
@@ -191,7 +256,7 @@ export default function OwnerAnimalSchedule() {
                 <button
                   className="btn bg-red-600 text-white hover:bg-red-800 transition-colors"
                   onClick={() =>
-                    handleAction(
+                    confirmAction(
                       app.id,
                       "rejected",
                       app.event_datetime.toDate().toLocaleString(),

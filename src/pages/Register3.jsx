@@ -8,6 +8,7 @@ import Spinner from "../components/Spinner.jsx";
 function Register3({ formData, onChange, onPrevious, onSubmit }) {
   const [fileCount, setFileCount] = useState(formData.document.length);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false); // Separate state for Privacy Policy
   const [loading, setLoading] = useState(false);
 
   const handleFileChange = (e) => {
@@ -38,6 +39,11 @@ function Register3({ formData, onChange, onPrevious, onSubmit }) {
 
     if (!agreeTerms) {
       toast.error("Please agree to the Terms and Conditions.");
+      return;
+    }
+
+    if (!agreePrivacy) {
+      toast.error("Please agree to the Privacy Policy.");
       return;
     }
 
@@ -165,6 +171,28 @@ function Register3({ formData, onChange, onPrevious, onSubmit }) {
                 className="text-yellow-500 hover:underline"
               >
                 Terms and Conditions
+              </Link>
+            </span>
+          </label>
+        </div>
+
+        {/* Privacy Policy checkbox */}
+        <div className="mt-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={agreePrivacy}
+              onChange={() => setAgreePrivacy(!agreePrivacy)}
+              className="form-checkbox h-5 w-5 text-yellow-600"
+            />
+            <span className="ml-2 text-gray-700 text-sm">
+              I agree to the{" "}
+              <Link
+                to="/privacy-policy"
+                target="_blank"
+                className="text-yellow-500 hover:underline"
+              >
+                Privacy Policy
               </Link>
             </span>
           </label>

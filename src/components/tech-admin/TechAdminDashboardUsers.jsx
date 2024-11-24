@@ -166,18 +166,18 @@ export default function TechAdminDashboardUsers() {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Sites</h2>
+    <div className="p-10">
+      <h2 className="text-2xl font-bold mb-6">Sites Details</h2>
 
               {/* Statistics Section */}
       <div className="stats shadow mb-6">
-        <div className="stat">
+        {/* <div className="stat">
           <div className="stat-figure text-secondary">
             <FaRegUser size={25} />
           </div>
           <div className="stat-title">No. of Clients</div>
           <div className="stat-value">{totalClients}</div>
-        </div>
+        </div> */}
         <div className="stat">
           <div className="stat-title">Active Veterinary Clinic Sites</div>
           <div className="stat-value">{totalVetSites}</div>

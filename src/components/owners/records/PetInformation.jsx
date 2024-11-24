@@ -47,10 +47,10 @@ const PetInformation = ({ pet = null, petUid, isClient = false }) => {
 
   return (
     <>
-      <div className="bg-white p-6 rounded-lg shadow-lg">
+      <div className="bg-white p-6 rounded-lg shadow-lg print:shadow-none">
         {/* Header Section with Image and Edit Button */}
         <div className="flex flex-col md:flex-row md:items-center justify-between">
-          <div className="flex items-center mb-4 md:mb-0">
+          <div className="flex items-center mb-4 md:mb-0 print:mb-0">
             <img
               src={image || "https://via.placeholder.com/100"}
               alt={petName}
@@ -75,18 +75,34 @@ const PetInformation = ({ pet = null, petUid, isClient = false }) => {
         </div>
 
         {/* Pet Information and Health Concerns Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 print:grid-cols-2">
           {/* Pet Information */}
           <div>
             <h3 className="font-semibold">Pet Information</h3>
             <ul className="text-gray-700 mt-2">
-              <li>Age: {age}</li>
-              <li>Birth Date: {birthdate}</li>
-              <li>Species: {species}</li>
-              <li>Breed: {breed}</li>
-              <li>Gender: {gender}</li>
-              <li>Weight: {weight} kg</li>
-              <li>Color: {color}</li>
+              <li>
+                <span className="font-bold">Age:</span> {age || "N/A"}
+              </li>
+              <li>
+                <span className="font-bold">Birth Date:</span>{" "}
+                {birthdate || "N/A"}
+              </li>
+              <li>
+                <span className="font-bold">Species:</span> {species || "N/A"}
+              </li>
+              <li>
+                <span className="font-bold">Breed:</span> {breed || "N/A"}
+              </li>
+              <li>
+                <span className="font-bold">Gender:</span> {gender || "N/A"}
+              </li>
+              <li>
+                <span className="font-bold">Weight:</span>{" "}
+                {weight ? `${weight} kg` : "N/A"}
+              </li>
+              <li>
+                <span className="font-bold">Color:</span> {color || "N/A"}
+              </li>
             </ul>
           </div>
 
@@ -94,8 +110,8 @@ const PetInformation = ({ pet = null, petUid, isClient = false }) => {
           <div>
             <h3 className="font-semibold">Health Concerns</h3>
             <ul className="text-gray-700 mt-2">
-              <li>Allergies: {allergies || "None"}</li>
-              <li>Existing Conditions: {existingConditions || "None"}</li>
+              <li><span className="font-bold">Allergies:</span> {allergies || "None"}</li>
+              <li><span className="font-bold">Existing Conditions:</span> {existingConditions || "None"}</li>
             </ul>
           </div>
         </div>

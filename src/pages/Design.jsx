@@ -19,6 +19,9 @@ import UserFeedbackSection from "../components/design/UserFeedbackSection";
 import SendReportSection from "../components/design/SendReportSection";
 import PetHealthRecordsSection from "../components/design/PetHealthRecordsSection";
 import DonateSection from "../components/design/DonateSection";
+import AdoptionRecordSection from "../components/design/AdoptionRecordSection";
+import AppointmentsSection from "../components/design/AppointmentsSection";
+import CommunityForumSection from "./CommunityForumSection";
 
 function Design({ isWebVersion, setWebVersion }) {
   const { id } = useParams();
@@ -96,8 +99,14 @@ function Design({ isWebVersion, setWebVersion }) {
         return <AboutUs />;
       case "services":
         return <Services />;
+      case "appointments":
+        return <AppointmentsSection />;
+      case "communityForum":
+        return <CommunityForumSection />;
       case "petHealthRecords":
         return <PetHealthRecordsSection />;
+      case "adoptionRecords":
+        return <AdoptionRecordSection />;
       case "contactUs":
         return <ContactUs />;
       case "adoptPets":
@@ -165,7 +174,7 @@ useEffect(() => {
           </div>
           <div className="hidden md:flex md:flex-grow md:justify-center md:2/3 mx-10 py-10 h-[calc(100vh-80px)] overflow-auto">
             {isWebVersion ? (
-              <CanvasWeb formData={formData} imagePreview={imagePreview} homeSections={homeSections} />
+              <CanvasWeb formData={formData} imagePreview={imagePreview} sections={homeSections} />
             ) : (
               <CanvasMobile />
             )}

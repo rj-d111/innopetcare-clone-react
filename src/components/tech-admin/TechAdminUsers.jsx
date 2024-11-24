@@ -27,6 +27,7 @@ import {
   serverTimestamp,
   addDoc,
 } from "firebase/firestore";
+import { IoMdTrash } from "react-icons/io";
 
 export default function TechAdminUsers() {
   const [users, setUsers] = useState([]);
@@ -293,8 +294,8 @@ export default function TechAdminUsers() {
                           <FaTimesCircle className="mr-2" /> Inactive
                         </div>
                       ) : (
-                        <div className="flex items-center text-gray-500">
-                          <FaQuestionCircle className="mr-2" /> N/A
+                        <div className="flex items-center text-red-500">
+                          <IoMdTrash className="mr-2" /> Deleted
                         </div>
                       )}
                     </td>
@@ -324,8 +325,7 @@ export default function TechAdminUsers() {
                           </>
                         ) : user.status === "archived" ? (
                           <>
-                            <FaArchive className="text-orange-500" size={20} />
-                            <div className="text-orange-500">Archived</div>
+                            <div className="text-gray-500">N/A</div>
                           </>
                         ) : (
                           <div className="text-gray-500">N/A</div>

@@ -3,7 +3,16 @@ import { useParams } from "react-router";
 import { db } from "../../firebase"; // Ensure your Firebase config is imported
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaSearch, FaSortUp, FaSortDown, FaArchive, FaTimesCircle, FaCheckCircle, FaQuestionCircle } from "react-icons/fa";
+import {
+  FaSearch,
+  FaSortUp,
+  FaSortDown,
+  FaArchive,
+  FaTimesCircle,
+  FaCheckCircle,
+  FaQuestionCircle,
+  FaTrash,
+} from "react-icons/fa";
 import {
   doc,
   getDocs,
@@ -74,8 +83,7 @@ export default function OwnerPending() {
         filtered = filtered.filter((client) => client.status === "pending");
       } else if (filterStatus === "rejected") {
         filtered = filtered.filter((client) => client.status === "rejected");
-      }
-      else if (filterStatus === "archived") {
+      } else if (filterStatus === "archived") {
         filtered = filtered.filter((client) => client.status === "archived");
       }
 
@@ -98,33 +106,46 @@ export default function OwnerPending() {
   }, [searchQuery, filterStatus, clients, sortConfig]);
 
   // Handle Accept or Reject actions
- // Handle Accept or Reject actions
-const handleAction = async (clientId, action, clientName) => {
-  const clientDocRef = doc(db, "clients", clientId);
-  const status = action === "accept" ? "approved" : "rejected";
+  // Handle Accept or Reject actions
+  const handleAction = async (clientId, action, clientName) => {
+    const clientDocRef = doc(db, "clients", clientId);
+    let status;
 
-  try {
-    // Update the status in Firestore
-    await updateDoc(clientDocRef, {
-      status,
-    });
+    // Determine the status based on the action
+    switch (action) {
+      case "accept":
+        status = "approved";
+        break;
+      case "rejected":
+        status = "rejected";
+        break;
+      case "archived":
+        status = "archived";
+        break;
+      default:
+        console.error("Invalid action passed to handleAction");
+        return;
+    }
 
-    toast.success(
-      `${clientName} was successfully ${status === "approved" ? "approved" : "rejected"}`
-    );
+    try {
+      // Update the status in Firestore
+      await updateDoc(clientDocRef, {
+        status,
+      });
 
-    // Update the local state to reflect the changes
-    setClients((prevClients) =>
-      prevClients.map((client) =>
-        client.id === clientId ? { ...client, status } : client
-      )
-    );
-  } catch (error) {
-    toast.error("An error occurred while updating client status.");
-    console.error("Error updating client status: ", error);
-  }
-};
+      toast.success(`${clientName} was successfully ${status}.`);
 
+      // Update the local state to reflect the changes
+      setClients((prevClients) =>
+        prevClients.map((client) =>
+          client.id === clientId ? { ...client, status } : client
+        )
+      );
+    } catch (error) {
+      toast.error("An error occurred while updating client status.");
+      console.error("Error updating client status: ", error);
+    }
+  };
 
   // Sort handler
   const handleSort = (key) => {
@@ -159,7 +180,7 @@ const handleAction = async (clientId, action, clientName) => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Pending Requests</h2>
+      <h2 className="text-2xl font-bold mb-4">User Account Requests</h2>
 
       <div className="flex justify-between">
         {/* Filter buttons */}
@@ -176,7 +197,7 @@ const handleAction = async (clientId, action, clientName) => {
             className={`btn join-item ${
               filterStatus === "accepted" && "btn-active"
             }`}
-            onClick={() => setFilterStatus("accepted")}
+            onClick={() => setFilterStatus("approved")}
           >
             Accepted
           </button>
@@ -220,136 +241,172 @@ const handleAction = async (clientId, action, clientName) => {
         </div>
       </div>
 
-<div className="overflow-x-auto">
-  <table className="table w-full">
-    <thead>
-      <tr>
-        <th>#</th>
-        {[
-          "Name",
-          "Email",
-          "Phone",
-          "Account Created",
-          "Last Login Time",
-        ].map((field) => (
-          <th key={field} onClick={() => handleSort(field)}>
-            <div className="cursor-pointer flex items-center gap-1">
-              {field}
-              {sortConfig.key === field ? (
-                sortConfig.direction === "asc" ? (
-                  <FaSortUp />
-                ) : (
-                  <FaSortDown />
-                )
-              ) : null}
-            </div>
-          </th>
-        ))}
-        <th>Account Status</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {paginatedClients.length > 0 ? (
-        paginatedClients.map((client, index) => {
-          // Define accountStatus here
-          const accountStatus = getAccountStatus(
-            client.lastActivityTime,
-            client.status
-          );
-
-          return (
-            <tr key={client.id}>
-              <th>{index + 1 + (currentPage - 1) * itemsPerPage}</th>
-              <td>{client.name}</td>
-              <td>{client.email}</td>
-              <td>{client.phone}</td>
-              <td>{client.accountCreated?.toDate().toLocaleString()}</td>
-              <td>
-                {client.lastActivityTime
-                  ? client.lastActivityTime.toDate().toLocaleString()
-                  : "N/A"}
-              </td>
-
-              {/* Account Status Column */}
-              <td>
-                {accountStatus === "active" ? (
-                  <div className="flex items-center text-green-500">
-                    <FaCheckCircle className="mr-2" /> Active
+      <div className="overflow-x-auto">
+        <table className="table w-full">
+          <thead>
+            <tr>
+              <th>#</th>
+              {[
+                "Name",
+                "Email",
+                "Phone",
+                "Account Created",
+                "Last Login Time",
+              ].map((field) => (
+                <th key={field} onClick={() => handleSort(field)}>
+                  <div className="cursor-pointer flex items-center gap-1">
+                    {field}
+                    {sortConfig.key === field ? (
+                      sortConfig.direction === "asc" ? (
+                        <FaSortUp />
+                      ) : (
+                        <FaSortDown />
+                      )
+                    ) : null}
                   </div>
-                ) : accountStatus === "inactive" ? (
-                  <div className="flex items-center text-red-500">
-                    <FaTimesCircle className="mr-2" /> Inactive
-                  </div>
-                ) : (
-                  <div className="flex items-center text-gray-500">
-                    <FaQuestionCircle className="mr-2" /> N/A
-                  </div>
-                )}
-              </td>
-
-              {/* Status Column */}
-              <td>
-                <div className="flex flex-col items-center">
-                  {client.status === "approved" ? (
-                    <>
-                      <FaCircleCheck className="text-green-500" size={20} />
-                      <div className="text-green-500">Approved</div>
-                    </>
-                  ) : client.status === "pending" ? (
-                    <>
-                      <IoTimeOutline className="text-yellow-500" size={20} />
-                      <div className="text-yellow-500">Pending</div>
-                    </>
-                  ) : client.status === "rejected" ? (
-                    <>
-                      <IoCloseCircle className="text-red-500" size={20} />
-                      <div className="text-red-500">Rejected</div>
-                    </>
-                  ) : client.status === "archived" ? (
-                    <>
-                      <FaArchive className="text-orange-500" size={20} />
-                      <div className="text-orange-500">Archived</div>
-                    </>
-                  ) : (
-                    <div className="text-gray-500">N/A</div>
-                  )}
-                </div>
-              </td>
-
-              {/* Action Buttons */}
-              <td>
-                <button
-                  className="btn btn-success btn-sm mr-2 text-white"
-                  onClick={() => handleAction(client.id, "accept", client.name)}
-                  disabled={client.status === "approved"}
-                >
-                  Accept
-                </button>
-                <button
-                  className="btn btn-error btn-sm text-white"
-                  onClick={() => handleAction(client.id, "reject", client.name)}
-                  disabled={
-                    client.status === "approved" || client.status === "rejected"
-                  }
-                >
-                  Reject
-                </button>
-              </td>
+                </th>
+              ))}
+              <th>Account Status</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          );
-        })
-      ) : (
-        <tr>
-          <td colSpan="8" className="text-center">
-            No clients found
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
+          </thead>
+          <tbody>
+            {paginatedClients.length > 0 ? (
+              paginatedClients.map((client, index) => {
+                // Define accountStatus here
+                const accountStatus = getAccountStatus(
+                  client.lastActivityTime,
+                  client.status
+                );
+
+                return (
+                  <tr key={client.id}>
+                    <th>{index + 1 + (currentPage - 1) * itemsPerPage}</th>
+                    <td>{client.name}</td>
+                    <td>{client.email}</td>
+                    <td>{client.phone}</td>
+                    <td>{client.accountCreated?.toDate().toLocaleString()}</td>
+                    <td>
+                      {client.lastActivityTime
+                        ? client.lastActivityTime.toDate().toLocaleString()
+                        : "N/A"}
+                    </td>
+
+                    {/* Account Status Column */}
+                    <td>
+                      {accountStatus === "active" ? (
+                        <div className="flex items-center text-green-500">
+                          <FaCheckCircle className="mr-2" /> Active
+                        </div>
+                      ) : accountStatus === "inactive" ? (
+                        <div className="flex items-center text-red-500">
+                          <FaTimesCircle className="mr-2" /> Inactive
+                        </div>
+                      ) : client.status === "archived" ? (
+                        <div className="flex items-center text-orange-500">
+                          <FaArchive className="mr-2" /> Archived
+                        </div>
+                      ) : (
+                        <div className="flex items-center text-gray-500">
+                          <FaQuestionCircle className="mr-2" /> N/A
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Status Column */}
+                    <td>
+                      <div className="flex flex-col items-center">
+                        {client.status === "approved" ? (
+                          <>
+                            <FaCircleCheck
+                              className="text-green-500"
+                              size={20}
+                            />
+                            <div className="text-green-500">Approved</div>
+                          </>
+                        ) : client.status === "pending" ? (
+                          <>
+                            <IoTimeOutline
+                              className="text-yellow-500"
+                              size={20}
+                            />
+                            <div className="text-yellow-500">Pending</div>
+                          </>
+                        ) : client.status === "rejected" ? (
+                          <>
+                            <IoCloseCircle className="text-red-500" size={20} />
+                            <div className="text-red-500">Rejected</div>
+                          </>
+                        ) : client.status === "archived" ? (
+                          <>
+                            <FaTrash className="text-red-500" size={20} />
+                            <div className="text-red-500">Deleted</div>
+                          </>
+                        ) : (
+                          <div className="text-gray-500">N/A</div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Action Buttons */}
+                    <td>
+                      <button
+                        className="btn btn-success btn-sm mr-2 text-white"
+                        onClick={() => {
+                          const confirm = window.confirm(
+                            "Are you sure you want to accept this pending account?"
+                          );
+                          if (confirm) {
+                            handleAction(client.id, "accept", client.name);
+                          }
+                        }}
+                        disabled={client.status !== "pending"}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        className="btn btn-error btn-sm text-white"
+                        onClick={() => {
+                          const confirm = window.confirm(
+                            "Are you sure you want to reject this pending account?"
+                          );
+                          if (confirm) {
+                            handleAction(client.id, "rejected", client.name);
+                          }
+                        }}
+                        disabled={client.status !== "pending"}
+                      >
+                        Reject
+                      </button>
+                      <button
+                        className="btn bg-red-700 hover:bg-red-900 btn-sm text-white"
+                        onClick={() => {
+                          const confirmDelete = window.confirm(
+                            "Are you sure you want to delete this pending account? This action cannot be undone."
+                          );
+                          if (confirmDelete) {
+                            handleAction(client.id, "archived", client.name);
+                          }
+                        }}
+                        disabled={client.status !== "pending"}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="8" className="text-center">
+                  No clients found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination */}
       <div className="flex justify-center mt-4">

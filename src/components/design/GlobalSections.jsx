@@ -30,6 +30,14 @@ import axios from "axios";
 import customMarker from "./customMarker.js"; // Import the custom marker
 import { FaSearch } from "react-icons/fa";
 import MapUpdater from "./MapUpdater.js";
+import {
+  ChromePicker,
+  CirclePicker,
+  CompactPicker,
+  SliderPicker,
+  SwatchesPicker,
+  TwitterPicker,
+} from "react-color";
 
 export default function GlobalSections({
   formData,
@@ -45,6 +53,7 @@ export default function GlobalSections({
   const [latitude, setLatitude] = useState(null);
   const [addressStatus, setAddressStatus] = useState(null); // For displaying alerts
   const [searchAddress, setSearchAddress] = useState(formData.address || "");
+  const [urlAddress, setUrlAddress] = useState("");
   const [longitude, setLongitude] = useState(null);
   const [showManualCoordinates, setShowManualCoordinates] = useState(false);
   const locationIQToken = "pk.71c987e9d0e505df233f7b6ae288f93a";
@@ -61,10 +70,10 @@ export default function GlobalSections({
           slug: docData.slug || "",
           address: docData.address || "", // Include address field
           geoPoint: docData.location || null,
-          headerColor: docData.headerColor || "",
-          headerTextColor: docData.headerTextColor || "",
-          logoPicture: docData.image || "",
+          headerColor: docData.headerColor || "#1e88e5", // Ensure default HEX code
+          headerTextColor: docData.headerTextColor || "#ffffff", // Ensure default HEX code          logoPicture: docData.image || "",
           selectedItemColor: docData.selectedItemColor || "#bc1823",
+          googleMapsUrl: docData.googleMapsUrl || "",
         });
         setLatitude(docData.location?.latitude);
         setLongitude(docData.location?.longitude);
@@ -76,6 +85,59 @@ export default function GlobalSections({
 
     fetchDocument();
   }, [id, setFormData]);
+
+  const handleExtractCoordinates = async () => {
+    try {
+      // Validate the URL before decoding
+      if (!urlAddress.startsWith("https://www.google.com/maps/")) {
+        setAddressStatus("error");
+        toast.error("The URL must be a valid Google Maps link.");
+        return; // Exit the function
+      }
+
+      // Decode the URL to handle any URL encoding
+      const decodedUrl = decodeURIComponent(urlAddress);
+
+      // Check if the URL contains latitude and longitude at the "@" character
+      const urlMatch = decodedUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+      if (urlMatch) {
+        const lat = parseFloat(urlMatch[1]);
+        const lon = parseFloat(urlMatch[2]);
+
+        // Fetch the address name using reverse geocoding
+        const response = await axios.get(
+          `https://us1.locationiq.com/v1/reverse.php?key=${locationIQToken}&lat=${lat}&lon=${lon}&format=json`
+        );
+
+        const addressName = response.data.display_name;
+
+        // Update formData and state
+        setFormData((prev) => ({
+          ...prev,
+          geoPoint: new GeoPoint(lat, lon),
+          address: addressName || "Unnamed location", // Update the address name
+        }));
+        setLatitude(lat);
+        setLongitude(lon);
+        setAddressStatus("success");
+        toast.success("Coordinates and address extracted successfully!");
+        return;
+      }
+
+      // If no match is found
+      setAddressStatus("error");
+      toast.error("Invalid Google Maps URL format.");
+    } catch (error) {
+      console.error("Error during address extraction:", error);
+      setAddressStatus("error");
+      toast.error("Invalid URL or failed to fetch address. Please try again.");
+    }
+  };
+
+  const handleColorChange = (color, fieldName) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: color.hex }));
+  };
 
   const generateSlug = (name) => {
     return name
@@ -219,12 +281,13 @@ export default function GlobalSections({
     e.preventDefault();
     setLoading(true);
 
+    console.log(formData);
+
     // Validation to ensure required fields are filled
     if (
       !formData.name ||
       !formData.slug ||
       !formData.headerColor ||
-      !formData.headerTextColor ||
       !formData.selectedItemColor ||
       !formData.address ||
       !formData.geoPoint
@@ -235,11 +298,15 @@ export default function GlobalSections({
     }
 
     try {
-      let logoPictureUrl = formData.logoPicture;
+      let logoPictureUrl;
 
-      // Upload image if it exists
+      // Upload image if it exists and is a File object
       if (image) {
-        logoPictureUrl = await storeImage(image);
+        logoPictureUrl = await storeImage(image); // Upload image and get the URL
+      } else if (typeof formData.logoPicture === "string") {
+        logoPictureUrl = formData.logoPicture; // Use existing URL if no new image is uploaded
+      } else {
+        logoPictureUrl = null; // No image provided
       }
 
       // Create a new document with the given projectId
@@ -248,11 +315,12 @@ export default function GlobalSections({
         name: formData.name,
         slug: formData.slug,
         address: formData.address,
+        googleMapsUrl: urlAddress, // Create the Google Maps URL
         location: formData.geoPoint,
         headerColor: formData.headerColor,
-        headerTextColor: formData.headerTextColor,
+        headerTextColor: formData.headerTextColor || "#ffffff",
         selectedItemColor: formData.selectedItemColor,
-        image: logoPictureUrl || null,
+        image: logoPictureUrl, // Store the uploaded image URL or null
       });
 
       toast.success("Global section created successfully!");
@@ -267,9 +335,9 @@ export default function GlobalSections({
   const onUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
     console.log(formData);
-
+  
     // Validation to ensure required fields are filled
     if (
       !formData.name ||
@@ -284,31 +352,40 @@ export default function GlobalSections({
       toast.error("Please fill out all the required fields");
       return;
     }
-
+  
     try {
       let logoPictureUrl = formData.logoPicture;
-
-      // Upload a new image if one is provided
+  
+      // Upload a new image only if one is provided
       if (image) {
+        // If a new image is uploaded, upload it to storage
         if (formData.logoPicture && typeof formData.logoPicture === "string") {
           await deleteImage(); // Delete the existing image if needed
         }
-        logoPictureUrl = await storeImage(image);
+        logoPictureUrl = await storeImage(image); // Upload and get the new image URL
       }
-
-      // Update the existing document directly using the projectId as docId
-      const docRef = doc(db, "global-sections", id);
-      await updateDoc(docRef, {
+  
+      // Prepare the update data
+      const updateData = {
         name: formData.name,
         slug: formData.slug,
         address: formData.address,
+        googleMapsUrl: formData.googleMapsUrl, // Save the Google Maps URL
         location: formData.geoPoint,
         headerColor: formData.headerColor,
         headerTextColor: formData.headerTextColor,
         selectedItemColor: formData.selectedItemColor,
-        image: logoPictureUrl || null,
-      });
-
+      };
+  
+      // Only update the image field if a new image was uploaded
+      if (image) {
+        updateData.image = logoPictureUrl;
+      }
+  
+      // Update the existing document directly using the projectId as docId
+      const docRef = doc(db, "global-sections", id);
+      await updateDoc(docRef, updateData);
+  
       toast.success("Global section updated successfully!");
     } catch (error) {
       console.error("Error updating document:", error);
@@ -317,7 +394,8 @@ export default function GlobalSections({
       setLoading(false);
     }
   };
-
+  
+  
   if (loading) {
     return <Spinner />;
   }
@@ -388,51 +466,40 @@ export default function GlobalSections({
         </div>
       )}
 
+      {/* Header Color Picker */}
       <div className="space-y-1">
         <label className="block text-sm font-medium">Header Color</label>
-        <input
-          type="color"
-          name="headerColor"
-          value={formData.headerColor}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, headerColor: e.target.value }))
-          }
-          className="w-full h-10 p-0 rounded-lg"
+        <CompactPicker
+          color={formData.headerColor || "#1e88e5"}
+          onChange={(color) => handleColorChange(color, "headerColor")}
         />
+        <p className="mt-2 text-xs">Selected Color: {formData.headerColor}</p>
       </div>
 
+      {/* Header Text Color Picker */}
       <div className="space-y-1">
         <label className="block text-sm font-medium">Header Text Color</label>
-        <input
-          type="color"
-          name="headerTextColor"
-          value={formData.headerTextColor}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              headerTextColor: e.target.value,
-            }))
-          }
-          className="w-full h-10 p-0 rounded-lg"
+        <CompactPicker
+          color={formData.headerTextColor || "#ffffff"}
+          onChange={(color) => handleColorChange(color, "headerTextColor")}
         />
+        <p className="mt-2 text-xs">
+          Selected Text Color: {formData.headerTextColor}
+        </p>
       </div>
 
+      {/* Selected Item Color Picker */}
       <div className="space-y-1">
         <label className="block text-sm font-medium">
           Selected Item Color (For Mobile)
         </label>
-        <input
-          type="color"
-          name="selectedItemColor"
-          value={formData.selectedItemColor}
-          onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              selectedItemColor: e.target.value,
-            }))
-          }
-          className="w-full h-10 p-0 rounded-lg"
+        <CompactPicker
+          color={formData.selectedItemColor || "#bc1823"}
+          onChange={(color) => handleColorChange(color, "selectedItemColor")}
         />
+        <p className="mt-2 text-xs">
+          Selected Item Color: {formData.selectedItemColor}
+        </p>
       </div>
 
       <div>
@@ -448,89 +515,137 @@ export default function GlobalSections({
           >
             {addressStatus === "success"
               ? "Address found successfully!"
-              : "Address not found. Click here to enter coordinates manually."}
+              : "Address not found. Enter address and coordinates manually."}
           </div>
         )}
 
         {/* Address Input and Search Button */}
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Address</label>
-          <div className="flex">
+        <div className="space-y-4">
+          {/* Google Maps URL Input */}
+          <div className="space-y-1">
+            <div>
+              <label className="block text-sm font-medium">
+                Copy and paste your Google Maps link here
+              </label>
+              <a
+                href="https://www.google.com/maps/place"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 text-sm underline hover:text-blue-700"
+              >
+                Open Google Maps
+              </a>
+            </div>
+
+            <div className="flex">
+              <input
+                type="text"
+                placeholder="Paste Google Maps URL here"
+                value={formData.googleMapsUrl || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setUrlAddress(value); // Updates the urlAddress state
+                  setFormData((prev) => ({
+                    ...prev,
+                    googleMapsUrl: value, // Updates the googleMapsUrl in formData
+                  }));
+                }}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs"
+              />
+
+              <button
+                onClick={handleExtractCoordinates}
+                className="ml-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg"
+              >
+                Extract
+              </button>
+            </div>
+            {addressStatus === "error" && (
+              <p className="text-red-500 text-xs mt-1">
+                Invalid Google Maps URL
+              </p>
+            )}
+          </div>
+          {/* Extracted Address Display */}
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">Address</label>
             <textarea
               name="address"
-              value={searchAddress || formData.address}
-              rows={2}
-              placeholder="Enter address"
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs resize-none"
-              onChange={(e) => setSearchAddress(e.target.value)}
+              value={formData.address || ""}
+              placeholder={
+                addressStatus === "success" || addressStatus === null
+                  ? "Extracted address will appear here"
+                  : "Enter address here"
+              }
+              rows={3} // Adjust the number of rows for the textarea
+              className={`w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs resize-none ${
+                addressStatus === "success" || addressStatus === null
+                  ? "bg-gray-100"
+                  : "bg-white"
+              }`}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  address: e.target.value,
+                }))
+              } // Updates formData.address
             />
-            <button
-              onClick={handleSearchAddress}
-              className="ml-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg"
-            >
-              <FaSearch />
-            </button>
+          </div>
+
+          {/* Latitude Display */}
+          <div className="space-y-1">
+            <label className="block text-xs font-medium">Latitude</label>
+            <input
+              type="number"
+              value={latitude || ""}
+              placeholder={
+                addressStatus === "success" || addressStatus === null
+                  ? "Extracted latitude will appear here"
+                  : "Enter latitude here"
+              }
+              className={`w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs ${
+                addressStatus === "success" || addressStatus === null
+                  ? "bg-gray-100"
+                  : "bg-white"
+              }`}
+              onChange={(e) => setLatitude(e.target.value)} // Updates latitude state
+            />
+          </div>
+
+          {/* Longitude Display */}
+          <div className="space-y-1">
+            <label className="block text-xs font-medium">Longitude</label>
+            <input
+              type="number"
+              value={longitude || ""}
+              placeholder={
+                addressStatus === "success" || addressStatus === null
+                  ? "Extracted longitude will appear here"
+                  : "Enter longitude here"
+              }
+              className={`w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs ${
+                addressStatus === "success" || addressStatus === null
+                  ? "bg-gray-100"
+                  : "bg-white"
+              }`}
+              onChange={(e) => setLongitude(e.target.value)} // Updates longitude state
+            />
           </div>
         </div>
 
-        {/* Conditional Alerts */}
-        {addressStatus && (
-          <div
-            role="alert"
-            className="alert alert-warning  my-2 rounded-md bg-yellow-100 text-yellow-700 cursor-pointer text-xs"
-            onClick={() => setShowManualCoordinates((prev) => !prev)}
-          >
-            <span>
-              Location not accurate? Enter manual Latitude and Longitude
-              instead. <span className="font-bold">See more</span>
-            </span>
-          </div>
-        )}
-
-        {/* Manual Latitude and Longitude Inputs */}
-        {showManualCoordinates && (
-          <div className="space-y-2 mt-4">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium">Latitude</label>
-              <input
-                type="number"
-                value={latitude || ""}
-                onChange={(e) => setLatitude(e.target.value)}
-                placeholder="Enter latitude"
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium">Longitude</label>
-              <input
-                type="number"
-                value={longitude || ""}
-                onChange={(e) => setLongitude(e.target.value)}
-                placeholder="Enter longitude"
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none text-xs"
-              />
-            </div>
-            <button
-              onClick={handleManualCoordinates}
-              className="w-full mt-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg"
-            >
-              Update Coordinates
-            </button>
-          </div>
-        )}
-
         {/* Embedded Map */}
         {latitude && longitude && (
-          <MapContainer
-            center={[latitude, longitude]}
-            zoom={18}
-            style={{ height: "300px", width: "100%" }}
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <Marker position={[latitude, longitude]} icon={customMarker} />
-            {/* Add the MapUpdater component here */}
-            <MapUpdater latitude={latitude} longitude={longitude} />
-          </MapContainer>
+          <div className="mt-4">
+            <iframe
+              title="Google Maps Embed"
+              width="100%"
+              height="300"
+              frameBorder="0"
+              style={{ border: 0 }}
+              src={`https://www.google.com/maps?q=${latitude},${longitude}&hl=es;z=18&output=embed`}
+              allowFullScreen
+            ></iframe>
+          </div>
         )}
       </div>
 

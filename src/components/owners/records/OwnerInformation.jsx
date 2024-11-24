@@ -40,20 +40,20 @@ const OwnerInformation = ({ clientId }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg mt-4">
-      <h3 className="text-xl font-bold mb-4">Pet Owner Information</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
+    <div className="bg-white px-6 py-6 print:py-0 rounded-lg shadow-lg mt-4 print:shadow-none print:mt-0">
+      <h3 className="text-xl font-bold mb-4 print:text-base print:font-semibold print:mb-2">Pet Owner Information</h3>
+      <div className="grid grid-cols-2 gap-4 print:grid-cols-1 print:gap-0">
+        <div className='print:flex print:gap-1'>
           <p className="font-semibold">Name:</p>
           <p>{ownerInfo.name}</p> {/* Display owner's name */}
         </div>
-        <div>
+        <div className='print:flex print:gap-1'>
           <p className="font-semibold">Email:</p>
           <p>{ownerInfo.email}</p> {/* Display owner's email */}
         </div>
-        <div>
+        <div className='print:flex print:gap-1'>
           <p className="font-semibold">Contact No:</p>
-          <p>{ownerInfo.phone}</p> {/* Display owner's phone number */}
+          <p >{ownerInfo.phone}</p> {/* Display owner's phone number */}
         </div>
       </div>
     </div>

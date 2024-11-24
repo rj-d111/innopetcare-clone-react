@@ -14,6 +14,7 @@ import {
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import { FaRegUser } from "react-icons/fa";
 import TechAdminDashboardUsers from "./TechAdminDashboardUsers";
+import TechAdminDashboardNewRegistration from "./TechAdminDashboardNewRegistration";
 
 // Register the necessary components
 ChartJS.register(
@@ -149,7 +150,6 @@ export default function TechAdminDashboard() {
             <div class="stat-value">{totalProjects}</div>
           </div>
         </div>
-
         {/* Time Period */}
         <div className="flex justify-between my-4">
           <div className="flex items-center">
@@ -175,6 +175,8 @@ export default function TechAdminDashboard() {
           </div>
         </div>
       </div>
+      <TechAdminDashboardNewRegistration />
+
       <TechAdminDashboardUsers />
     </>
   );

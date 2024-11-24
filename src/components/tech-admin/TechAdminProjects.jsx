@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
-import { FaSearch, FaSortUp, FaSortDown } from "react-icons/fa";
+import {
+  FaSearch,
+  FaSortUp,
+  FaSortDown,
+  FaQuestionCircle,
+} from "react-icons/fa";
+import { FaCheckCircle, FaClock, FaBan, FaTrashAlt } from "react-icons/fa";
 
 export default function TechAdminProjects() {
   const [projects, setProjects] = useState([]);
@@ -11,6 +17,12 @@ export default function TechAdminProjects() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
 
+  const statusIcons = {
+    active: <FaCheckCircle className="text-green-500" />,
+    pending: <FaClock className="text-yellow-500" />,
+    disabled: <FaBan className="text-gray-500" />,
+    deleted: <FaTrashAlt className="text-red-500" />,
+  };
   useEffect(() => {
     const fetchData = async () => {
       const db = getFirestore();
@@ -144,6 +156,13 @@ export default function TechAdminProjects() {
           >
             Disabled
           </button>
+          <button
+            role="tab"
+            className={`tab ${filterStatus === "deleted" ? "tab-active" : ""}`}
+            onClick={() => setFilterStatus("deleted")}
+          >
+            Deleted
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -200,7 +219,10 @@ export default function TechAdminProjects() {
                 <tr key={project.id} className="hover:bg-gray-100">
                   <td>{project.name}</td>
                   <td>{project.createdAt?.toDate().toLocaleString()}</td>
-                  <td>{project.status}</td>
+                  <td className="flex items-center gap-2">
+                    {statusIcons[project.status] || <FaQuestionCircle />}
+                    <span>{project.status}</span>
+                  </td>
                   <td>{project.type}</td>
                   <td>{project.userName}</td>
                 </tr>

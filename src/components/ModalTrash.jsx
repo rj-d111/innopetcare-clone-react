@@ -1,6 +1,6 @@
 import React from "react";
 import { FaTrashAlt } from "react-icons/fa";
-import { doc, deleteDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase"; // Firestore instance
 import { toast } from "react-toastify";
 
@@ -13,20 +13,27 @@ const ModalTrash = ({ show, onClose, projectId, onDelete }) => {
 
     try {
         const projectRef = doc(db, "projects", projectId);
-        await deleteDoc(projectRef);
-        onDelete(projectId); // Callback to update the UI after deletion
+
+        // Update the `status` attribute to "delete"
+        await updateDoc(projectRef, {
+            status: "deleted",
+        });
+
         toast.success("Project deleted successfully");
         onClose();
     } catch (error) {
-        console.error("Error deleting project: ", error);
-        toast.error("Failed to delete the project. Please try again.");
+        console.error("Error updating project status: ", error);
+        toast.error("Failed to update the project status. Please try again.");
     }
 };
+
 
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    onClick={onClose} // Close modal when clicking outside
+    >
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
         <h2 className="text-xl font-bold mb-4 text-red-600">
           <FaTrashAlt className="inline mr-2" /> Delete Project

@@ -143,16 +143,15 @@ export default function OwnerAdoptionModal({
     if (name === "image") {
       const file = files[0];
       if (file) {
-        const imagePreviewUrl = URL.createObjectURL(file); // Generate a preview URL
+        const imagePreviewUrl = URL.createObjectURL(file);
 
         setPetData({
           ...petData,
           image: file,
-          imagePreviewUrl, // Save the preview URL
+          imagePreviewUrl,
         });
       }
     } else {
-      // Update other text or select fields
       setPetData({
         ...petData,
         [name]: value,
@@ -163,7 +162,8 @@ export default function OwnerAdoptionModal({
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // Start loading
+    setLoading(true);
+
     try {
       let imageUrl = "";
 
@@ -176,30 +176,34 @@ export default function OwnerAdoptionModal({
         imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
       }
 
-      // Prepare data for submission, replacing species and breed if 'other' is selected
+      // Prepare data for submission
       const finalData = {
-        projectId: projectId,
         petName: petData.petName,
         birthdate: petData.birthdate,
         gender: petData.gender,
-        species: petData.species === "other" ? petData.otherSpecies : petData.species, // Store other species in species field
-        breed: (petData.breed === "other" || petData.species === "other") ? petData.otherBreed : petData.breed, // Store other breed in breed field
+        species: petData.species === "other" ? petData.otherSpecies : petData.species,
+        breed:
+          petData.breed === "other" || petData.species === "other"
+            ? petData.otherBreed
+            : petData.breed,
         weight: petData.weight,
         color: petData.color,
         image: imageUrl,
         description: petData.description,
-        notes: petData.notes || "No notes", // Add notes field
+        notes: petData.notes || "No notes",
+        isArchive: false,
       };
 
-      // Add pet data to Firestore
-      await addDoc(collection(db, "adoptions"), finalData);
+      // Add pet data to the animals subcollection under the specified projectId
+      await addDoc(collection(db, `adoptions/${projectId}/animals`), finalData);
 
       toast.success("Pet added successfully!");
-      closeModal(); // Close modal after successful submission
+      closeModal();
     } catch (error) {
       toast.error("Error adding pet. Please try again.");
+      console.error("Error adding pet: ", error);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
@@ -346,7 +350,7 @@ export default function OwnerAdoptionModal({
 
             <label>Description:</label>
             <textarea
-              name="notes"
+              name="description"
               className="input input-bordered w-full h-24"
               placeholder="Enter description about the pet"
               value={petData.description}

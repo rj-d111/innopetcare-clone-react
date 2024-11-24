@@ -2,41 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles for printing */
 @media print {
-  .page-break-inside-avoid {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  .page-break-before {
-    page-break-before: always; /* Older property */
-    break-before: page;        /* Modern equivalent */
+  .no-shadow {
+    box-shadow: none !important;
   }
 
-  body{
-    overflow-y:scroll;
-    overflow:visible;
-  }
-
-  .print\\:break-inside-auto {
-    break-inside: auto;
-  }
-
-  .print\\:page-break-before-auto {
-    page-break-before: auto;
-    break-before: auto;
-  }
-
-  .print\\:page-break-before-always {
+  .page-break {
     page-break-before: always;
     break-before: page;
   }
 
-  body {
-    overflow: visible !important;
-    height: auto !important;
+  .no-scrollbar,
+  .print:overflow-visible {
+    overflow: visible !important; /* Ensure no scrollbars during print */
   }
 
-  .print\\:block {
-    display: block !important;
+  .tabs-boxed {
+    display: none !important; /* Hide tabs in print */
+  }
+
+  /* Ensure tables do not break rows across pages */
+  table {
+    page-break-inside: auto;
+    width: 100%; /* Ensure table takes full width */
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+
+  /* Make sure content uses full page width */
+  .print-full-width {
+    width: 100% !important;
+  }
+  
+  /* Hide elements not needed for print */
+  .hide-on-print {
+    display: none !important;
   }
 }

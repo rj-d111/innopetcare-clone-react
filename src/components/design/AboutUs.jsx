@@ -55,47 +55,53 @@ export default function AboutPage() {
     fetchSections();
   }, [projectId]);
 
-    // Function to swap sections
-    const swapSections = async (index1, index2) => {
-      if (index1 < 0 || index2 >= sections.length || index2 < 0) return;
-  
-      const section1 = sections[index1];
-      const section2 = sections[index2];
-  
-      try {
-        const section1Ref = doc(
-          db,
-          "about-sections",
-          projectId,
-          "sections",
-          section1.id
-        );
-        const section2Ref = doc(
-          db,
-          "about-sections",
-          projectId,
-          "sections",
-          section2.id
-        );
-  
-        // Swap their sectionCreated timestamps
-        await setDoc(section1Ref, { ...section1, sectionCreated: section2.sectionCreated });
-        await setDoc(section2Ref, { ...section2, sectionCreated: section1.sectionCreated });
-  
-        // Update the state to reflect changes
-        const updatedSections = [...sections];
-        [updatedSections[index1], updatedSections[index2]] = [
-          updatedSections[index2],
-          updatedSections[index1],
-        ];
-        setSections(updatedSections);
-        toast.success("Successfully swapped sections");
-      } catch (error) {
-        console.error("Error swapping sections:", error);
-        toast.error("Error swapping sections.");
-      }
-    };
-    
+  // Function to swap sections
+  const swapSections = async (index1, index2) => {
+    if (index1 < 0 || index2 >= sections.length || index2 < 0) return;
+
+    const section1 = sections[index1];
+    const section2 = sections[index2];
+
+    try {
+      const section1Ref = doc(
+        db,
+        "about-sections",
+        projectId,
+        "sections",
+        section1.id
+      );
+      const section2Ref = doc(
+        db,
+        "about-sections",
+        projectId,
+        "sections",
+        section2.id
+      );
+
+      // Swap their sectionCreated timestamps
+      await setDoc(section1Ref, {
+        ...section1,
+        sectionCreated: section2.sectionCreated,
+      });
+      await setDoc(section2Ref, {
+        ...section2,
+        sectionCreated: section1.sectionCreated,
+      });
+
+      // Update the state to reflect changes
+      const updatedSections = [...sections];
+      [updatedSections[index1], updatedSections[index2]] = [
+        updatedSections[index2],
+        updatedSections[index1],
+      ];
+      setSections(updatedSections);
+      toast.success("Successfully swapped sections");
+    } catch (error) {
+      console.error("Error swapping sections:", error);
+      toast.error("Error swapping sections.");
+    }
+  };
+
   const handleSectionAdded = async () => {
     const sectionsCollectionRef = collection(
       db,
@@ -155,14 +161,15 @@ export default function AboutPage() {
         <div className="bg-yellow-100 p-4 rounded-md">
           <h2 className="text-lg font-semibold">About Us Page</h2>
           <p className="text-sm text-gray-700">
-            Manage your "About Us" sections to provide information about your organization.
+            Manage your "About Us" sections to provide information about your
+            organization.
           </p>
         </div>
 
         {/* Conditional Messages */}
         {shouldShowWarning ? (
           <div role="alert" className="alert alert-warning p-4">
-             <svg
+            <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 shrink-0 stroke-current"
               fill="none"
@@ -179,7 +186,7 @@ export default function AboutPage() {
           </div>
         ) : (
           <div role="alert" className="alert alert-success p-4">
-               <svg
+            <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 shrink-0 stroke-current"
               fill="none"

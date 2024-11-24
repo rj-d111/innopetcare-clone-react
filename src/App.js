@@ -117,6 +117,7 @@ import TechAdminFinancialReports from "./components/tech-admin/TechAdminFinancia
 import OwnerSendReport from "./components/owners/OwnerSendReport";
 import OwnerFeedback from "./components/owners/OwnerFeedback";
 import ProjectHelp from "./components/projects/ProjectHelp";
+import ProjectCommunityForum from "./components/projects/ProjectCommunityForum";
 
 function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -384,6 +385,9 @@ function AppContent() {
         
         
           {/* Anyone can access */}
+          <Route path="/sites/:slug/terms-and-conditions" element={<TermsConditions />} />
+          <Route path="/sites/:slug/community-forum" element={<ProjectCommunityForum />} />
+          <Route path="/sites/:slug/privacy-policy" element={<ProjectPrivacyPolicy />} />
           <Route path="/help" element={<Help />} />
           <Route path="/landing-guest" element={<LandingGuest />} />
           <Route path="/contact" element={<Contact />} />
@@ -397,8 +401,6 @@ function AppContent() {
           />
           <Route path="/sites/:slug/register" element={<ProjectRegister />} />
           <Route path="/sites/:slug/forgot-password" element={<ProjectForgotPassword />} />
-          <Route path="/sites/:slug/terms-and-conditions" element={<TermsConditions />} />
-          <Route path="/sites/:slug/privacy-policy" element={<ProjectPrivacyPolicy />} />
 
 
         {/* Routes for Clients */}

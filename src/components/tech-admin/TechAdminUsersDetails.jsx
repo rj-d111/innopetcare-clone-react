@@ -10,6 +10,7 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { db } from "../../firebase";
@@ -23,62 +24,111 @@ export default function TechAdminUsersDetails() {
   const [userData, setUserData] = useState(null);
   const [documentUrls, setDocumentUrls] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [disableButtons, setDisableButtons] = useState({ approve: false, reject: false });
+  const [disableButtons, setDisableButtons] = useState({
+    approve: false,
+    reject: false,
+  });
+
+  console.log(userData);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const userRef = doc(db, "users", id);
-        const userSnapshot = await getDoc(userRef);
-
-        if (userSnapshot.exists()) {
+    const unsubscribeUser = onSnapshot(
+      doc(db, "users", id),
+      async (userSnapshot) => {
+        try {
+          if (!userSnapshot.exists()) {
+            setUserData({});
+            toast.error("User not found.");
+            return;
+          }
+  
           const userData = userSnapshot.data();
-          setUserData(userData);
-
-          const storage = getStorage();
-          const documentPromises = (userData.documentFiles || []).map(
-            async (docFile) => {
-              const fileRef = ref(storage, docFile.url);
-              const fullUrl = await getDownloadURL(fileRef);
-              return { name: docFile.name || "Unnamed Document", url: fullUrl };
+  
+          // Real-time query for projects associated with the user
+          const projectsRef = collection(db, "projects");
+          const q = query(projectsRef, where("userId", "==", id));
+  
+          const unsubscribeProjects = onSnapshot(q, async (projectSnapshot) => {
+            let projectData = {};
+            if (!projectSnapshot.empty) {
+              const projectDoc = projectSnapshot.docs[0];
+              projectData = projectDoc.data();
+            } else {
+              toast.info("No project data found for this user.");
             }
-          );
-
-          const urls = await Promise.all(documentPromises);
-          setDocumentUrls(urls);
-        } else {
-          setUserData({});
-          toast.error("User not found.");
+  
+            // Combine user and project data
+            const combinedData = {
+              ...userData,
+              createdAt: projectData.createdAt,
+              typeOfAdmin: projectData.type,
+              legalName: projectData.name || "N/A",
+              businessRegNumber: projectData.businessRegNumber || "N/A",
+              city: projectData.city || "N/A",
+              postalCode: projectData.postalCode || "N/A",
+              documentFiles: projectData.documentFiles || [],
+            };
+  
+            setUserData(combinedData);
+  
+            // Fetch document URLs from storage
+            const storage = getStorage();
+            const documentPromises = (combinedData.documentFiles || []).map(
+              async (docFile) => {
+                const fileRef = ref(storage, docFile.url);
+                const fullUrl = await getDownloadURL(fileRef);
+                return { name: docFile.name || "Unnamed Document", url: fullUrl };
+              }
+            );
+  
+            const urls = await Promise.all(documentPromises);
+            setDocumentUrls(urls);
+          });
+  
+          // Cleanup subscription for projects
+          return () => unsubscribeProjects();
+        } catch (error) {
+          console.error("Error fetching user or project data:", error);
+          toast.error("Error fetching data.");
         }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
+      },
+      (error) => {
+        console.error("Error listening to user document:", error);
       }
-    };
-
-    fetchUserData();
+    );
+  
+    // Cleanup subscription for user
+    return () => unsubscribeUser();
   }, [id]);
 
-  const handleApproval = async (status) => {
+  const handleApproval = async (isApproved) => {
     try {
       const userRef = doc(db, "users", id);
-
-      if (status) {
-        await updateDoc(userRef, { isApproved: true, isRejected: null });
-        setUserData((prevState) => ({ ...prevState, isApproved: true, isRejected: undefined }));
+  
+      if (isApproved) {
+        await updateDoc(userRef, { status: "approved" });
+        setUserData((prevState) => ({
+          ...prevState,
+          status: "approved",
+        }));
         setDisableButtons({ approve: true, reject: true });
         toast.success("User approved successfully");
         await createProject();
       } else {
-        await updateDoc(userRef, { isApproved: false, isRejected: true });
-        setUserData((prevState) => ({ ...prevState, isApproved: false, isRejected: true }));
+        await updateDoc(userRef, { status: "rejected" });
+        setUserData((prevState) => ({
+          ...prevState,
+          status: "rejected",
+        }));
         setDisableButtons((prev) => ({ ...prev, reject: true }));
         toast.success("User rejected successfully");
       }
     } catch (error) {
-      console.error("Error updating approval status:", error);
-      toast.error("Error updating approval status");
+      console.error("Error updating status:", error);
+      toast.error("Error updating status");
     }
   };
+  
 
   const createProject = async () => {
     try {
@@ -90,10 +140,7 @@ export default function TechAdminUsersDetails() {
         createdAt: serverTimestamp(),
         name: userData.legalName || "N/A",
         status: "pending",
-        type:
-          userData.typeOfAdmin === "Veterinary Admin"
-            ? "Veterinary Site"
-            : "Animal Shelter Site",
+        type: userData.type,
         userId: id,
       };
 
@@ -106,7 +153,7 @@ export default function TechAdminUsersDetails() {
           `Your ${projectData.type} Project "${projectData.name}" created successfully!`
         );
       } else {
-        toast.info(`Your project "${projectData.name}" already exists!`);
+        // toast.info(`Your project "${projectData.name}" already exists!`);
       }
     } catch (error) {
       console.error("Error creating project:", error);
@@ -125,7 +172,7 @@ export default function TechAdminUsersDetails() {
 
       <div className="mb-4 flex items-center space-x-2">
         <strong>Approved:</strong>
-        {userData.isApproved ? (
+        {userData.status === "approved" ? (
           <FaCheckCircle className="text-green-500" />
         ) : (
           <IoIosCloseCircle className="text-red-500" />
@@ -197,18 +244,22 @@ export default function TechAdminUsersDetails() {
         <button
           onClick={() => handleApproval(true)}
           className={`px-4 py-2 rounded text-white ${
-            disableButtons.approve ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
+            userData.status !== "pending"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-green-500 hover:bg-green-600"
           }`}
-          disabled={disableButtons.approve || loading}
+          disabled={userData.status !== "pending"}
         >
           Approve
         </button>
         <button
           onClick={() => handleApproval(false)}
           className={`px-4 py-2 rounded text-white ${
-            disableButtons.reject ? "bg-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"
+            userData.status !== "pending"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600"
           }`}
-          disabled={disableButtons.reject || loading}
+          disabled={userData.status !== "pending"}
         >
           Reject
         </button>

@@ -16,6 +16,14 @@ export default function OwnerFeedback() {
       try {
         const reportsRef = collection(db, `user-feedback-users/${id}/responses`);
         const reportsSnapshot = await getDocs(reportsRef);
+
+        if (reportsSnapshot.empty) {
+          console.warn("No reports found in the database.");
+          setReports([]); // Explicitly set reports to an empty array
+          setLoading(false); // Stop loading if no reports
+          return; // Exit the function to avoid running further logic
+        }
+
         const fetchedReports = reportsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -23,11 +31,15 @@ export default function OwnerFeedback() {
         setReports(fetchedReports);
       } catch (error) {
         console.error("Error fetching feedbacks:", error);
+        setReports([]); // Ensure reports is set to an empty array if there's an error
+        setLoading(false); // Stop loading in case of error
       }
     };
 
     if (id) {
       fetchReports();
+    } else {
+      setLoading(false); // Stop loading if `id` is missing
     }
   }, [id]);
 
@@ -36,11 +48,11 @@ export default function OwnerFeedback() {
     const fetchQuestions = async () => {
       try {
         const questionsMapTemp = {};
-  
+
         // Loop through the responses to get the UIDs
         for (const report of reports) {
           const { responses } = report;
-  
+
           // For each response, fetch the corresponding question from Firestore
           for (const uid of Object.keys(responses)) {
             if (!questionsMapTemp[uid]) {
@@ -68,12 +80,14 @@ export default function OwnerFeedback() {
       } catch (error) {
         console.error("Error fetching questions:", error);
       } finally {
-        setLoading(false);
+        setLoading(false); // Stop loading after fetching questions
       }
     };
 
     if (reports.length > 0) {
       fetchQuestions();
+    } else {
+      setLoading(false); // Ensure loading stops if no reports exist
     }
   }, [reports, id]);
 
@@ -81,7 +95,7 @@ export default function OwnerFeedback() {
     return <Spinner />;
   }
 
-  const questionHeaders = Object.values(questionsMap).map(q => q.question);
+  const questionHeaders = Object.values(questionsMap).map((q) => q.question);
 
   // Function to render star ratings
   const renderStars = (rating) => {
@@ -114,7 +128,7 @@ export default function OwnerFeedback() {
                   <th
                     key={index}
                     className="max-w-[170px] break-words"
-                    style={{ maxWidth: '170px', whiteSpace: 'normal' }}
+                    style={{ maxWidth: "170px", whiteSpace: "normal" }}
                   >
                     {question}
                   </th>
@@ -137,7 +151,7 @@ export default function OwnerFeedback() {
                       <td
                         key={uid}
                         className="max-w-[170px] break-words"
-                        style={{ maxWidth: '170px', whiteSpace: 'normal' }}
+                        style={{ maxWidth: "170px", whiteSpace: "normal" }}
                       >
                         {questionType === "checkbox" && Array.isArray(response)
                           ? response.join(", ")

@@ -3,21 +3,24 @@ import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase'; // Adjust path as necessary
 import { toast } from 'react-toastify';
 
-export default function OwnerAdoptionModalDelete({ uid, petName, closeDeleteModal }) {
+export default function OwnerAdoptionModalDelete({ projectId, uid, petName, closeDeleteModal }) {
   const handleDeleteConfirmation = async () => {
     try {
-      // Reference the document to delete
-      const adoptionDoc = doc(db, "adoptions", uid);
+      // Reference the document to delete in the animals subcollection
+      const adoptionDoc = doc(db, `adoptions/${projectId}/animals`, uid);
+
       // Delete the document
       await deleteDoc(adoptionDoc);
+
       // Notify user and close modal
-      toast.success("Pet record successfully deleted");
+      toast.success(`${petName} record successfully deleted`);
       closeDeleteModal();
     } catch (error) {
       console.error("Error deleting adoption: ", error);
       toast.error("Failed to delete pet record");
     }
   };
+
 
   return (
     <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-40">

@@ -57,7 +57,27 @@ export default function HomeGuest() {
           Your furry friends deserve the best.
         </h1>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 md:mx-10">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 md:mx-10">
+          {/* Login Card */}
+          <div className="card bg-base-100 shadow-xl w-full">
+            <div className="card-body items-center text-center">
+              <h2 className="card-title">For Vet and Shelter Admin</h2>
+              <p className="text-sm">
+                Access your dashboard to manage your activities, appointments,
+                and more. Ready to continue your journey with us? Click below to
+                proceed!
+              </p>
+              <div className="card-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => (window.location.href = "/login")}
+                >
+                  Proceed to Login
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Vet and Shelter Admin Card */}
           <div className="card bg-base-100 shadow-xl w-full">
             <div className="card-body items-center text-center">

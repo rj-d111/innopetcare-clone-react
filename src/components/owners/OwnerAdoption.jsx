@@ -6,7 +6,7 @@ import OwnerAdoptionModalEdit from "./OwnerAdoptionModalEdit";
 import { useNavigate, useParams } from "react-router-dom";
 import { FaRegEye, FaSearch } from "react-icons/fa";
 import { db } from "../../firebase";
-import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, onSnapshot } from "firebase/firestore";
 import { toast } from "react-toastify";
 
 export default function OwnerAdoption() {
@@ -28,23 +28,29 @@ export default function OwnerAdoption() {
 
   // Fetch adoption data from Firebase
   useEffect(() => {
-    const fetchAdoptions = async () => {
-      try {
-        const adoptionsRef = collection(db, "adoptions");
-        const q = query(adoptionsRef, where("projectId", "==", id));
-        const querySnapshot = await getDocs(q);
-        const adoptionData = querySnapshot.docs.map((doc) => ({
+    if (!id) return;
+
+    const animalsRef = collection(db, `adoptions/${id}/animals`);
+
+    // Set up a Firestore listener
+    const unsubscribe = onSnapshot(
+      animalsRef,
+      (snapshot) => {
+        const adoptionData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
         setAdoptions(adoptionData);
-      } catch (error) {
+      },
+      (error) => {
         console.error("Error fetching adoptions: ", error);
       }
-    };
+    );
 
-    fetchAdoptions();
+    // Cleanup listener on unmount
+    return () => unsubscribe();
   }, [id]);
+
 
   // Callback to add new pet after submission
   const addPetToList = (newPet) => {
@@ -65,28 +71,46 @@ export default function OwnerAdoption() {
   // Handle Archive action
   const handleArchive = async (uid) => {
     try {
-      const adoptionDoc = doc(db, "adoptions", uid);
+      // Reference the document in the animals subcollection
+      const adoptionDoc = doc(db, `adoptions/${id}/animals`, uid);
       await updateDoc(adoptionDoc, { isArchive: true });
-      setAdoptions(adoptions.map((adoption) => (adoption.id === uid ? { ...adoption, isArchive: true } : adoption)));
+  
+      // Update state
+      setAdoptions((adoptions) =>
+        adoptions.map((adoption) =>
+          adoption.id === uid ? { ...adoption, isArchive: true } : adoption
+        )
+      );
+  
       toast.success("Pet successfully archived");
     } catch (error) {
       console.error("Error archiving adoption: ", error);
       toast.error("Error archiving adoption");
     }
   };
+  
 
   // Handle Restore action
   const handleRestore = async (uid) => {
     try {
-      const adoptionDoc = doc(db, "adoptions", uid);
+      // Reference the document in the animals subcollection
+      const adoptionDoc = doc(db, `adoptions/${id}/animals`, uid);
       await updateDoc(adoptionDoc, { isArchive: false });
-      setAdoptions(adoptions.map((adoption) => (adoption.id === uid ? { ...adoption, isArchive: false } : adoption)));
+  
+      // Update state
+      setAdoptions((adoptions) =>
+        adoptions.map((adoption) =>
+          adoption.id === uid ? { ...adoption, isArchive: false } : adoption
+        )
+      );
+  
       toast.success("Pet successfully restored");
     } catch (error) {
       console.error("Error restoring adoption: ", error);
       toast.error("Error restoring adoption");
     }
   };
+  
 
   // Handle Delete action
   const handleDelete = (uid, petName) => {
@@ -117,7 +141,7 @@ export default function OwnerAdoption() {
             checked={showArchived}
             onChange={() => setShowArchived(!showArchived)}
           />
-          <label className="ml-2">Show Archived</label>
+          <label className="ml-2">Show Adopted</label>
         </div>
 
         {/* Search Bar */}
@@ -145,12 +169,12 @@ export default function OwnerAdoption() {
 
       {/* Delete Modal */}
       {isDeleteModalOpen && deleteData && (
-        <OwnerAdoptionModalDelete uid={deleteData.uid} petName={deleteData.petName} closeDeleteModal={closeDeleteModal} />
+        <OwnerAdoptionModalDelete projectId={id} uid={deleteData.uid} petName={deleteData.petName} closeDeleteModal={closeDeleteModal} />
       )}
 
       {/* Edit Modal */}
       {isEditModalOpen && editUid && (
-        <OwnerAdoptionModalEdit uid={editUid} closeModal={closeEditModal} />
+        <OwnerAdoptionModalEdit projectId={id} uid={editUid} closeModal={closeEditModal} />
       )}
 
       <div className="overflow-x-auto mt-4">
@@ -210,7 +234,7 @@ export default function OwnerAdoption() {
                         Actions
                       </option>
                       <option value="edit">Edit</option>
-                      <option value="archive">{adoption.isArchive ? "Restore" : "Archive"}</option>
+                      <option value="archive">{adoption.isArchive ? "Restore" : "Adopted"}</option>
                       <option value="delete">Delete</option>
                     </select>
                   </td>

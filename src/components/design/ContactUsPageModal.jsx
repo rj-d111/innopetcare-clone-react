@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 import { useParams } from "react-router";
 import { IoClose } from "react-icons/io5";
 import axios from "axios";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import customMarker from "./customMarker"; // Ensure this import is correct
 import "leaflet/dist/leaflet.css";
 
@@ -32,12 +32,14 @@ export default function ContactUsPageModal({
   const [showManualCoordinates, setShowManualCoordinates] = useState(false);
   const [searchAddress, setSearchAddress] = useState("");
   const [addressStatus, setAddressStatus] = useState(null);
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
 
   const options = [
     { label: "Phone No.", value: "phone" },
     { label: "Landline No.", value: "landline" },
     { label: "Email", value: "email" },
     { label: "Address", value: "address" },
+    // { label: "Google Maps URL", value: "googleMapsUrl" },
     { label: "Facebook", value: "facebook" },
     { label: "Messenger", value: "messenger" },
     { label: "YouTube", value: "youtube" },
@@ -59,8 +61,13 @@ export default function ContactUsPageModal({
       setIsEditing(true);
 
       // If editing an address, show manual coordinates by default
+      // if (selectedSection.type === "address" && selectedSection.location) {
+      //   setShowManualCoordinates(true);
+      //   setLatitude(selectedSection.location.latitude);
+      //   setLongitude(selectedSection.location.longitude);
+      // }
+
       if (selectedSection.type === "address" && selectedSection.location) {
-        setShowManualCoordinates(true);
         setLatitude(selectedSection.location.latitude);
         setLongitude(selectedSection.location.longitude);
       }
@@ -105,6 +112,47 @@ export default function ContactUsPageModal({
     }
   };
 
+  const handleExtractCoordinates = async () => {
+    try {
+      if (!googleMapsUrl.startsWith("https://www.google.com/maps/")) {
+        setAddressStatus("error");
+        toast.error(
+          "Invalid URL. Please use a Google Maps link starting with https://www.google.com/maps/"
+        );
+        return;
+      }
+
+      const decodedUrl = decodeURIComponent(googleMapsUrl);
+      const urlMatch = decodedUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+      if (urlMatch) {
+        const lat = parseFloat(urlMatch[1]);
+        const lon = parseFloat(urlMatch[2]);
+
+        // Reverse geocode to get the address
+        const response = await axios.get(
+          `https://us1.locationiq.com/v1/reverse.php?key=${locationIQToken}&lat=${lat}&lon=${lon}&format=json`
+        );
+
+        const addressName = response.data.display_name || "Unnamed location";
+
+        // Update the state
+        setLatitude(lat);
+        setLongitude(lon);
+        setAddressStatus("success");
+        setContent(addressName); // Update content with the extracted address
+        toast.success("Address extracted successfully!");
+      } else {
+        setAddressStatus("error");
+        toast.error("Failed to extract coordinates. Invalid Google Maps URL.");
+      }
+    } catch (error) {
+      console.error("Error extracting address:", error);
+      setAddressStatus("error");
+      toast.error("An error occurred while extracting the address.");
+    }
+  };
+
   // Handle manual coordinates input
   const handleManualCoordinates = () => {
     if (latitude && longitude) {
@@ -123,7 +171,9 @@ export default function ContactUsPageModal({
     }
   
     // Get the label for the selected type
-    const selectedOption = options.find((option) => option.value === selectedType);
+    const selectedOption = options.find(
+      (option) => option.value === selectedType
+    );
     const label = selectedOption ? selectedOption.label : customType;
   
     // Prepare the contact data object
@@ -133,16 +183,13 @@ export default function ContactUsPageModal({
       content: trimmedContent,
     };
   
-    // Handle address type with coordinates
+    // Handle address type with coordinates and Google Maps URL
     if (selectedType === "address") {
-      if (!latitude || !longitude) {
-        toast.error("Please provide valid coordinates");
-        return;
-      }
       contactData.location = {
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
       };
+      contactData.googleMapsUrl = googleMapsUrl || ""; // Save the Google Maps URL
     }
   
     try {
@@ -177,10 +224,10 @@ export default function ContactUsPageModal({
       toast.error("Error saving contact section");
     }
   };
+  
 
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-    >
+    <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative overflow-y-auto max-h-screen">
         {/* Close Button and Heading */}
         <div className="flex justify-between items-center mb-4">
@@ -226,24 +273,94 @@ export default function ContactUsPageModal({
             </div>
           )}
 
+          {/* Google Maps URL Input */}
+          {selectedType === "address" && (
+            <>
+              <div>
+                 <label className="font-medium block text-sm">Paste Google Maps Link</label>
+                {/* Input and Extract Button Side by Side */}
+                <div className="flex space-x-2 py-2">
+                  <input
+                    type="text"
+                    value={googleMapsUrl}
+                    onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                    placeholder={
+                      addressStatus === "success"
+                        ? "Google Maps URL valid and coordinates extracted."
+                        : "Paste Google Maps link here..."
+                    }
+                    className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg ${
+                      addressStatus === "success" ? "bg-gray-100" : "bg-white"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleExtractCoordinates}
+                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg"
+                  >
+                    Extract
+                  </button>
+                </div>
+
+                {/* Display Extracted Address in Textarea */}
+                <label className="font-medium block text-sm">Address</label>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows="3"
+                  className={`w-full px-4 py-2 border border-gray-300 rounded-lg mt-2 ${
+                    addressStatus === "success" || addressStatus === null
+                      ? "bg-gray-100"
+                      : "bg-white"
+                  }`}
+                  placeholder={
+                    addressStatus === "success"
+                      ? "Extracted address will appear here"
+                      : "Enter address here"
+                  }
+                ></textarea>
+
+                {/* Display Latitude and Longitude */}
+                {latitude && longitude && (
+                  <p className="text-xs mt-2 text-gray-600">
+                    Latitude: {latitude}, Longitude: {longitude}
+                  </p>
+                )}
+              </div>
+
+              {latitude && longitude && (
+  <div className="mt-4">
+    <iframe
+      title="Google Maps"
+      width="100%"
+      height="300"
+      frameBorder="0"
+      style={{ border: 0 }}
+      src={`https://www.google.com/maps?q=${latitude},${longitude}&hl=es;z=14&output=embed`}
+      allowFullScreen
+    ></iframe>
+  </div>
+)}
+
+            </>
+          )}
+
           {/* Details Text Area */}
-          <div>
-            <label className="block text-sm font-medium">Details</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows="3"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              placeholder={
-                selectedType === "address"
-                  ? "Enter address here..."
-                  : "Enter details here..."
-              }
-            ></textarea>
-          </div>
+          {selectedType !== "address" && (
+            <div>
+              <label className="block text-sm font-medium">Details</label>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows="3"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                placeholder={"Enter details here..."}
+              ></textarea>
+            </div>
+          )}
 
           {/* Address Section */}
-          {selectedType === "address" && (
+          {selectedType === "llll" && (
             <div className="space-y-4">
               <button
                 type="button"
@@ -326,3 +443,11 @@ export default function ContactUsPageModal({
     </div>
   );
 }
+
+const MapViewUpdater = ({ latitude, longitude }) => {
+  const map = useMap();
+  if (latitude && longitude) {
+    map.setView([latitude, longitude], map.getZoom());
+  }
+  return null;
+};
