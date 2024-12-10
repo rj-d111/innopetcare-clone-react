@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaFacebook, FaYoutube } from "react-icons/fa";
+import { FaEnvelope, FaFacebook, FaYoutube } from "react-icons/fa";
 import InnoPetCareLogo from "../assets/png/innopetcare-black.png";
 import { Link } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -26,13 +26,45 @@ const Footer = () => {
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Logo and Description */}
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
-          <img src={InnoPetCareLogo} alt="InnoPetCare" className="h-10 mb-4" />
-          <p className="text-gray-600 mb-4">
-            InnoPetCare is a content management system (CMS) designed
-            specifically for veterinary clinics and animal shelters to manage
-            their online presence.
-          </p>
-        </div>
+      <img src={InnoPetCareLogo} alt="InnoPetCare" className="h-10 mb-4" />
+      <p className="text-gray-600 mb-4">
+        InnoPetCare is a content management system (CMS) designed specifically
+        for veterinary clinics and animal shelters to manage their online
+        presence.
+      </p>
+      <div className="flex space-x-6">
+        {/* Facebook Link */}
+        <a
+          href="https://www.facebook.com/InnoPetCare"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 text-xl"
+          aria-label="Facebook"
+        >
+          <FaFacebook />
+        </a>
+
+        {/* YouTube Link */}
+        <a
+          href="https://www.youtube.com/@innopetcare"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-red-600 hover:text-red-800 text-xl"
+          aria-label="YouTube"
+        >
+          <FaYoutube />
+        </a>
+
+        {/* Email Link */}
+        <a
+          href="mailto:innopetcare@gmail.com"
+          className="text-gray-600 hover:text-gray-800 text-xl"
+          aria-label="Email"
+        >
+          <FaEnvelope />
+        </a>
+      </div>
+    </div>
 
         {/* Company Links */}
         <div className="flex flex-col items-center md:items-start text-center md:text-left">

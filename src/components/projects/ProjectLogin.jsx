@@ -66,7 +66,10 @@ export default function ProjectLogin() {
               // Check isApproved field and navigate accordingly
               if (userData.status === "approved") {
                 navigate(`/sites/${slug}/dashboard`);
-              } else {
+              } else if(userData.status !=="approved" && !user.emailVerified){
+                navigate(`/sites/${slug}/email-verification`);
+              }
+                else {
                 navigate(`/sites/${slug}/approval`);
               }
             } else {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, setDoc, updateDoc, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, setDoc, updateDoc, orderBy, onSnapshot } from "firebase/firestore";
 import { useParams } from "react-router-dom";
 import { db, storage } from "../../firebase";
 import { getAuth } from "firebase/auth"; 
@@ -13,9 +13,16 @@ import Spinner from "../../components/Spinner"; // Import Spinner component
 
 const getLastActiveStatus = (lastActivityTime) => {
   if (!lastActivityTime) return "";
+  
+  console.log(lastActivityTime);
+  const now = new Date();
+  const lastActivityDate = 
+    lastActivityTime instanceof Date ? lastActivityTime :
+    typeof lastActivityTime?.toDate === "function" ? lastActivityTime.toDate() :
+    new Date(lastActivityTime);
 
-  const now = Timestamp.now().toDate();
-  const lastActivityDate = lastActivityTime.toDate();
+  if (isNaN(lastActivityDate)) return { status: "Unknown", color: "bg-gray-500" };
+
   const diffMillis = now - lastActivityDate;
   const diffMinutes = Math.floor(diffMillis / (60 * 1000));
 
@@ -40,24 +47,36 @@ export default function OwnerMessages() {
   useEffect(() => {
     if (!selectedUser.uid) return;
 
-    const fetchOrCreateChat = async () => {
-      const chatDocId = [adminId, selectedUser.uid].sort().join("_");
-      console.log(chatDocId)
-      const chatDocRef = doc(db, "chats", chatDocId);
-      const messagesCollectionRef = collection(chatDocRef, "messages");
-      const messagesQuery = query(messagesCollectionRef, orderBy("timestamp"));
-
-      setChatId(chatDocId);
-      const messagesSnapshot = await getDocs(messagesQuery);
-      const messagesData = messagesSnapshot.docs.map((doc) => ({
+  
+    const chatDocId = [adminId, selectedUser.uid].join("_");
+    const chatDocRef = doc(db, "chats", chatDocId);
+    const messagesCollectionRef = collection(chatDocRef, "messages");
+    const messagesQuery = query(messagesCollectionRef, orderBy("timestamp"));
+  
+    const initializeChat = async () => {
+      // Ensure the chat document exists
+      const chatSnapshot = await getDocs(messagesCollectionRef);
+      if (chatSnapshot.empty) {
+        await setDoc(chatDocRef, { participants: [adminId, selectedUser.uid] }, { merge: true });
+      }
+    };
+  
+    initializeChat();
+  
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const messagesData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-
+      console.log(messagesData);
       setMessages(messagesData);
-    };
-
-    fetchOrCreateChat();
+    });
+  
+    // Set the chat ID for sending messages
+    setChatId(chatDocId);
+  
+    // Cleanup the subscription when the component unmounts or dependencies change
+    return () => unsubscribe();
   }, [adminId, selectedUser.uid]);
 
   const handleUserSelect = (name, lastActivityTime, uid) => {
@@ -71,8 +90,8 @@ export default function OwnerMessages() {
   };
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !chatId) return;
-
+    if (!messageText.trim() || !chatId || isSending) return; // Prevent duplicate sending
+  
     setIsSending(true); // Show spinner when sending starts
     const messageData = {
       text: messageText,
@@ -82,32 +101,46 @@ export default function OwnerMessages() {
       type: "text",
       isSeen: false,
     };
-
+  
     const chatDocRef = doc(db, "chats", chatId);
     const messagesCollectionRef = collection(chatDocRef, "messages");
-
-    await addDoc(messagesCollectionRef, messageData);
-
-    await setDoc(
-      chatDocRef,
-      {
-        participants: [adminId, selectedUser.uid],
-        lastMessage: messageText,
-        lastTimestamp: serverTimestamp(),
-        isSeenByAdmin: true,
-        isSeenByClient: false,
-      },
-      { merge: true }
-    );
-
-    await updateLastActivityTime();
-    setMessageText("");
-    setMessages((prev) => {
-      const newMessages = [...prev, { ...messageData, timestamp: new Date() }];
-      return newMessages.sort((a, b) => a.timestamp - b.timestamp); 
-    });
-
-    setIsSending(false); // Hide spinner after sending
+  
+    try {
+      // Add the message to Firestore
+      const messageRef = await addDoc(messagesCollectionRef, messageData);
+  
+      // Update the chat document with the latest message info
+      await setDoc(
+        chatDocRef,
+        {
+          participants: [adminId, selectedUser.uid],
+          lastMessage: messageText,
+          lastTimestamp: serverTimestamp(),
+          lastSenderId: adminId,
+          isSeenByAdmin: true,
+          isSeenByClient: false,
+        },
+        { merge: true }
+      );
+  
+      // Update the local state
+      setMessages((prev) => {
+        const exists = prev.some(
+          (msg) => msg.id === messageRef.id || msg.timestamp === messageData.timestamp
+        );
+        if (exists) return prev; // If the message already exists, return the current state unchanged
+        return [
+          ...prev,
+          { ...messageData, id: messageRef.id, timestamp: new Date() },
+        ];
+      });
+      
+      setMessageText("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setIsSending(false); // Hide spinner after sending
+    }
   };
 
   const handleFileUpload = async (file) => {

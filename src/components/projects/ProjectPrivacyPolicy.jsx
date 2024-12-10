@@ -89,7 +89,6 @@ export default function ProjectPrivacyPolicy() {
       >
         {clinicName} Privacy Policy
       </h1>
-      <p className="text-gray-600 mb-4">Effective Date: [Insert Date]</p>
 
       <p className="text-gray-700 mb-4">
         At {clinicName}, we prioritize your privacy and are committed to
@@ -166,7 +165,6 @@ export default function ProjectPrivacyPolicy() {
       <h1 className="text-3xl font-bold text-center mb-6 mt-12">
         Terms of Use for {clinicName}
       </h1>
-      <p className="text-gray-600 mb-4">Effective Date: [Insert Date]</p>
 
       <h2 className="text-xl font-semibold mb-2">Acceptance of Terms</h2>
       <p className="text-gray-700 mb-4">

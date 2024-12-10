@@ -52,7 +52,10 @@ export default function Login() {
           // Check isApproved field and navigate accordingly
           if (userData.isApproved) {
             navigate("/");
-          } else {
+          } else if(!userData.isApproved && !user.emailVerified){
+            navigate("/email-verification");
+
+          }else{
             navigate("/approval");
           }
         } else {

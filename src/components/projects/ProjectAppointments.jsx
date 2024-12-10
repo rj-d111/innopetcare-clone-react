@@ -16,6 +16,9 @@ import {
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import Spinner from "../../components/Spinner";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { addDays, getDay, setHours, setMinutes, parseISO } from "date-fns";
 
 export default function ProjectAppointments() {
   const [pets, setPets] = useState([]); // State for storing pets
@@ -43,12 +46,76 @@ export default function ProjectAppointments() {
   const [isHovered, setIsHovered] = useState(false);
   const [bookedTimes, setBookedTimes] = useState([]);
 
-  console.log(bookedTimes);
-
   const navigate = useNavigate();
   const auth = getAuth();
 
   const { slug } = useParams();
+
+  const [customSchedules, setCustomSchedules] = useState({});
+
+  const [blockedDays, setBlockedDays] = useState([]);
+  // Convert blockedDays from strings to Date objects
+  const blockedDates = blockedDays.map((date) => new Date(date));
+
+  const [disableDaysOfWeek, setDisableDaysOfWeek] = useState([]);
+  const [startDate, setStartDate] = useState(null);
+
+  // Handle date change and update formData
+  const handleDateChange = (date) => {
+    setStartDate(date);
+    setFormData((prevData) => ({
+      ...prevData,
+      event_date: date ? date.toISOString().split("T")[0] : "", // Save in YYYY-MM-DD format
+    }));
+  };
+
+  // Fetch blocked days
+  useEffect(() => {
+    const fetchBlockedDays = async () => {
+      if (projectId) {
+        try {
+          const docRef = doc(db, "appointments-section", projectId);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setBlockedDays(data.blockedDays || []); // Set blockedDays or an empty array
+            setDisableDaysOfWeek(data.disableDaysOfWeek || []);
+          } else {
+            console.log(
+              "No document found in appointments-section for this projectId."
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching blocked days:", error);
+        }
+      }
+    };
+
+    fetchBlockedDays();
+  }, [projectId]);
+
+  useEffect(() => {
+    const fetchCustomSchedules = async () => {
+      if (projectId) {
+        try {
+          const docRef = doc(db, "appointments-section", projectId);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setCustomSchedules(data); // Save the fetched custom schedules
+          } else {
+            console.log("No custom schedules found.");
+          }
+        } catch (error) {
+          console.error("Error fetching custom schedules: ", error);
+        }
+      }
+    };
+
+    fetchCustomSchedules();
+  }, [projectId]);
 
   // Fetch projectId and project type (Animal Shelter or Veterinary)
   useEffect(() => {
@@ -102,6 +169,21 @@ export default function ProjectAppointments() {
     today.setDate(today.getDate() + 1); // Set to tomorrow
     return today.toISOString().split("T")[0]; // Format as YYYY-MM-DD
   };
+
+  // Helper to disable specific weekdays
+  const isDayAllowed = (date) => {
+    const day = getDay(date); // Sunday = 0, Monday = 1, ..., Saturday = 6
+    return !disableDaysOfWeek.includes(day);
+  };
+
+  // Helper to disable specific dates
+  const isDateAllowed = (date) => {
+    const formattedDate = date.toISOString().split("T")[0]; // Format as "YYYY-MM-DD"
+    return !blockedDays.includes(formattedDate);
+  };
+
+  // Combine both filters
+  const filterDate = (date) => isDayAllowed(date) && isDateAllowed(date);
 
   // Fetch services based on projectId
   useEffect(() => {
@@ -215,7 +297,7 @@ export default function ProjectAppointments() {
               appointmentsArray.push(dateObj);
             }
           });
-  
+
           // Save the fetched dates to state
           setBookedTimes(appointmentsArray);
         } catch (error) {
@@ -226,7 +308,7 @@ export default function ProjectAppointments() {
         console.error("Error fetching appointments:", error);
       }
     );
-  
+
     // Clean up subscription on component unmount
     return () => unsubscribe();
   }, []);
@@ -236,39 +318,72 @@ export default function ProjectAppointments() {
   useEffect(() => {
     const generateTimeSlots = () => {
       const slots = [];
-      const startHour = 8;
-      const endHour = 18;
+      const today = new Date(formData.event_date); // Get selected event date
+      const dayOfWeek = today.getDay(); // Get the day of the week (0-6, Sunday-Saturday)
 
-      for (let hour = startHour; hour < endHour; hour++) {
-        const time1 = convertTo12HourFormat(hour, 0);
-        const time2 = convertTo12HourFormat(hour, 30);
+      const days = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
+      const dayKey = days[dayOfWeek + 1]; // Get the day's name (e.g., "monday", "tuesday")
+      const schedule = customSchedules.customSchedules[dayKey]; // Lookup the schedule using the day's name as a key
+      console.log(customSchedules.customSchedules[dayKey]);
+      if (!schedule) {
+        // No schedule for the selected day
+        setTimeSlots([]); // Clear time slots
+        return;
+      }
 
-        const datetime1 = new Date(`${formData.event_date} ${time1}`);
-        const datetime2 = new Date(`${formData.event_date} ${time2}`);
+      const startHour = parseInt(schedule.start.split(":")[0]);
+      const startMinute = parseInt(schedule.start.split(":")[1] || "0");
+      const endHour = parseInt(schedule.end.split(":")[0]);
+      const endMinute = parseInt(schedule.end.split(":")[1] || "0");
 
-        // Check if the slot is already booked
+      // Generate time slots in 30-minute intervals
+      let currentHour = startHour;
+      let currentMinute = startMinute;
+
+      while (
+        currentHour < endHour ||
+        (currentHour === endHour && currentMinute < endMinute)
+      ) {
+        const timeSlot = convertTo12HourFormat(currentHour, currentMinute);
+        const datetime = new Date(
+          `${formData.event_date}T${currentHour
+            .toString()
+            .padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")}:00`
+        );
+
+        // Only add the time slot if it's not booked
         if (
           !bookedTimes.some(
             (booked) =>
-              booked instanceof Date && booked.getTime() === datetime1.getTime()
+              booked instanceof Date && booked.getTime() === datetime.getTime()
           )
         ) {
-          slots.push(time1);
+          slots.push(timeSlot);
         }
-        if (
-          !bookedTimes.some(
-            (booked) =>
-              booked instanceof Date && booked.getTime() === datetime2.getTime()
-          )
-        ) {
-          slots.push(time2);
+
+        // Increment by 30 minutes
+        currentMinute += 30;
+        if (currentMinute >= 60) {
+          currentMinute = 0;
+          currentHour += 1;
         }
       }
+
       setTimeSlots(slots);
     };
+    
+    if(formData.event_date != "")
+      generateTimeSlots();
 
-    generateTimeSlots();
-  }, [formData.event_date, bookedTimes]);
+  }, [formData.event_date, bookedTimes, customSchedules]);
 
   // Convert 24-hour time to 12-hour format with AM/PM
   const convertTo12HourFormat = (hour, minute) => {
@@ -357,7 +472,7 @@ export default function ProjectAppointments() {
 
       // Step 2: Create a notification entry
       const notificationData = {
-        message: `Your appointment was successfully booked for ${formData.event_date} at ${formData.event_time}. Status: 'Pending'`,
+        message: `Your appointment bas been submitted for ${formData.event_date} at ${formData.event_time}. Status: 'Pending'`,
         read: false,
         timestamp: serverTimestamp(),
         type: "appointment",
@@ -388,6 +503,13 @@ export default function ProjectAppointments() {
             <h2 className="text-3xl font-bold mt-6">Set Appointment</h2>
           </div>
           {loading && <Spinner />}
+
+          {/* Display banner when no pets are registered */}
+          {noPets && !isAnimalShelter && (
+            <div className="bg-red-100 text-red-600 text-center py-4 px-6 rounded-md my-6">
+              You have no pets registered. You cannot create an appointment.
+            </div>
+          )}
           <form className="mt-6" onSubmit={handleSubmit}>
             <div className="mb-4">
               <label htmlFor="reason" className="block text-left font-medium">
@@ -451,7 +573,7 @@ export default function ProjectAppointments() {
               >
                 Appointment Date
               </label>
-              <input
+              {/* <input
                 type="date"
                 id="event_date"
                 name="event_date"
@@ -460,6 +582,18 @@ export default function ProjectAppointments() {
                 min={getMinDate()} // Disable past dates and today
                 className="w-full mt-2 p-2 border rounded-lg"
                 required
+              /> */}
+
+              <DatePicker
+                selected={startDate}
+                onChange={handleDateChange}
+                filterDate={filterDate} // Apply combined filters
+                minDate={new Date()} // Disable past dates
+                excludeDates={blockedDates}
+                placeholderText="Select an appointment date"
+                dateFormat="MMMM d, yyyy"
+                className="w-full mt-2 p-2 border rounded-lg"
+                wrapperClassName="w-full" // Ensures the wrapper spans full width
               />
             </div>
 
@@ -618,7 +752,9 @@ export default function ProjectAppointments() {
             <button
               type="submit"
               className={`w-full p-2 rounded-lg ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "text-white"
+                loading || (!isAnimalShelter && noPets)
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "text-white"
               }`}
               style={{
                 backgroundColor: !loading
@@ -629,7 +765,7 @@ export default function ProjectAppointments() {
               }}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
-              disabled={loading}
+              disabled={loading || (!isAnimalShelter && noPets)} // Combine both conditions
             >
               {loading ? "Booking..." : "Book Appointment"}
             </button>

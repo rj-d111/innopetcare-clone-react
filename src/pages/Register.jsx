@@ -148,8 +148,10 @@ function Register() {
       });
   
       toast.success("Successfully registered to InnoPetCare");
-      // Step 5: Navigate to the pending page
-      navigate("/pending");
+      // Step 5: Navigate to the email verification page
+
+      navigate("/email-verification");
+   
     } catch (error) {
       console.error("Error registering user:", error);
       toast.error("Failed to register. Please try again.");
@@ -195,7 +197,7 @@ function Register() {
             <ul className="steps steps-vertical lg:steps-horizontal w-full">
               <li className="step step-primary">Registration</li>
               <li className={`step ${currentStep >= 2 && "step-primary"}`}>
-                Business Infomration
+                Business Information
               </li>
               <li className={`step ${currentStep >= 3 && "step-primary"}`}>
                 Document and Policy

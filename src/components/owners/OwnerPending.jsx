@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { db } from "../../firebase"; // Ensure your Firebase config is imported
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,6 +12,7 @@ import {
   FaCheckCircle,
   FaQuestionCircle,
   FaTrash,
+  FaRegEye,
 } from "react-icons/fa";
 import {
   doc,
@@ -33,6 +34,7 @@ export default function OwnerPending() {
   const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -177,6 +179,10 @@ export default function OwnerPending() {
 
     return lastActiveDate > oneYearAgo ? "active" : "inactive";
   };
+  const handleViewDetails = (uid) => {
+    navigate(`/${id}/pet-owners/${uid}`);
+  }
+
 
   return (
     <div className="p-6">
@@ -268,6 +274,7 @@ export default function OwnerPending() {
               ))}
               <th>Account Status</th>
               <th>Status</th>
+              <th>View Details</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -314,6 +321,8 @@ export default function OwnerPending() {
                       )}
                     </td>
 
+
+
                     {/* Status Column */}
                     <td>
                       <div className="flex flex-col items-center">
@@ -349,6 +358,17 @@ export default function OwnerPending() {
                       </div>
                     </td>
 
+
+                    {/* View Details Column */}
+                    <td>
+                    <button
+                      className="flex items-center space-x-1 text-blue-500 hover:text-blue-700"
+                      onClick={() => handleViewDetails(client.id)}
+                    >
+                      <FaRegEye /> <span>View Details</span>
+                    </button>
+                  </td>
+
                     {/* Action Buttons */}
                     <td>
                       <button
@@ -366,7 +386,7 @@ export default function OwnerPending() {
                         Accept
                       </button>
                       <button
-                        className="btn btn-error btn-sm text-white"
+                        className="btn btn-error btn-sm mr-2 text-white"
                         onClick={() => {
                           const confirm = window.confirm(
                             "Are you sure you want to reject this pending account?"

@@ -6,19 +6,21 @@ import {
 } from "firebase/auth";
 import { useState, useEffect } from "react";
 import { MdEmail } from "react-icons/md";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { toast } from "react-toastify";
 import { doc, updateDoc, getFirestore } from "firebase/firestore";
 
-export default function EmailVerification() {
+export default function ProjectEmailVerification() {
   const [email, setEmail] = useState("");
   const [isVerified, setIsVerified] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const navigate = useNavigate();
   const db = getFirestore(); // Firestore instance
+  const { slug } = useParams();
 
   useEffect(() => {
     const auth = getAuth();
+    console.log("this is a projectemailverification");
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -63,7 +65,7 @@ export default function EmailVerification() {
   // Function to update Firestore after email verification
   const updateIsVerifiedInFirestore = async (user) => {
     try {
-      const userRef = doc(db, "users", user.uid); // Update user document in Firestore
+      const userRef = doc(db, "clients", user.uid); // Update user document in Firestore
       await updateDoc(userRef, { isVerified: true });
       toast.success("User verification status updated in Firestore");
     } catch (error) {
@@ -75,8 +77,9 @@ export default function EmailVerification() {
   const handleSignOut = async () => {
     const auth = getAuth();
     await signOut(auth);
-    navigate("/login");
+    navigate(`/sites/${slug}`);
     toast.success("Successfully signed out");
+    window.location.reload(); // Add this line to refresh the page
   };
 
   // Resend verification email manually
@@ -115,6 +118,7 @@ export default function EmailVerification() {
             <button
               className="w-full uppercase bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-semibold transition duration-200 ease-in-out active:bg-yellow-800 shadow-md hover:shadow-lg mt-6"
               onClick={() => {
+                  navigate(`/sites/${slug}/dashboard`);
                 window.location.reload(); // Refresh the entire page
               }}
             >

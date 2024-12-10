@@ -19,7 +19,11 @@ export default function OwnerPetOwners() {
   useEffect(() => {
     const fetchClients = async () => {
       const clientsCollection = collection(db, "clients");
-      const q = query(clientsCollection, where("projectId", "==", id));
+      const q = query(
+        clientsCollection, 
+        where("projectId", "==", id), 
+        where("status", "==", "approved")
+      );
       const querySnapshot = await getDocs(q);
       const clientsData = querySnapshot.docs.map((doc) => ({
         ...doc.data(),

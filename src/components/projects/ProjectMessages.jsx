@@ -149,6 +149,8 @@ export default function ProjectMessages() {
     if (slug) fetchUserData();
   }, [slug]);
 
+  const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
+
   const sendMessage = async () => {
     if (!messageText.trim() || !chatId) return;
   
@@ -173,11 +175,14 @@ export default function ProjectMessages() {
       await setDoc(
         chatDocRef,
         {
-          participants: [user.uid, projectId],
+          clientId: user.uid,
+          projectId: projectId,
+          participants: [projectId, user.uid],
           lastMessage: messageText,
           lastTimestamp: serverTimestamp(),
-          isSeenByAdmin: user.role === "client" ? false : true,
-          isSeenByClient: user.role === "client" ? true : false,
+          isSeenByAdmin: false,
+          isSeenByClient: true,
+          lastSenderId: user.uid,
         },
         { merge: true }
       );
@@ -366,6 +371,7 @@ export default function ProjectMessages() {
               className="border border-gray-300 rounded-lg p-2 flex-grow resize-none"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
+              onKeyDown={handleKeyDown} // Add this line
               rows={messageText.split("\n").length}
             />
             <button

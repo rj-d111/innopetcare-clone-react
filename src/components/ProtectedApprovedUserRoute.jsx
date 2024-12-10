@@ -3,7 +3,7 @@ import useAuthStatus from "../components/hooks/useAuthStatusUsers";
 import Spinner from "../components/Spinner";
 
 function ProtectedApprovedUserRoute({ children }) {
-  const { isAuthenticated, isApproved, checkingStatus } = useAuthStatus();
+  const { isAuthenticated, isApproved, emailVerified, checkingStatus } = useAuthStatus();
   const location = useLocation();
 
   if (checkingStatus) {
@@ -13,10 +13,20 @@ function ProtectedApprovedUserRoute({ children }) {
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  if (!isApproved) {
-    return <Navigate to="/approval" replace />;
+  
+  if (isApproved) {
+    return <Outlet />;
   }
+  
+  if (!isApproved) {
+    return <Navigate to="/approval" state={{ from: location }} replace />;
+  }
+
+  
+  if (!emailVerified) {
+    return <Navigate to="/email-verification" state={{ from: location }} replace />;
+  }
+
 
   return children ? children : <Outlet />;
 }

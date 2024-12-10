@@ -1,0 +1,11 @@
+[
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.innopetcare.app",
+        "sha256_cert_fingerprints": ["59:66:A0:C7:23:3B:2E:4A:F7:09:CA:07:C3:7E:36:7B:D9:3D:30:9D:B8:C4:34:74:B8:01:86:7A:3A:C3:57:86"]
+      }
+    }
+  ]
+  

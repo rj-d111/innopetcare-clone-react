@@ -38,7 +38,7 @@ export default function ProjectForgotPassword() {
       const auth = getAuth();
       await sendPasswordResetEmail(auth, email);
       toast.success("Email was sent");
-      navigate("/login");
+      navigate(`/sites/${slug}/login`);
     } catch (error) {
       toast.error("Could not send reset password");
     }

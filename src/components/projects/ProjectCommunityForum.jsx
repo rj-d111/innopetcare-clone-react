@@ -9,6 +9,8 @@ import {
   where,
   getDocs,
   updateDoc,
+  arrayUnion,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import useAuthStatusUsers from "../hooks/useAuthStatusUsers";
@@ -16,11 +18,17 @@ import { getAuth } from "firebase/auth";
 import { toast } from "react-toastify";
 import { BsThreeDots } from "react-icons/bs";
 import PostContent from "./PostContent";
+import LikeButton from "./LikeButton";
+import ShareButton from "./ShareButton";
+import ProjectCommunityForumDetails from "./ProjectCommunityForumDetails";
+import ImageCarousel from "./ImageCarousel";
 
 export default function ProjectCommunityForum() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posts, setPosts] = useState([]);
   const [editPostData, setEditPostData] = useState(null); // For editing post
+  const [expandedPostId, setExpandedPostId] = useState(null); // For toggling comments
+  const [commentInput, setCommentInput] = useState(""); // Input for new comment
   const auth = getAuth();
   const { slug } = useParams();
   const [projectId, setProjectId] = useState(null);
@@ -70,25 +78,28 @@ export default function ProjectCommunityForum() {
   useEffect(() => {
     if (!projectId) return;
 
-    const fetchPosts = async () => {
-      try {
-        const postsQuery = query(
-          collection(db, `community-forum/${projectId}/posts`),
-          where("isDeleted", "==", false)
-        );
-        const querySnapshot = await getDocs(postsQuery);
+    const postsQuery = query(
+      collection(db, `community-forum/${projectId}/posts`),
+      where("isDeleted", "==", false)
+    );
 
+    // Set up the onSnapshot listener
+    const unsubscribe = onSnapshot(
+      postsQuery,
+      (querySnapshot) => {
         const postsData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setPosts(postsData);
-      } catch (error) {
+        setPosts(postsData); // Update state with real-time data
+      },
+      (error) => {
         console.error("Error fetching posts:", error);
       }
-    };
+    );
 
-    fetchPosts();
+    // Cleanup the listener on component unmount or when projectId changes
+    return () => unsubscribe();
   }, [projectId]);
 
   const handleEdit = (post) => {
@@ -116,41 +127,85 @@ export default function ProjectCommunityForum() {
     }
   };
 
+  const handleComment = async (postId) => {
+    const user = auth.currentUser;
+
+    if (!user) {
+      toast.info("You must be logged in to comment.");
+      navigate(`/sites/${slug}/login`);
+      return;
+    }
+
+    if (!commentInput.trim()) {
+      toast.error("Comment cannot be empty!");
+      return;
+    }
+
+    try {
+      // Fetch user data from the clients collection
+      const clientRef = doc(db, "clients", user.uid);
+      const clientSnapshot = await getDoc(clientRef);
+
+      if (!clientSnapshot.exists()) {
+        toast.error("User data not found in the clients table.");
+        return;
+      }
+
+      const clientData = clientSnapshot.data();
+
+      const postRef = doc(db, `community-forum/${projectId}/posts`, postId);
+
+      // Add comment to the Firestore post
+      await updateDoc(postRef, {
+        comments: arrayUnion({
+          comment: commentInput,
+          userId: user.uid,
+          userName: clientData.name || "Anonymous",
+          profileImage:
+            clientData.profileImage || "https://via.placeholder.com/40",
+          createdAt: new Date(),
+        }),
+      });
+
+      // Update comments locally for immediate UI update
+      setPosts((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                comments: [
+                  ...(post.comments || []),
+                  {
+                    comment: commentInput,
+                    userId: user.uid,
+                    userName: clientData.name || "Anonymous",
+                    profileImage:
+                      clientData.profileImage ||
+                      "https://via.placeholder.com/40",
+                    createdAt: new Date(),
+                  },
+                ],
+              }
+            : post
+        )
+      );
+
+      setCommentInput(""); // Reset comment input
+      toast.success("Comment added successfully!");
+    } catch (error) {
+      console.error("Error commenting on post:", error);
+      toast.error("Failed to add comment.");
+    }
+  };
+
+  const toggleComments = (postId) => {
+    setExpandedPostId((prev) => (prev === postId ? null : postId));
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 p-6 bg-gray-100 min-h-screen">
       {/* Sidebar */}
-      <div className="w-full lg:w-1/4 bg-white shadow-md rounded-lg p-4 space-y-6">
-        <h2 className="text-lg font-semibold">Community</h2>
-        <div className="space-y-4">
-          {/* Navigation Links */}
-          <ul className="space-y-2">
-            <li className="font-medium text-gray-700 hover:text-blue-500">
-              My Threads
-            </li>
-            <li className="font-medium text-gray-700 hover:text-blue-500">
-              Saved Posts
-            </li>
-          </ul>
-
-          {/* Current Courses */}
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold text-gray-600 mb-2">
-              Current Course
-            </h3>
-            <ul className="space-y-2">
-              <li className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Public Finance</span>
-                <span className="text-xs bg-blue-500 text-white py-1 px-2 rounded-full">
-                  3
-                </span>
-              </li>
-              <li className="text-sm text-gray-700 hover:text-blue-500">
-                Corporate Law
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <div className="w-full lg:w-1/6 p-4 space-y-6"></div>
 
       {/* Main Content */}
       <div className="w-full lg:w-2/4">
@@ -193,7 +248,11 @@ export default function ProjectCommunityForum() {
                       {post.authorName || "Anonymous"}
                     </h3>
                     <p className="text-xs text-gray-500">
-                      {new Date(post.createdAt.seconds * 1000).toLocaleString()}
+                      {post.updatedAt && post.updatedAt.seconds
+                        ? new Date(
+                            post.updatedAt.seconds * 1000
+                          ).toLocaleString()
+                        : "Date not available"}
                     </p>
                   </div>
                 </div>
@@ -232,50 +291,86 @@ export default function ProjectCommunityForum() {
                   </div>
                 )}
               </div>
+
               <h4 className="font-semibold text-gray-800">{post.title}</h4>
-              <PostContent content={post.content} />
-              {/* <p className="text-sm text-gray-600">{post.content}</p> */}
+              <p className="text-sm text-gray-600">{post.content}</p>
+
+              {/* Image Carousel */}
+              {post.images && post.images.length > 0 && (
+                <div className="mt-4">
+                  <ImageCarousel images={post.images} />
+                </div>
+              )}
+
               <div className="mt-3 flex space-x-4 text-gray-500">
-                <button className="hover:text-blue-500 flex items-center space-x-1">
-                  <span>👍</span>
-                  <span>Like</span>
-                </button>
-                <button className="hover:text-blue-500 flex items-center space-x-1">
+                <LikeButton
+                  postId={post.id}
+                  projectId={projectId}
+                  likes={post.likes || []}
+                />
+                <button
+                  className="hover:text-blue-500 flex items-center space-x-1"
+                  onClick={() => toggleComments(post.id)}
+                >
                   <span>💬</span>
                   <span>Comment</span>
                 </button>
-                <button className="hover:text-blue-500 flex items-center space-x-1">
-                  <span>🔗</span>
-                  <span>Share</span>
-                </button>
+                <ShareButton
+                  postId={post.id}
+                  projectId={projectId}
+                  slug={slug}
+                />
               </div>
+
+              {/* Comments Section */}
+              {expandedPostId === post.id && (
+                <div className="mt-4">
+                  {/* Display Comments */}
+                  <div className="space-y-2">
+                    {post.comments?.map((comment, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center space-x-3 bg-gray-100 p-2 rounded-lg"
+                      >
+                        <img
+                          src={comment.profileImage}
+                          alt={comment.userName}
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">
+                            {comment.userName}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {comment.comment}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Comment Section */}
+                  <textarea
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="Write a comment..."
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-500 mt-4"
+                  ></textarea>
+                  <button
+                    onClick={() => handleComment(post.id)}
+                    className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  >
+                    Comment
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
       {/* Right Sidebar */}
-      <div className="w-full lg:w-1/4 bg-white shadow-md rounded-lg p-4 space-y-6">
-        <h3 className="text-lg font-semibold">Owner Details</h3>
-        <div className="space-y-2">
-          <div>
-            <p className="text-sm font-semibold">Business Name:</p>
-            <p className="text-sm text-gray-600">Pawfect Care</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Contact Number:</p>
-            <p className="text-sm text-gray-600">+1 555-123-4567</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Email:</p>
-            <p className="text-sm text-gray-600">owner@pawfectcare.com</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Location:</p>
-            <p className="text-sm text-gray-600">123 Main Street, New York</p>
-          </div>
-        </div>
-      </div>
+      <ProjectCommunityForumDetails projectId={projectId} />
     </div>
   );
 }

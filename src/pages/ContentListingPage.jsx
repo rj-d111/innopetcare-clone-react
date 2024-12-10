@@ -12,14 +12,15 @@ export default function ContentListingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
     const fetchProjects = async () => {
       setLoading(true);
       try {
         // Use Promise.all to fetch both collections in parallel
         const [projectSnapshots, globalSectionsSnap] = await Promise.all([
-          getDocs(query(collection(db, "projects"), where("status", "==", "active"))),
+          getDocs(
+            query(collection(db, "projects"), where("status", "==", "active"))
+          ),
           getDocs(collection(db, "global-sections")),
         ]);
 
@@ -69,7 +70,6 @@ export default function ContentListingPage() {
     fetchProjects();
   }, []);
 
-
   const filteredVeterinarySites = veterinarySites.filter((site) => {
     const lowerSearchQuery = searchQuery.toLowerCase();
     return (
@@ -110,19 +110,31 @@ export default function ContentListingPage() {
             </div>
             <div className="flex flex-col md:flex-row md:space-x-2 w-full md:w-auto">
               <button
-                className={`btn join-item ${filterType === "all" ? "bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white" : ""}`}
+                className={`btn join-item ${
+                  filterType === "all"
+                    ? "bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white"
+                    : ""
+                }`}
                 onClick={() => setFilterType("all")}
               >
                 All
               </button>
               <button
-                className={`btn join-item ${filterType === "Veterinary Site" ? "bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white" : ""}`}
+                className={`btn join-item ${
+                  filterType === "Veterinary Site"
+                    ? "bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white"
+                    : ""
+                }`}
                 onClick={() => setFilterType("Veterinary Site")}
               >
                 Veterinary Site
               </button>
               <button
-                className={`btn join-item ${filterType === "Animal Shelter Site" ? "bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white" : ""}`}
+                className={`btn join-item ${
+                  filterType === "Animal Shelter Site"
+                    ? "bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white"
+                    : ""
+                }`}
                 onClick={() => setFilterType("Animal Shelter Site")}
               >
                 Animal Shelter Site
@@ -148,69 +160,73 @@ export default function ContentListingPage() {
             <>
               {/* Veterinary Clinics Section */}
               {filteredVeterinarySites.length > 0 && (
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                  {filteredVeterinarySites.map((site) => (
-                    <div
-                      key={site.slug}
-                      className="w-full text-center max-w-sm bg-white border border-gray-200 rounded-lg shadow-lg"
-                    >
-                      <div className="flex flex-col items-center p-10">
-                        <img
-                          className="w-24 h-24 mb-3 shadow-lg rounded-full"
-                          alt={site.name}
-                          src={site.image}
-                        />
-                        <h5 className="mb-1 text-xl font-medium text-gray-900 text-center">
-                          {site.name}
-                        </h5>
-                        <span className="text-sm text-gray-500 text-center">
-                          {site.address}
-                        </span>
-                        <div className="flex mt-4 md:mt-6">
-                          <Link
-                            to={`/sites/${site.slug}`}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-yellow-700 rounded-lg hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-blue-300"
-                          >
-                            Visit Now
-                          </Link>
+                <div className="flex justify-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 lg:grid-cols-4">
+                    {filteredVeterinarySites.map((site) => (
+                      <div
+                        key={site.slug}
+                        className="w-full text-center max-w-sm bg-white border border-gray-200 rounded-lg shadow-lg"
+                      >
+                        <div className="flex flex-col items-center p-10">
+                          <img
+                            className="w-24 h-24 mb-3 shadow-lg rounded-full"
+                            alt={site.name}
+                            src={site.image}
+                          />
+                          <h5 className="mb-1 text-xl font-medium text-gray-900 text-center">
+                            {site.name}
+                          </h5>
+                          <span className="text-sm text-gray-500 text-center">
+                            {site.address}
+                          </span>
+                          <div className="flex mt-4 md:mt-6">
+                            <Link
+                              to={`/sites/${site.slug}`}
+                              className="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-yellow-700 rounded-lg hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-blue-300"
+                            >
+                              Visit Now
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
 
               {/* Animal Shelter Section */}
               {filteredAnimalShelters.length > 0 && (
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-                  {filteredAnimalShelters.map((shelter) => (
-                    <div
-                      key={shelter.slug}
-                      className="w-full max-w-sm bg-white border border-gray-200 rounded-lg shadow-lg"
-                    >
-                      <div className="flex flex-col items-center p-10">
-                        <img
-                          className="w-24 h-24 mb-3 shadow-lg rounded-full"
-                          alt={shelter.name}
-                          src={shelter.image}
-                        />
-                        <h5 className="mb-1 text-xl font-medium text-gray-900 text-center">
-                          {shelter.name}
-                        </h5>
-                        <span className="text-sm text-gray-500 text-center">
-                          {shelter.address}
-                        </span>
-                        <div className="flex mt-4 md:mt-6">
-                          <Link
-                            to={`/sites/${shelter.slug}`}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-yellow-700 rounded-lg hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-blue-300"
-                          >
-                            Visit Now
-                          </Link>
+                <div className="flex justify-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 lg:grid-cols-4">
+                    {filteredAnimalShelters.map((shelter) => (
+                      <div
+                        key={shelter.slug}
+                        className="w-full max-w-sm bg-white border border-gray-200 rounded-lg shadow-lg"
+                      >
+                        <div className="flex flex-col items-center p-10">
+                          <img
+                            className="w-24 h-24 mb-3 shadow-lg rounded-full"
+                            alt={shelter.name}
+                            src={shelter.image}
+                          />
+                          <h5 className="mb-1 text-xl font-medium text-gray-900 text-center">
+                            {shelter.name}
+                          </h5>
+                          <span className="text-sm text-gray-500 text-center">
+                            {shelter.address}
+                          </span>
+                          <div className="flex mt-4 md:mt-6">
+                            <Link
+                              to={`/sites/${shelter.slug}`}
+                              className="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-yellow-700 rounded-lg hover:bg-yellow-800 focus:ring-4 focus:outline-none focus:ring-blue-300"
+                            >
+                              Visit Now
+                            </Link>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </>

@@ -12,9 +12,9 @@ const useClientApprovalStatus = () => {
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [isAuthenticatedForSlug, setIsAuthenticatedForSlug] = useState(false);
+  const auth = getAuth();
 
   useEffect(() => {
-    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setLoggedIn(true);
@@ -68,7 +68,7 @@ const useClientApprovalStatus = () => {
     return () => unsubscribe();
   }, [slug]);
 
-  return { isApproved, userRole, loading, loggedIn, isAuthenticatedForSlug };
+  return { isApproved, userRole, loading, loggedIn, isAuthenticatedForSlug, auth };
 };
 
 export default useClientApprovalStatus;

@@ -6,7 +6,7 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom"; // Corrected useNavigate import
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -18,7 +18,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { db, generateToken, messaging } from "./firebase";
 
 import Home from "./pages/Home";
 import HomeGuest from "./pages/HomeGuest";
@@ -105,7 +105,7 @@ import ProjectPrivacySettings from "./components/projects/ProjectPrivacySettings
 import HeaderTechAdmin from "./components/HeaderTechAdmin";
 import TechAdminProjectDetails from "./pages/TechAdminProjectDetails";
 import ProjectWrapper from "./components/PrivateWrapper";
-import useSlugExists from './components/hooks/useSlugExists';
+import useSlugExists from "./components/hooks/useSlugExists";
 import ProjectUserFeedback from "./components/projects/ProjectUserFeedback";
 import ProjectSendReport from "./components/projects/ProjectSendReport";
 import ProjectPets from "./components/projects/ProjectPets";
@@ -118,8 +118,17 @@ import OwnerSendReport from "./components/owners/OwnerSendReport";
 import OwnerFeedback from "./components/owners/OwnerFeedback";
 import ProjectHelp from "./components/projects/ProjectHelp";
 import ProjectCommunityForum from "./components/projects/ProjectCommunityForum";
+import ProjectSinglePost from "./components/projects/ProjectSinglePost";
+import { getMessaging, onMessage } from "firebase/messaging";
+import useClientSlug from "./components/hooks/useClientSlug";
+import Spinner from "./components/Spinner";
+import ProjectEmailVerification from "./components/projects/ProjectEmailVerification";
+
 
 function AppContent() {
+  // const { isAuthenticatedForSlug, slug, loading: slugLoading } = useClientSlug(); // Ensure `loading` is provided by the hook
+  const [slug, setSlug] = useState("");
+  const [ isAuthenticatedForSlug ,setIsAuthenticatedForSlug] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [userRole, setUserRole] = useState("");
   const [isApproved, setIsApproved] = useState(false); // Track approval status
@@ -128,12 +137,16 @@ function AppContent() {
   const navigate = useNavigate();
   const [isWebVersion, setWebVersion] = useState(true);
   const [isVerified, setIsVerified] = useState(); // Track email verification status
+  const [checkingStatus, setCheckingStatus] = useState(true); // Track if status checks are in progress
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCheckingStatus(true); // Start status checking
+
       if (user) {
         setIsAuthenticated(true);
-        setIsVerified(user.emailVerified);
+        setIsVerified(user.emailVerified); // Set email verification status
 
         try {
           let foundRole = null;
@@ -145,40 +158,53 @@ function AppContent() {
           if (techAdminDocSnapshot.exists()) {
             foundRole = "tech-admin";
             setUserRole(foundRole);
-            console.log("User is a tech-admin: Details: " + userRole);
-            return; // Exit early if tech-admin role is found
+            setIsApproved(true); // Automatically approved for tech-admins
+            return;
           }
 
-          // If not tech-admin, check other roles
+          // Check other roles (users, clients)
           const userRoles = ["users", "clients"];
           for (const role of userRoles) {
             const userDocRef = doc(db, role, user.uid);
             const userDocSnapshot = await getDoc(userDocRef);
-          
+
             if (userDocSnapshot.exists()) {
               foundRole = role;
               const userData = userDocSnapshot.data();
-              
-              // Check if status is "approved"
+              // Check approval status
               isApprovedStatus = userData.status === "approved";
+
+              if(foundRole == "clients"){
+                const clientsQuery = query(
+                  collection(db, "clients"),
+                  where("__name__", "==", user.uid)
+                )
+
+                const clientSnapshot = await getDocs(clientsQuery);
+                if (clientSnapshot.empty) {
+                  console.warn("No matching client document found for UID:", user.uid);
+                  setIsAuthenticatedForSlug(false);
+                }
+                const clientDoc = clientSnapshot.docs[0];
+                const { projectId } = clientDoc.data();
           
-              if (role === "users") {
-                console.log("User Email:", userData.email);
-                console.log("User UID from users table:", userData.uid);
-              } else if (role === "clients") {
-                console.log("User UID from clients table:", userData.uid);
+                const globalSectionDoc = await getDoc(doc(db, "global-sections", projectId));
+
+                if (globalSectionDoc.exists()) {
+                  const { slug: projectSlug } = globalSectionDoc.data();
+                  setSlug(projectSlug);
+                  setIsAuthenticatedForSlug(true);
+          
+                }
               }
-          
+
               break; // Stop checking other roles once found
             }
           }
 
-          // Set role and approval status
+          // Update role and approval status
           setUserRole(foundRole);
           setIsApproved(isApprovedStatus);
-          console.log(
-            foundRole ? `User Role: ${foundRole}` : "User Role: None"
-          );
         } catch (error) {
           console.error("Error fetching user role or approval status:", error);
           setUserRole(null);
@@ -186,23 +212,17 @@ function AppContent() {
         }
       } else {
         setIsAuthenticated(false);
+        setIsVerified(null);
         setUserRole(null);
-        setIsApproved(false); // Reset isApproved if not authenticated
+        setIsApproved(false);
       }
+
+      setCheckingStatus(false); // End status checking
     });
 
-    return () => unsubscribe(); // Clean up the subscription
+    return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (location.pathname === "/" && userRole) {
-      if (userRole === "tech-admin") {
-        navigate("/admin");
-      } else if (userRole === "clients") {
-        navigate(`/sites/`);
-      }
-    }
-  }, [userRole, location, navigate]);
 
   const renderHeader = () => {
     if (location.pathname.startsWith("/admin/login")) {
@@ -233,11 +253,19 @@ function AppContent() {
   };
 
   useEffect(() => {
-    // Redirect to approval page if status is not "approved"
-    if (isAuthenticated && !isApproved && userRole === "users") {
-      navigate("/approval");
+    if (checkingStatus || !isAuthenticated) return; // Wait until checks are complete
+
+
+    if(isApproved){
+      return;
     }
-  }, [isAuthenticated, isApproved, userRole, navigate]);
+    if (!isVerified && userRole === "users") {
+      navigate("/email-verification"); // Redirect to email verification if not verified
+    } else if (!isApproved && userRole === "users") {
+      navigate("/approval"); // Redirect to approval if not approved
+    }
+  }, [isAuthenticated, isVerified, isApproved, userRole, navigate, checkingStatus]);
+
 
   
   return (
@@ -245,7 +273,7 @@ function AppContent() {
       {renderHeader()}
 
       <Routes>
-      <Route element={<ProtectedApprovedUserRoute />}>
+        <Route element={<ProtectedApprovedUserRoute />}>
           <Route path="/notifications" element={<NotificationsCMS />} />
           <Route path="/settings" element={<UserSettings />} />
           <Route path="/profile/edit" element={<UserProfile />} />
@@ -266,9 +294,14 @@ function AppContent() {
           {/* <Route path="/help" element={<Help />} /> */}
           <Route path="*" element={<NotFound />} />
         </Route>
+              {/* Redirect from "/" to the appropriate "/sites/:slug" */}
+
         <Route
           path="/"
           element={
+            isAuthenticatedForSlug ? (
+              <Navigate to={`/sites/${slug}`} />
+            ) :   
             isAuthenticated ? (
               userRole === "users" ? (
                 isApproved ? (
@@ -288,8 +321,18 @@ function AppContent() {
         <Route
           path="/approval"
           element={
-            isAuthenticated && !isApproved ? (
+            isAuthenticated && isApproved === false ? (
               <UserApproval />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/email-verification"
+          element={
+            isAuthenticated && !isVerified && !isApproved ? (
+              <EmailVerification />
             ) : (
               <Navigate to="/" />
             )
@@ -334,7 +377,7 @@ function AppContent() {
             element={!isVerified ? <EmailVerification /> : <Navigate to="/" />}
           />
           <Route path="/:id/file-manager" element={<FileManager />} />
-        
+
           <Route path="/:id" element={<OwnerHome />}>
             <Route path="dashboard" element={<OwnerDashboard />} />
             <Route path="schedule" element={<OwnerSchedule />} />
@@ -369,7 +412,10 @@ function AppContent() {
           <Route path="/admin" element={<TechAdminHome />}>
             <Route path="users" element={<TechAdminUsers />} />
             <Route path="additional" element={<TechAdminAdditional />} />
-            <Route path="additional/:id" element={<TechAdminProjectDetails />} />
+            <Route
+              path="additional/:id"
+              element={<TechAdminProjectDetails />}
+            />
             <Route path="users/:id" element={<TechAdminUsersDetails />} />
             <Route path="dashboard" element={<TechAdminDashboard />} />
             <Route path="projects" element={<TechAdminProjects />} />
@@ -382,76 +428,123 @@ function AppContent() {
         {/* Fallback for non-existent routes */}
         <Route path="*" element={<NotFound />} />{" "}
         {/* Redirect to NotFound or a 404 component */}
-        
-        
-          {/* Anyone can access */}
-          <Route path="/sites/:slug/terms-and-conditions" element={<TermsConditions />} />
-          <Route path="/sites/:slug/community-forum" element={<ProjectCommunityForum />} />
-          <Route path="/sites/:slug/privacy-policy" element={<ProjectPrivacyPolicy />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="/landing-guest" element={<LandingGuest />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/sites" element={<ContentListingPage />} />
-          <Route path="/button" element={<AttributesEdit />} />
-          <Route path="/terms-and-conditions" element={<TermsConditions />} />
-          <Route
-            path="/privacy-policy"
-            element={<ProjectPrivacyPolicy />}
+        {/* Anyone can access */}
+        <Route
+            path="/sites/:slug/email-verification"
+            element={<ProjectEmailVerification />}
           />
-          <Route path="/sites/:slug/register" element={<ProjectRegister />} />
-          <Route path="/sites/:slug/forgot-password" element={<ProjectForgotPassword />} />
-
-
+        <Route
+          path="/sites/:slug/terms-and-conditions"
+          element={<TermsConditions />}
+        />
+        <Route
+          path="/sites/:slug/community-forum"
+          element={<ProjectCommunityForum />}
+        />
+        <Route
+          path="/sites/:slug/community-forum/:projectId/post/:postId"
+          element={<ProjectSinglePost />}
+        />
+        <Route
+          path="/sites/:slug/privacy-policy"
+          element={<ProjectPrivacyPolicy />}
+        />
+        <Route path="/help" element={<Help />} />
+        <Route path="/landing-guest" element={<LandingGuest />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/sites" element={<ContentListingPage />} />
+        <Route path="/button" element={<AttributesEdit />} />
+        <Route path="/terms-and-conditions" element={<TermsConditions />} />
+        <Route path="/privacy-policy" element={<ProjectPrivacyPolicy />} />
+        <Route path="/sites/:slug/register" element={<ProjectRegister />} />
+        <Route
+          path="/sites/:slug/forgot-password"
+          element={<ProjectForgotPassword />}
+        />
         {/* Routes for Clients */}
-<Route element={<PrivateClientsRoute allowedRoles={["clients"]} />}>
-  <Route path="/sites/:slug/appointments" element={<ProjectAppointments />} />
-  <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
-  <Route path="/sites/:slug/dashboard/pets" element={<ProjectPets />} />
-  <Route path="/sites/:slug/dashboard/pets/:petId" element={<ProjectPetsDetails />} />
-  <Route path="/sites/:slug/messages" element={<ProjectMessages />} />
-  <Route path="/sites/:slug/notifications" element={<ProjectNotifications />} />
-  <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} />
-  <Route path="/sites/:slug/profile" element={<ProjectProfileSummary />} />
-  <Route path="/sites/:slug/profile/edit" element={<ProjectProfile />} />
-  <Route path="/sites/:slug/settings" element={<ProjectSettings />} />
-  <Route path="/sites/:slug/settings/privacy-settings" element={<ProjectPrivacySettings />} />
-  <Route path="/sites/:slug/settings/user-feedback" element={<ProjectUserFeedback />} />
-  <Route path="/sites/:slug/settings/send-report" element={<ProjectSendReport />} />
-</Route>
-
-
-          {/* Only clients Can See this */}
+        <Route element={<PrivateClientsRoute allowedRoles={["clients"]} />}>
+          <Route
+            path="/sites/:slug/appointments"
+            element={<ProjectAppointments />}
+          />
+       
+          <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
+          <Route path="/sites/:slug/dashboard/pets" element={<ProjectPets />} />
+          <Route
+            path="/sites/:slug/dashboard/pets/:petId"
+            element={<ProjectPetsDetails />}
+          />
+          <Route path="/sites/:slug/messages" element={<ProjectMessages />} />
+          <Route
+            path="/sites/:slug/notifications"
+            element={<ProjectNotifications />}
+          />
+          <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} />
+          <Route
+            path="/sites/:slug/profile"
+            element={<ProjectProfileSummary />}
+          />
+          <Route
+            path="/sites/:slug/profile/edit"
+            element={<ProjectProfile />}
+          />
+          <Route path="/sites/:slug/settings" element={<ProjectSettings />} />
+          <Route
+            path="/sites/:slug/settings/privacy-settings"
+            element={<ProjectPrivacySettings />}
+          />
+          <Route
+            path="/sites/:slug/settings/user-feedback"
+            element={<ProjectUserFeedback />}
+          />
+          <Route
+            path="/sites/:slug/settings/send-report"
+            element={<ProjectSendReport />}
+          />
+        </Route>
+        {/* Only clients Can See this */}
         <Route path="sites/:slug" element={<ProjectWrapper />}>
           <Route index element={<ProjectHome />} />
-          <Route path="login" element={<ProjectLogin />} /> {/* Login route for each site */}
+          <Route path="login" element={<ProjectLogin />} />{" "}
+          {/* Login route for each site */}
           <Route path="terms-and-conditions" element={<TermsConditions />} />
           <Route path="approval" element={<ForApproval />} />
           <Route path="about" element={<ProjectAbout />} />
           <Route path="services" element={<ProjectServices />} />
-          <Route path="volunteer" element={<ProjectVolunteer/>} />
+          <Route path="volunteer" element={<ProjectVolunteer />} />
           <Route path="donate" element={<ProjectDonate />} />
           <Route path="contact" element={<ProjectContact />} />
           <Route path="help" element={<ProjectHelp />} />
-
           {/* Including these protected routes */}
-          <Route path="/sites/:slug/appointments" element={<ProjectAppointments />} />
+          <Route
+            path="/sites/:slug/appointments"
+            element={<ProjectAppointments />}
+          />
           <Route path="/sites/:slug/dashboard" element={<ProjectDashboard />} />
           <Route path="/sites/:slug/messages" element={<ProjectMessages />} />
-          <Route path="/sites/:slug/notifications" element={<ProjectNotifications />} />
+          <Route
+            path="/sites/:slug/notifications"
+            element={<ProjectNotifications />}
+          />
           <Route path="/sites/:slug/adopt-pet" element={<ProjectAdoption />} />
-          <Route path="/sites/:slug/profile" element={<ProjectProfileSummary />} />
-          <Route path="/sites/:slug/profile/edit" element={<ProjectProfile />} />
+          <Route
+            path="/sites/:slug/profile"
+            element={<ProjectProfileSummary />}
+          />
+          <Route
+            path="/sites/:slug/profile/edit"
+            element={<ProjectProfile />}
+          />
           <Route path="/sites/:slug/settings" element={<ProjectSettings />} />
-          <Route path="/sites/:slug/settings/privacy-settings" element={<ProjectPrivacySettings />} />
+          <Route
+            path="/sites/:slug/settings/privacy-settings"
+            element={<ProjectPrivacySettings />}
+          />
           <Route path="/sites/:slug/user-feedback" element={<UserFeedback />} />
-
           {/* Catch-all route for invalid paths */}
           <Route path="*" element={<NotFound />} />
         </Route>
-      
-      
-
         <Route path="/sites/:slug/help" element={<ProjectHelp />} />
         <Route path="/sites/:slug/feedback" element={<ProjectFeedback />} />
         {/* <Route
@@ -468,6 +561,13 @@ function AppContent() {
 }
 
 function App() {
+
+  useEffect(()=>{
+    generateToken();
+    onMessage(messaging, (payload)=>{
+      console.log(payload);
+    });
+  }, []);
   return (
     <Router>
       <AppContent />

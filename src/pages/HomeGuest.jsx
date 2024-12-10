@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import CatLeft from "../assets/png/cat-left.png";
 import DogRight from "../assets/png/dog-right.png";
 import InnoPetCareBrownLogo from "../assets/png/innopetcare-brown.png";
+import ExploreGuest from "./ExploreGuest";
 
 export default function HomeGuest() {
   const navigate = useNavigate();
@@ -16,15 +17,14 @@ export default function HomeGuest() {
         <img
           src={CatLeft}
           alt="Cat on the left"
-          className="absolute left-0 top-0 w-1/2  h-full object-cover hidden lg:block" // Extend the image to the whole viewport
+          className="absolute left-[-25vw] top-0 w-full h-full object-contain hidden lg:block" // Changed to object-contain to avoid clipping
         />
         <img
           src={DogRight}
           alt="Dog on the right"
-          className="absolute right-0 bottom-0 w-1/4 object-cover hidden lg:block" // Retain the previous size for the dog image
+          className="absolute right-0 bottom-10 2xl:bottom-40 w-1/4 3xl:bottom-30 2xl:w-1/3 object-cover hidden lg:block" // Retain the previous size for the dog image
         />
         <div className="container text-center mx-auto py-16 relative z-10 px-8 md:px-0">
-          {" "}
           {/* Add z-10 for text above the image */}
           <h1 className="text-4xl md:text-6xl font-bold text-yellow-900">
             Welcome to
@@ -50,16 +50,16 @@ export default function HomeGuest() {
       </section>
 
       <div
-        className="bg-cover bg-bottom py-8 md:py-0 md:h-[100vh] flex flex-col justify-center"
+        className="bg-cover bg-bottom py-8 lg:py-0 lg:h-[100vh] flex flex-col justify-center"
         style={{ backgroundImage: `url(${BackgroundPet})` }}
       >
         <h1 className="text-2xl md:text-6xl font-bold text-white text-center mb-10">
           Your furry friends deserve the best.
         </h1>
 
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 md:mx-10">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:mx-10">
           {/* Login Card */}
-          <div className="card bg-base-100 shadow-xl w-full">
+          <div className="card bg-base-100 shadow-xl w-full transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
             <div className="card-body items-center text-center">
               <h2 className="card-title">For Vet and Shelter Admin</h2>
               <p className="text-sm">
@@ -69,7 +69,7 @@ export default function HomeGuest() {
               </p>
               <div className="card-actions">
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary max-w-full"
                   onClick={() => (window.location.href = "/login")}
                 >
                   Proceed to Login
@@ -79,7 +79,7 @@ export default function HomeGuest() {
           </div>
 
           {/* Vet and Shelter Admin Card */}
-          <div className="card bg-base-100 shadow-xl w-full">
+          <div className="card bg-base-100 shadow-xl w-full transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
             <div className="card-body items-center text-center">
               <h2 className="card-title">For Vet and Shelter Admin</h2>
               <p className="text-sm">
@@ -88,7 +88,7 @@ export default function HomeGuest() {
               </p>
               <div className="card-actions">
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary max-w-full"
                   onClick={() => (window.location.href = "/register")}
                 >
                   Proceed to Register
@@ -98,16 +98,17 @@ export default function HomeGuest() {
           </div>
 
           {/* Customers Card */}
-          <div className="card bg-base-100 shadow-xl w-full">
+          <div className="card bg-base-100 shadow-xl w-full transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
             <div className="card-body items-center text-center">
               <h2 className="card-title">For Customers</h2>
               <p className="text-sm">
-                Browse available pets, schedule appointments, and interact with
-                shelters. Your one-stop solution for pet adoption and care.
+                Explore various veterinary clinics and animal shelters, connect
+                with them, and access services tailored to your pet care and
+                adoption needs —all in one place.
               </p>
               <div className="card-actions">
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary max-w-full"
                   onClick={() => (window.location.href = "/sites")}
                 >
                   Proceed to Content Listing
@@ -117,7 +118,7 @@ export default function HomeGuest() {
           </div>
 
           {/* Guest Card */}
-          <div className="card bg-base-100 shadow-xl w-full">
+          <div className="card bg-base-100 shadow-xl w-full transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl">
             <div className="card-body items-center text-center">
               <h2 className="card-title">For Guest</h2>
               <p className="text-sm">
@@ -126,7 +127,7 @@ export default function HomeGuest() {
               </p>
               <div className="card-actions">
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary max-w-full"
                   onClick={() => (window.location.href = "/landing-guest")}
                 >
                   Explore as Guest
@@ -152,6 +153,8 @@ export default function HomeGuest() {
           contribute to the rescue of animals.
         </p>
       </section>
+
+      <ExploreGuest />
 
       <Footer />
     </>

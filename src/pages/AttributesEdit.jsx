@@ -62,15 +62,19 @@ export default function AttributesEdit() {
     "4jDgGh4QCHbsHgXw7VUA",
     "6k6a8faF6IeWrQTnqmJc",
     "7Lk9qYdvfCzXJX8mLqYF",
+    "7jgJTwKMtCRwBGThNlIa",
     "7ylad1mnTjfJSicwyKfC",
     "9urLyJzMHTU2lLfSIeW3",
     "AMpHsWGL9GzorxGOggf8",
     "AlulLhf31lspoiMpH3aw",
+    "DE9nAti4nRm9bfTzAY6F",
     "DxObwDcSLMH2eSkMPKJn",
     "GPlKndkWxXChay6zjZsN",
     "HnwWYPFz2pfuVGGUMNcS",
     "IAAv9H53gQtJBVK1kGn7",
     "J8zkkQN1LFEWvOeirEuY",
+    "Ps9vZcSXTsIa19gy5Voz",
+    "Q9Ke3pcs03JQ1uSXB3rw",
     "RBnFmVBA3uUO2W5OeTZt",
     "RMwizU0qOFjTsZgGB6gT",
     "SfkFRxvVu90ulbnrmSVM",
@@ -87,15 +91,17 @@ export default function AttributesEdit() {
     "j8ZgQ49pXfwEGtQrW7Ta",
     "mx8ZFq781ncHlC6kMn1e",
     "s2YXL4xErIrj5HpRCmM2",
-    "wvSXDFzJ0NpLRc1PhljD"
+    "wvSXDFzJ0NpLRc1PhljD",
+    "xVLMapefUSmu7PNzZuxX"
   ];
+  
   
 
   const bulkAddingIds = async () => {
 
     try {
       const batchPromises = ids.map(async (id) => {
-        const docRef = doc(db, "appointments-section", id);
+        const docRef = doc(db, "community-forum-section", id);
         await setDoc(docRef, {
           isEnabled: true,
           updatedAt: Timestamp.now(),
@@ -214,10 +220,31 @@ export default function AttributesEdit() {
     }
   };
 
+  const sampleNotification = () => {
+    if (Notification.permission === "granted") {
+      new Notification("Sample Notification", {
+        body: "This is a sample notification!",
+        icon: "path_to_icon.png", // Optional: Add a custom icon
+      });
+    } else if (Notification.permission !== "denied") {
+      // Ask for permission if not already granted or denied
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          new Notification("Sample Notification", {
+            body: "This is a sample notification!",
+            icon: "path_to_icon.png", // Optional: Add a custom icon
+          });
+        }
+      });
+    } else {
+      alert("Permission for notifications has been denied.");
+    }
+  };
+
   return (
     <div>
-      <button className="btn btn-primary" onClick={bulkAddingIds}>
-        Extract Contents
+      <button className="btn btn-primary" onClick={sampleNotification}>
+        Sample Notification
       </button>
     </div>
   );

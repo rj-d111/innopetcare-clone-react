@@ -1,17 +1,16 @@
 {
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": [
+  "hosting": {
+    "public": "public",
+    "headers": [{
+      "source": "**",
+      "headers": [
+        {"key": "Content-Security-Policy", "value": "script-src 'self'"},
+        {"key": "x-frame-options", "value": "SAMEORIGIN"},
+        {"key": "X-Content-Type-Options", "value": "nosniff"},
+        {"key": "Referrer-Policy", "value": "no-referrer"},
+        {"key": "Permissions-Policy", "value": "geolocation 'self'; microphone 'none'"},
+        {"key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains"}
       ]
-    }
-  ]
+    }]
+  }
 }
